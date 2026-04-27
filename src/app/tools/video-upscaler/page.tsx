@@ -55,38 +55,70 @@ export default function VideoUpscalerPage() {
     formData.append("preset", preset);
 
     try {
-      setProgress("Upscaling — this may take a minute...");
-
-      const response = await fetch("/api/convert/upscale", {
+      // 1. Start the job
+      const startRes = await fetch("/api/convert/upscale", {
         method: "POST",
         body: formData,
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to upscale video");
+      if (!startRes.ok) {
+        const errData = await startRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to start upscaling");
       }
 
-      setProgress("Preparing download...");
+      const { jobId } = await startRes.json();
+      
+      // 2. Poll for progress
+      const poll = async () => {
+        try {
+          const statusRes = await fetch(`/api/convert/upscale?jobId=${jobId}`);
+          if (!statusRes.ok) throw new Error("Failed to check status");
+          
+          const job = await statusRes.json();
+          
+          if (job.status === "error") {
+            throw new Error(job.error || "Upscale failed");
+          }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
+          if (job.status === "completed") {
+            // 3. Download the result
+            setProgress("Preparing download...");
+            const downloadRes = await fetch(`/api/convert/upscale?jobId=${jobId}&download=true`);
+            if (!downloadRes.ok) throw new Error("Download failed");
+            
+            const blob = await downloadRes.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${file.name.replace(/\.[^.]+$/, "")}-${resolution}.mp4`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            
+            toast.success(`Video upscaled successfully!`);
+            setIsProcessing(false);
+            setProgress("");
+            return;
+          }
 
-      const contentDisposition = response.headers.get("content-disposition");
-      const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
-      link.download = filenameMatch?.[1] || `${file.name.replace(/\.[^.]+$/, "")}-${resolution}.mp4`;
+          // Update progress bar
+          const percent = job.progress || 0;
+          setProgress(`Processing: ${percent}%`);
+          
+          // Poll again
+          setTimeout(poll, 1000);
+        } catch (error: any) {
+          toast.error(error.message);
+          setIsProcessing(false);
+          setProgress("");
+        }
+      };
 
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      poll();
 
-      toast.success(`Video upscaled to ${resolution} successfully!`);
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to upscale video");
-    } finally {
+    } catch (error: any) {
+      toast.error(error.message);
       setIsProcessing(false);
       setProgress("");
     }
@@ -202,31 +234,39 @@ export default function VideoUpscalerPage() {
                 </div>
               </div>
 
-              {/* Action Button */}
+              {/* Action Button & Progress */}
               <div className="pt-4 border-t border-border/50">
-                <Button
-                  size="lg"
-                  onClick={handleUpscale}
-                  disabled={isProcessing}
-                  className="w-full text-md h-12 relative overflow-hidden group bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border-0"
-                >
-                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] animate-[shimmer_2s_infinite] group-hover:block transition-all" />
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      {progress || "Processing..."}
-                    </>
-                  ) : (
-                    <>
-                      <MonitorUp className="mr-2 h-5 w-5" />
-                      Upscale to {resolution}
-                    </>
-                  )}
-                </Button>
-                {isProcessing && (
-                  <p className="text-xs text-muted-foreground text-center mt-3 animate-pulse">
-                    Video upscaling is compute-intensive. Larger files may take several minutes.
-                  </p>
+                {!isProcessing ? (
+                  <Button
+                    size="lg"
+                    onClick={handleUpscale}
+                    className="w-full text-md h-12 relative overflow-hidden group bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border-0"
+                  >
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] animate-[shimmer_2s_infinite] group-hover:block transition-all" />
+                    <MonitorUp className="mr-2 h-5 w-5" />
+                    Upscale to {resolution}
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center text-sm mb-1">
+                      <span className="text-muted-foreground flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin text-cyan-500" />
+                        {progress.split(':')[0]}
+                      </span>
+                      <span className="font-bold text-cyan-500">
+                        {progress.includes('%') ? progress.split(':')[1].trim() : "0%"}
+                      </span>
+                    </div>
+                    <div className="h-3 w-full bg-muted rounded-full overflow-hidden border">
+                      <div 
+                        className="h-full bg-gradient-to-r from-cyan-600 to-blue-600 transition-all duration-500 ease-out shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+                        style={{ width: progress.includes('%') ? progress.split(':')[1].trim() : "0%" }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground text-center animate-pulse">
+                      Processing 4K frames... this takes heavy computation.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
