@@ -113,16 +113,17 @@ export async function POST(req: NextRequest) {
       await new Promise<void>((resolve, reject) => {
         ffmpeg(inputPath)
           .videoFilters([
-            // delogo filter uses area to interpolate surrounding pixels
-            `delogo=x=${x}:y=${y}:w=${w}:h=${h}`
+            // band=4 adds a 4-pixel fuzzy border for much smoother blending with the surrounding area
+            `delogo=x=${x}:y=${y}:w=${w}:h=${h}:band=4`
           ])
           .outputOptions([
             "-c:v libx264",
-            "-preset fast",
-            "-crf 18",
+            "-preset slower",     // Better compression and detail retention
+            "-crf 14",            // Very high quality, close to visually lossless
+            "-tune film",         // Preserves original texture and grain
             "-pix_fmt yuv420p",
             "-c:a aac",
-            "-b:a 192k",
+            "-b:a 320k",          // High fidelity audio
             "-movflags +faststart",
           ])
           .output(outputPath)
