@@ -43,4 +43,5 @@ next-env.d.ts
 .vercel
 
 /src/app/brain/
+/tmp/
 
