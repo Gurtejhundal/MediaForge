@@ -38,6 +38,9 @@ export function Navbar() {
           <Link href="/tools/video-downloader" className="transition-colors hover:text-primary">
             URL Downloader
           </Link>
+          <Link href="/tools/watermark-remover" className="transition-colors hover:text-primary">
+            Watermark Remover
+          </Link>
           <Link href="/tools/qr-generator" className="transition-colors hover:text-primary">
             QR Generator
           </Link>

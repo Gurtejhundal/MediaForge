@@ -58,9 +58,16 @@ const TOOLS = [
     href: "/tools/qr-generator",
   },
   {
+    title: "Watermark Remover",
+    description: "Remove logos or watermarks from videos by selecting the area you want to clean.",
+    icon: <Eraser className="h-6 w-6 text-indigo-500" />,
+    href: "/tools/watermark-remover",
+    popular: true,
+  },
+  {
     title: "URL Video Downloader",
     description: "Paste a YouTube or raw .mp4 link to bypass CORS and download the whole video locally.",
-    icon: <LinkIcon2 className="h-6 w-6 text-indigo-500" />,
+    icon: <LinkIcon2 className="h-6 w-6 text-emerald-500" />,
     href: "/tools/video-downloader",
   },
 ];
