@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Zap, Shield, FileType, CheckCircle2, Box, Crop, Download, Maximize, Film, QrCode, Link as LinkIcon2, MonitorUp, Eraser } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Zap, Shield, FileType, CheckCircle2, Box, Crop, Download, Maximize, Film, QrCode, Link as LinkIcon2, MonitorUp, Eraser, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const TOOLS = [
