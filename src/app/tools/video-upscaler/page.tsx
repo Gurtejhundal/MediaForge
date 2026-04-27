@@ -101,7 +101,15 @@ export default function VideoUpscalerPage() {
         {!file ? (
           <Dropzone
             onFileAccepted={handleFileAccepted}
-            accept={{ "video/mp4": [".mp4"], "video/webm": [".webm"], "video/quicktime": [".mov"] }}
+            accept={{ 
+              "video/mp4": [".mp4", ".m4v"], 
+              "video/webm": [".webm"], 
+              "video/quicktime": [".mov"],
+              "video/x-matroska": [".mkv"],
+              "video/x-msvideo": [".avi"],
+              "video/x-flv": [".flv"],
+              "video/mp2t": [".ts"]
+            }}
             maxSizeMB={100}
             displayMode="video"
           />

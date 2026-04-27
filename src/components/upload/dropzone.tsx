@@ -139,6 +139,12 @@ export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode =
               <span className="flex items-center bg-background px-2 py-1 rounded-md border">
                 <UploadCloud className="h-3 w-3 mr-1" /> MOV
               </span>
+              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
+                <UploadCloud className="h-3 w-3 mr-1" /> MKV
+              </span>
+              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
+                <UploadCloud className="h-3 w-3 mr-1" /> AVI
+              </span>
             </>
           )}
         </div>

@@ -31,19 +31,21 @@ const SHARPENING: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const inputPath = join(tmpdir(), `upscale-in-${randomUUID()}.mp4`);
-  const outputPath = join(tmpdir(), `upscale-out-${randomUUID()}.mp4`);
+  const requestId = randomUUID();
+  const formData = await req.formData();
+  const file = formData.get("file") as File | null;
+  const resolution = (formData.get("resolution") as string) || "2160p";
+  const preset = (formData.get("preset") as string) || "balanced";
+
+  if (!file) {
+    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  }
+
+  const ext = file.name.split(".").pop() || "mp4";
+  const inputPath = join(tmpdir(), `upscale-in-${requestId}.${ext}`);
+  const outputPath = join(tmpdir(), `upscale-out-${requestId}.mp4`);
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    const resolution = (formData.get("resolution") as string) || "2160p";
-    const preset = (formData.get("preset") as string) || "balanced";
-
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
     if (file.size > 100 * 1024 * 1024) {
       return NextResponse.json({ error: "File exceeds 100MB limit" }, { status: 400 });
     }
@@ -75,12 +77,16 @@ export async function POST(req: NextRequest) {
           "-level:v 5.1",          // Level 5.1 supports 4K @ 30fps
           "-tune film",            // Preserves grain & texture instead of smoothing them as noise
           "-pix_fmt yuv420p",      // Universal compatibility
-          "-c:a copy",
+          "-c:a aac",              // Transcode to AAC for maximum compatibility in MP4 container
+          "-b:a 192k",             // Solid audio bitrate
           "-movflags +faststart",
         ])
         .output(outputPath)
         .on("end", () => resolve())
-        .on("error", (err) => reject(err))
+        .on("error", (err, stdout, stderr) => {
+          console.error("FFmpeg stderr:", stderr);
+          reject(err);
+        })
         .run();
     });
 
@@ -109,7 +115,7 @@ export async function POST(req: NextRequest) {
     ]);
     console.error("Video upscale error:", error);
     return NextResponse.json(
-      { error: "Failed to upscale video. Ensure the input is a valid video file." },
+      { error: "Failed to upscale video. The file might be corrupted or in an unsupported format." },
       { status: 500 }
     );
   }
