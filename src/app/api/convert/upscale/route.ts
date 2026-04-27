@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
-import { writeFile, unlink, readFile } from "fs/promises";
-import { join } from "path";
-import { tmpdir } from "os";
+import { writeFile, unlink, readFile, mkdir } from "fs/promises";
+import { join, normalize, extname } from "path";
 import { randomUUID } from "crypto";
+import { existsSync } from "fs";
 
 ffmpeg.setFfmpegPath(ffmpegPath as string);
 
@@ -16,14 +16,12 @@ const RESOLUTIONS: Record<string, { width: number; height: number; label: string
   "2160p": { width: 3840, height: 2160, label: "4K UHD" },
 };
 
-// Slower presets = more encoder effort = better detail retention at same bitrate
 const PRESETS: Record<string, string> = {
   fast: "fast",
   balanced: "slow",
   "max-quality": "slower",
 };
 
-// Unsharp mask strength tuned per resolution jump — bigger jumps need more sharpening
 const SHARPENING: Record<string, string> = {
   "1080p": "unsharp=3:3:0.8:3:3:0.4",
   "1440p": "unsharp=5:5:0.9:5:5:0.4",
@@ -32,6 +30,13 @@ const SHARPENING: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   const requestId = randomUUID();
+  const tmpDir = normalize(join(process.cwd(), "tmp"));
+  
+  // Ensure local tmp dir exists
+  if (!existsSync(tmpDir)) {
+    await mkdir(tmpDir, { recursive: true });
+  }
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const resolution = (formData.get("resolution") as string) || "2160p";
@@ -41,9 +46,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  const ext = file.name.split(".").pop() || "mp4";
-  const inputPath = join(tmpdir(), `upscale-in-${requestId}.${ext}`);
-  const outputPath = join(tmpdir(), `upscale-out-${requestId}.mp4`);
+  // Sanitize extension - only alphanumeric
+  const rawExt = extname(file.name).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const ext = rawExt || "mp4";
+  
+  const inputPath = normalize(join(tmpDir, `in-${requestId}.${ext}`));
+  const outputPath = normalize(join(tmpDir, `out-${requestId}.mp4`));
 
   try {
     if (file.size > 100 * 1024 * 1024) {
@@ -54,45 +62,41 @@ export async function POST(req: NextRequest) {
     const ffmpegPreset = PRESETS[preset] || "slow";
     const sharpen = SHARPENING[resolution] || SHARPENING["2160p"];
 
-    // Write uploaded file to temp
     const arrayBuffer = await file.arrayBuffer();
     await writeFile(inputPath, Buffer.from(arrayBuffer));
 
-    // Run FFmpeg upscale with detail-preserving pipeline:
-    //  1. Scale up with Lanczos (best interpolation for upscaling)
-    //  2. Pad to exact resolution if aspect ratio doesn't match
-    //  3. Unsharp mask to recover edge detail and micro-texture lost during scaling
     await new Promise<void>((resolve, reject) => {
       ffmpeg(inputPath)
         .videoFilters([
           `scale=${target.width}:${target.height}:flags=lanczos:force_original_aspect_ratio=decrease`,
-          `pad=${target.width}:${target.height}:(ow-iw)/2:(oh-ih)/2:color=black`,
+          `pad=${target.width}:${target.height}:-1:-1:color=black`,
+          `setsar=1`,
           sharpen,
         ])
         .outputOptions([
           "-c:v libx264",
           `-preset ${ffmpegPreset}`,
-          "-crf 15",               // Lower CRF = higher bitrate = more detail preserved
-          "-profile:v high",       // High profile unlocks better compression efficiency
-          "-level:v 5.1",          // Level 5.1 supports 4K @ 30fps
-          "-tune film",            // Preserves grain & texture instead of smoothing them as noise
-          "-pix_fmt yuv420p",      // Universal compatibility
-          "-c:a aac",              // Transcode to AAC for maximum compatibility in MP4 container
-          "-b:a 192k",             // Solid audio bitrate
+          "-crf 15",
+          "-tune film",
+          "-pix_fmt yuv420p",
+          "-c:a aac",
+          "-b:a 192k",
           "-movflags +faststart",
         ])
         .output(outputPath)
+        .on("start", (cmd) => console.log("FFmpeg command:", cmd))
         .on("end", () => resolve())
         .on("error", (err, stdout, stderr) => {
+          console.error("FFmpeg error:", err.message);
           console.error("FFmpeg stderr:", stderr);
-          reject(err);
+          reject(new Error(stderr || err.message));
         })
         .run();
     });
 
     const resultBuffer = await readFile(outputPath);
 
-    // Cleanup temp files
+    // Cleanup
     await Promise.all([
       unlink(inputPath).catch(() => {}),
       unlink(outputPath).catch(() => {}),
@@ -107,16 +111,18 @@ export async function POST(req: NextRequest) {
         "Content-Disposition": `attachment; filename="${originalName}-${resolution}.mp4"`,
       },
     });
-  } catch (error) {
-    // Cleanup on error
-    await Promise.all([
-      unlink(inputPath).catch(() => {}),
-      unlink(outputPath).catch(() => {}),
-    ]);
-    console.error("Video upscale error:", error);
+  } catch (error: any) {
+    // Attempt cleanup on error
+    await unlink(inputPath).catch(() => {});
+    await unlink(outputPath).catch(() => {});
+    
+    console.error("Video upscale processing error:", error.message);
+    const cleanError = error.message.split('\n')[0].replace(/.*stderr:/, "").trim();
     return NextResponse.json(
-      { error: "Failed to upscale video. The file might be corrupted or in an unsupported format." },
+      { error: `Upscale failed: ${cleanError || "The video codec or format is incompatible."}` },
       { status: 500 }
     );
   }
 }
+
+
