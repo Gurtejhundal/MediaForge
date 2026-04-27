@@ -13,7 +13,11 @@ export default function PngToFaviconPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<{ previews: Record<string, string>, zipData: string } | null>(null);
+  const [result, setResult] = useState<{
+    previews: Record<string, string>;
+    zipData: string;
+    filename: string;
+  } | null>(null);
 
   const handleFileAccepted = (acceptedFile: File) => {
     setFile(acceptedFile);
@@ -48,8 +52,8 @@ export default function PngToFaviconPage() {
       const data = await response.json();
       setResult(data);
       toast.success("Favicon package generated successfully!");
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to generate favicons");
     } finally {
       setIsProcessing(false);
     }
@@ -70,10 +74,11 @@ export default function PngToFaviconPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "favicon-pack.zip";
+    link.download = result.filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (

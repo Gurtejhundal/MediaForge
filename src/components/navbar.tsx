@@ -26,6 +26,12 @@ export function Navbar() {
           <Link href="/tools/compress" className="transition-colors hover:text-primary">
             Compressor
           </Link>
+          <Link href="/tools/video-upscaler" className="transition-colors hover:text-primary">
+            Video Upscaler
+          </Link>
+          <Link href="/tools/bg-remover" className="transition-colors hover:text-primary">
+            BG Remover
+          </Link>
           <Link href="/tools/video-to-image" className="transition-colors hover:text-primary">
             Video to Image
           </Link>

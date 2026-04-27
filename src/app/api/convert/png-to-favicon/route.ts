@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateFaviconPackage } from "@/lib/faviconGenerator";
+import {
+  buildFaviconPackageNaming,
+  generateFaviconPackage,
+} from "@/lib/faviconGenerator";
 
 // Configure maximum sizes if deploying on Vercel
 export const maxDuration = 10; 
@@ -20,16 +23,17 @@ export async function POST(req: NextRequest) {
     // Convert Next.js File to Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const packageNaming = buildFaviconPackageNaming(file.name);
 
     // Process
-    const result = await generateFaviconPackage(buffer);
+    const result = await generateFaviconPackage(buffer, packageNaming.folderName);
 
     // We return JSON containing previews and base64 ZIP payload
     // so we don't need persistent server storage to "download later".
     return NextResponse.json({
       previews: result.previews,
       zipData: result.zipBuffer.toString("base64"),
-      filename: "favicon-pack.zip"
+      filename: packageNaming.zipFilename,
     });
 
   } catch (error) {

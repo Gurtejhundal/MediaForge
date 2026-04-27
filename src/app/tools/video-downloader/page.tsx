@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, DownloadCloud, Youtube, Link as LinkIcon } from "lucide-react";
+import { Loader2, DownloadCloud, Film, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export default function VideoDownloaderPage() {
@@ -78,7 +78,7 @@ export default function VideoDownloaderPage() {
             
             {/* Background decors */}
             <div className="absolute -top-10 -right-10 opacity-10">
-               <Youtube className="w-48 h-48" />
+               <Film className="w-48 h-48" />
             </div>
 
             <div className="relative z-10 flex flex-col items-center">
@@ -129,7 +129,7 @@ export default function VideoDownloaderPage() {
                </div>
                
                <div className="mt-8 flex flex-wrap justify-center gap-4 opacity-50">
-                  <div className="flex items-center text-sm"><Youtube className="h-4 w-4 mr-1" /> YouTube</div>
+                  <div className="flex items-center text-sm"><Film className="h-4 w-4 mr-1" /> YouTube</div>
                   <div className="flex items-center text-sm"><LinkIcon className="h-4 w-4 mr-1" /> Direct MP4</div>
                </div>
             </div>

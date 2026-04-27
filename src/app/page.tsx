@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Zap, Shield, FileType, CheckCircle2, Box, Crop, Download, Maximize, Film, QrCode, Link as LinkIcon2 } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Zap, Shield, FileType, CheckCircle2, Box, Crop, Download, Maximize, Film, QrCode, Link as LinkIcon2, MonitorUp, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const TOOLS = [
@@ -32,11 +32,24 @@ const TOOLS = [
     href: "/tools/compress",
   },
   {
+    title: "Video Upscaler",
+    description: "Upscale 720p or 1080p videos to crisp 4K UHD resolution with Lanczos resampling.",
+    icon: <MonitorUp className="h-6 w-6 text-cyan-500" />,
+    href: "/tools/video-upscaler",
+    popular: true,
+  },
+  {
+    title: "BG Remover",
+    description: "Instantly remove backgrounds from any photo using AI-powered segmentation.",
+    icon: <Eraser className="h-6 w-6 text-rose-500" />,
+    href: "/tools/bg-remover",
+    popular: true,
+  },
+  {
     title: "Video to Image",
     description: "Extract high-quality JPG frames or generate animated GIFs from MP4 videos.",
     icon: <Film className="h-6 w-6 text-pink-500" />,
     href: "/tools/video-to-image",
-    popular: true,
   },
   {
     title: "QR Code Generator",

@@ -7,7 +7,36 @@ export interface FaviconPackage {
   previews: Record<string, string>; // base64 strings for preview grid
 }
 
-export async function generateFaviconPackage(inputBuffer: Buffer): Promise<FaviconPackage> {
+interface FaviconPackageNaming {
+  folderName: string;
+  zipFilename: string;
+}
+
+function sanitizeBaseName(filename: string): string {
+  const withoutExtension = filename.replace(/\.[^.]+$/, "").trim();
+
+  const sanitized = withoutExtension
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, " ")
+    .replace(/\.+$/g, "")
+    .trim();
+
+  return sanitized || "favicon";
+}
+
+export function buildFaviconPackageNaming(filename: string): FaviconPackageNaming {
+  const baseName = sanitizeBaseName(filename);
+
+  return {
+    folderName: `${baseName}-favicon-pack`,
+    zipFilename: `${baseName}-favicon-pack.zip`,
+  };
+}
+
+export async function generateFaviconPackage(
+  inputBuffer: Buffer,
+  folderName = "favicon-pack"
+): Promise<FaviconPackage> {
   // First, we create a high quality square base image
   const baseImage = sharp(inputBuffer)
     .resize(512, 512, {
@@ -37,7 +66,7 @@ export async function generateFaviconPackage(inputBuffer: Buffer): Promise<Favic
 
   // Build the ZIP file
   const zip = new JSZip();
-  const folder = zip.folder("favicon-pack") || zip;
+  const folder = zip.folder(folderName) || zip;
 
   folder.file("favicon.ico", icoBuffer);
   folder.file("favicon-16x16.png", sizeBuffers[16]);

@@ -26,16 +26,17 @@ export async function POST(req: NextRequest) {
       width: 1024 // Generate high resolution by default
     };
 
-    // We can generate Data URI (Base64) or directly to Buffer.
-    // For direct image streaming, Buffer is best.
-    const resultBuffer = await QRCode.toBuffer(text, {
+    const qrOptions: any = {
        ...options, // QRCode package handles toBuffer options similarly
        type: format === 'jpeg' ? 'jpeg' : 'png' // toBuffer only directly supports png/jpeg formally, but we can return it.
-    });
+    };
+
+    // For direct image streaming, Buffer is best.
+    const resultBuffer = (await QRCode.toBuffer(text, qrOptions)) as unknown as ArrayBufferLike;
 
     const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
 
-    return new NextResponse(new Uint8Array(resultBuffer), {
+    return new NextResponse(new Uint8Array(resultBuffer) as any, {
       status: 200,
       headers: {
         'Content-Type': mimeType,
