@@ -2,11 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import { writeFile, unlink, readFile, mkdir } from "fs/promises";
-import { join, normalize, extname } from "path";
+import { join, normalize, extname, resolve } from "path";
 import { randomUUID } from "crypto";
 import { existsSync } from "fs";
 
-ffmpeg.setFfmpegPath(ffmpegPath as string);
+// Robust FFmpeg path resolution
+const getFFmpegPath = () => {
+  const possiblePaths = [
+    ffmpegPath as string,
+    resolve(process.cwd(), "node_modules", "ffmpeg-static", "ffmpeg.exe"),
+    resolve(process.cwd(), "node_modules", "ffmpeg-static", "ffmpeg"),
+    join(process.cwd(), "node_modules", "ffmpeg-static", "ffmpeg.exe")
+  ];
+
+  for (const p of possiblePaths) {
+    if (p && existsSync(p)) return p;
+  }
+  return ffmpegPath as string;
+};
+
+const FFMPEG_BIN = getFFmpegPath();
+ffmpeg.setFfmpegPath(FFMPEG_BIN);
 
 export const maxDuration = 300;
 
