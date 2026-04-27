@@ -8,7 +8,7 @@ import { existsSync } from "fs";
 
 ffmpeg.setFfmpegPath(ffmpegPath as string);
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const RESOLUTIONS: Record<string, { width: number; height: number; label: string }> = {
   "1080p": { width: 1920, height: 1080, label: "Full HD" },
