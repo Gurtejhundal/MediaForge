@@ -20,6 +20,9 @@ export function Navbar() {
           <Link href="/tools/format-converter" className="transition-colors hover:text-primary">
             Format Converter
           </Link>
+          <Link href="/tools/image-enhancer" className="transition-colors hover:text-primary">
+            Image Enhancer
+          </Link>
           <Link href="/tools/resize" className="transition-colors hover:text-primary">
             Resizer
           </Link>

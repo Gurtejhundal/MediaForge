@@ -7,11 +7,17 @@ import { Button } from "@/components/ui/button";
 
 const TOOLS = [
   {
+    title: "AI Image Enhancer",
+    description: "Professional-grade enhancement that restores detail, adjusts contrast, and makes colors pop.",
+    icon: <Sparkles className="h-6 w-6 text-emerald-500" />,
+    href: "/tools/image-enhancer",
+    popular: true,
+  },
+  {
     title: "PNG to Favicon",
     description: "Generate a complete .ico and .png favicon package for modern web apps with one click.",
     icon: <Box className="h-6 w-6 text-purple-500" />,
     href: "/tools/png-to-favicon",
-    popular: true,
   },
   {
     title: "Format Converter",
