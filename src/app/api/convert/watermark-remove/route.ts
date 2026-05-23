@@ -5,6 +5,7 @@ import { writeFile, unlink, readFile, mkdir } from "fs/promises";
 import { join, normalize, extname, resolve } from "path";
 import { randomUUID } from "crypto";
 import { existsSync } from "fs";
+import os from "os";
 
 // Robust FFmpeg path resolution
 const getFFmpegPath = () => {
@@ -23,6 +24,7 @@ const getFFmpegPath = () => {
 const FFMPEG_BIN = getFFmpegPath();
 ffmpeg.setFfmpegPath(FFMPEG_BIN);
 
+export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 interface WatermarkJob {
@@ -77,7 +79,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const jobId = randomUUID();
-  const tmpDir = normalize(join(process.cwd(), "tmp"));
+  const tmpDir = normalize(join(os.tmpdir(), "mediaforge-watermark"));
   if (!existsSync(tmpDir)) await mkdir(tmpDir, { recursive: true });
 
   const formData = await req.formData();

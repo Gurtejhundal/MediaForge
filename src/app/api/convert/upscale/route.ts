@@ -5,6 +5,7 @@ import { writeFile, unlink, readFile, mkdir } from "fs/promises";
 import { join, normalize, extname, resolve } from "path";
 import { randomUUID } from "crypto";
 import { existsSync } from "fs";
+import os from "os";
 
 // Robust FFmpeg path resolution
 const getFFmpegPath = () => {
@@ -24,7 +25,11 @@ const getFFmpegPath = () => {
 const FFMPEG_BIN = getFFmpegPath();
 ffmpeg.setFfmpegPath(FFMPEG_BIN);
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 export const maxDuration = 300;
+
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 // Job tracking
 interface UpscaleJob {
@@ -39,8 +44,11 @@ interface UpscaleJob {
 }
 
 // Store jobs in global to survive some hot-reloads in dev
-const jobs = (global as any).upscaleJobs || new Map<string, UpscaleJob>();
-(global as any).upscaleJobs = jobs;
+const globalForUpscale = globalThis as typeof globalThis & {
+  upscaleJobs?: Map<string, UpscaleJob>;
+};
+const jobs = globalForUpscale.upscaleJobs || new Map<string, UpscaleJob>();
+globalForUpscale.upscaleJobs = jobs;
 
 const RESOLUTIONS: Record<string, { width: number; height: number; label: string }> = {
   "1080p": { width: 1920, height: 1080, label: "Full HD" },
@@ -54,11 +62,34 @@ const PRESETS: Record<string, string> = {
   "max-quality": "slower",
 };
 
-const SHARPENING: Record<string, string> = {
-  "1080p": "unsharp=3:3:0.8:3:3:0.4",
-  "1440p": "unsharp=5:5:0.9:5:5:0.4",
-  "2160p": "unsharp=5:5:1.0:5:5:0.5",
+const CRF_BY_PRESET: Record<string, number> = {
+  fast: 18,
+  balanced: 14,
+  "max-quality": 12,
 };
+
+const LUMA_DETAIL: Record<string, string> = {
+  "1080p": "unsharp=3:3:0.55:3:3:0",
+  "1440p": "unsharp=5:5:0.65:3:3:0",
+  "2160p": "unsharp=5:5:0.75:3:3:0",
+};
+
+const SUPPORTED_VIDEO_EXTENSIONS = new Set(["mp4", "m4v", "webm", "mov", "mkv", "avi", "flv", "ts"]);
+
+function sanitizeBaseName(filename: string) {
+  const withoutExtension = filename.replace(/\.[^.]+$/, "").trim();
+  const sanitized = withoutExtension
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return sanitized || "video";
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Processing failed";
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -97,7 +128,7 @@ export async function GET(req: NextRequest) {
           "Content-Disposition": `attachment; filename="${job.originalName}-${job.resolution}.mp4"`,
         },
       });
-    } catch (err: any) {
+    } catch {
       return NextResponse.json({ error: "Failed to read output file" }, { status: 500 });
     }
   }
@@ -107,7 +138,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const jobId = randomUUID();
-  const tmpDir = normalize(join(process.cwd(), "tmp"));
+  const tmpDir = normalize(join(os.tmpdir(), "mediaforge-upscale"));
   
   if (!existsSync(tmpDir)) {
     await mkdir(tmpDir, { recursive: true });
@@ -123,6 +154,23 @@ export async function POST(req: NextRequest) {
   }
 
   const rawExt = extname(file.name).toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  if (file.type && !file.type.startsWith("video/") && !SUPPORTED_VIDEO_EXTENSIONS.has(rawExt)) {
+    return NextResponse.json({ error: "Only video files are supported" }, { status: 400 });
+  }
+
+  if (!file.type && !SUPPORTED_VIDEO_EXTENSIONS.has(rawExt)) {
+    return NextResponse.json({ error: "Unsupported video file type" }, { status: 400 });
+  }
+
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json({ error: "Video exceeds 100MB limit" }, { status: 400 });
+  }
+
+  if (!(resolution in RESOLUTIONS) || !(preset in PRESETS)) {
+    return NextResponse.json({ error: "Invalid upscale settings" }, { status: 400 });
+  }
+
   const ext = rawExt || "mp4";
   const inputPath = normalize(join(tmpDir, `in-${jobId}.${ext}`));
   const outputPath = normalize(join(tmpDir, `out-${jobId}.mp4`));
@@ -134,7 +182,7 @@ export async function POST(req: NextRequest) {
     status: "processing",
     inputPath,
     outputPath,
-    originalName: file.name.replace(/\.[^.]+$/, ""),
+    originalName: sanitizeBaseName(file.name),
     resolution
   };
   jobs.set(jobId, job);
@@ -147,21 +195,20 @@ export async function POST(req: NextRequest) {
 
       const target = RESOLUTIONS[resolution] || RESOLUTIONS["2160p"];
       const ffmpegPreset = PRESETS[preset] || "slow";
-      const sharpen = SHARPENING[resolution] || SHARPENING["2160p"];
+      const crf = CRF_BY_PRESET[preset] || CRF_BY_PRESET.balanced;
+      const lumaDetail = LUMA_DETAIL[resolution] || LUMA_DETAIL["2160p"];
 
       await new Promise<void>((resolve, reject) => {
         ffmpeg(inputPath)
           .videoFilters([
-            `scale=${target.width}:${target.height}:flags=lanczos:force_original_aspect_ratio=decrease`,
-            `pad=${target.width}:${target.height}:-1:-1:color=black`,
+            `scale=${target.width}:${target.height}:flags=lanczos:force_original_aspect_ratio=decrease:force_divisible_by=2`,
             `setsar=1`,
-            sharpen,
+            lumaDetail,
           ])
           .outputOptions([
             "-c:v libx264",
             `-preset ${ffmpegPreset}`,
-            "-crf 15",
-            "-tune film",
+            `-crf ${crf}`,
             "-pix_fmt yuv420p",
             "-c:a aac",
             "-b:a 192k",
@@ -174,7 +221,7 @@ export async function POST(req: NextRequest) {
             }
           })
           .on("end", () => resolve())
-          .on("error", (err, stdout, stderr) => {
+          .on("error", (err, _stdout, stderr) => {
             console.error("FFmpeg error:", stderr);
             reject(new Error(stderr || err.message));
           })
@@ -183,17 +230,16 @@ export async function POST(req: NextRequest) {
 
       job.status = "completed";
       job.progress = 100;
-    } catch (error: any) {
-      console.error("Job error:", error.message);
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      console.error("Job error:", message);
       job.status = "error";
-      job.error = error.message.split('\n')[0].replace(/.*stderr:/, "").trim() || "Processing failed";
+      job.error = message.split('\n')[0].replace(/.*stderr:/, "").trim() || "Processing failed";
       // Cleanup input on error
       await unlink(inputPath).catch(() => {});
+      await unlink(outputPath).catch(() => {});
     }
   })();
 
   return NextResponse.json({ jobId });
 }
-
-
-

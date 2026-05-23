@@ -13,16 +13,20 @@ type Resolution = "1080p" | "1440p" | "2160p";
 type Preset = "fast" | "balanced" | "max-quality";
 
 const RESOLUTION_OPTIONS: { value: Resolution; label: string; detail: string; icon: React.ReactNode }[] = [
-  { value: "1080p", label: "1080p", detail: "1920 × 1080 Full HD", icon: <Zap className="h-4 w-4" /> },
-  { value: "1440p", label: "1440p", detail: "2560 × 1440 QHD", icon: <Sparkles className="h-4 w-4" /> },
-  { value: "2160p", label: "4K", detail: "3840 × 2160 UHD", icon: <Crown className="h-4 w-4" /> },
+  { value: "1080p", label: "1080p", detail: "Fits within 1920 x 1080", icon: <Zap className="h-4 w-4" /> },
+  { value: "1440p", label: "1440p", detail: "Fits within 2560 x 1440", icon: <Sparkles className="h-4 w-4" /> },
+  { value: "2160p", label: "4K", detail: "Fits within 3840 x 2160", icon: <Crown className="h-4 w-4" /> },
 ];
 
 const PRESET_OPTIONS: { value: Preset; label: string; description: string }[] = [
-  { value: "fast", label: "Fast", description: "Quick encode, slightly lower quality" },
-  { value: "balanced", label: "Balanced", description: "Good quality, moderate speed" },
-  { value: "max-quality", label: "Max Quality", description: "Best output, slower encode" },
+  { value: "fast", label: "Fast", description: "Faster encode, lighter file" },
+  { value: "balanced", label: "Balanced", description: "High quality, practical speed" },
+  { value: "max-quality", label: "Archive", description: "Best retention, slower encode" },
 ];
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Video upscale failed";
+}
 
 export default function VideoUpscalerPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -108,8 +112,8 @@ export default function VideoUpscalerPage() {
           
           // Poll again
           setTimeout(poll, 1000);
-        } catch (error: any) {
-          toast.error(error.message);
+        } catch (error: unknown) {
+          toast.error(getErrorMessage(error));
           setIsProcessing(false);
           setProgress("");
         }
@@ -117,8 +121,8 @@ export default function VideoUpscalerPage() {
 
       poll();
 
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
       setIsProcessing(false);
       setProgress("");
     }
@@ -126,8 +130,8 @@ export default function VideoUpscalerPage() {
 
   return (
     <ToolLayout
-      title="Video Upscaler"
-      description="Enhance your 720p or 1080p videos to stunning 4K resolution using advanced Lanczos resampling."
+      title="Video Detail Upscaler"
+      description="Upscale video toward 4K with aspect-preserving Lanczos sampling and a luma-only detail pass. No color grading filters."
     >
       <div className="space-y-8">
         {!file ? (
@@ -173,13 +177,13 @@ export default function VideoUpscalerPage() {
         {file && (
           <div className="bg-muted/30 p-6 rounded-xl border">
             <h3 className="mb-6 font-semibold text-lg flex items-center">
-              <MonitorUp className="mr-2 h-5 w-5 text-cyan-500" /> Upscale Settings
+              <MonitorUp className="mr-2 h-5 w-5 text-cyan-500" /> Detail Upscale Settings
             </h3>
 
             <div className="space-y-6">
               {/* Resolution Selector */}
               <div>
-                <Label className="mb-3 block text-sm text-foreground">Target Resolution</Label>
+                <Label className="mb-3 block text-sm text-foreground">Target Size</Label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {RESOLUTION_OPTIONS.map((option) => (
                     <button
@@ -214,7 +218,7 @@ export default function VideoUpscalerPage() {
 
               {/* Preset Selector */}
               <div>
-                <Label className="mb-3 block text-sm text-foreground">Quality Preset</Label>
+                <Label className="mb-3 block text-sm text-foreground">Encode Quality</Label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {PRESET_OPTIONS.map((option) => (
                     <Button
@@ -244,7 +248,7 @@ export default function VideoUpscalerPage() {
                   >
                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] animate-[shimmer_2s_infinite] group-hover:block transition-all" />
                     <MonitorUp className="mr-2 h-5 w-5" />
-                    Upscale to {resolution}
+                    Create {resolution} Detail Upscale
                   </Button>
                 ) : (
                   <div className="space-y-4">
@@ -264,7 +268,7 @@ export default function VideoUpscalerPage() {
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground text-center animate-pulse">
-                      Processing 4K frames... this takes heavy computation.
+                      Upscaling frames with a color-safe luma detail pass. This is compute-heavy.
                     </p>
                   </div>
                 )}

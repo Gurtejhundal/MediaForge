@@ -5,6 +5,7 @@ import {
 } from "@/lib/faviconGenerator";
 
 // Configure maximum sizes if deploying on Vercel
+export const dynamic = "force-dynamic";
 export const maxDuration = 10; 
 
 export async function POST(req: NextRequest) {

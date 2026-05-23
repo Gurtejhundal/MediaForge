@@ -1,16 +1,31 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Sparkles, Image as ImageIcon, Download, Zap, MousePointer2 } from "lucide-react";
+import { Download, Image as ImageIcon, Loader2, Maximize2, MousePointer2, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/components/preview/image-preview";
-import { cn } from "@/lib/utils";
 
 type Strength = "low" | "medium" | "high";
+type Target = "2x" | "4k";
+
+const TARGET_OPTIONS: { value: Target; label: string; detail: string }[] = [
+  { value: "4k", label: "4K detail", detail: "Upscale long edge to 3840px" },
+  { value: "2x", label: "2x clean", detail: "Double size, capped at 4K" },
+];
+
+const STRENGTH_OPTIONS: { value: Strength; label: string; detail: string }[] = [
+  { value: "low", label: "Clean", detail: "Light detail, safest edges" },
+  { value: "medium", label: "Detail", detail: "Balanced generated-image cleanup" },
+  { value: "high", label: "Max", detail: "Strong texture recovery pass" },
+];
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Failed to detail image";
+}
 
 export default function ImageEnhancerPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -18,12 +33,25 @@ export default function ImageEnhancerPage() {
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [strength, setStrength] = useState<Strength>("medium");
+  const [target, setTarget] = useState<Target>("4k");
   const [sliderPos, setSliderPos] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleFileAccepted = (acceptedFile: File) => {
+    if (originalUrl) URL.revokeObjectURL(originalUrl);
+    if (enhancedUrl) URL.revokeObjectURL(enhancedUrl);
+
     setFile(acceptedFile);
     setOriginalUrl(URL.createObjectURL(acceptedFile));
+    setEnhancedUrl(null);
+  };
+
+  const clearFile = () => {
+    if (originalUrl) URL.revokeObjectURL(originalUrl);
+    if (enhancedUrl) URL.revokeObjectURL(enhancedUrl);
+
+    setFile(null);
+    setOriginalUrl(null);
     setEnhancedUrl(null);
   };
 
@@ -34,6 +62,7 @@ export default function ImageEnhancerPage() {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("strength", strength);
+    formData.append("target", target);
 
     try {
       const res = await fetch("/api/convert/image-enhance", {
@@ -41,15 +70,19 @@ export default function ImageEnhancerPage() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Failed to enhance image");
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to detail image");
+      }
 
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
+      if (enhancedUrl) URL.revokeObjectURL(enhancedUrl);
       setEnhancedUrl(url);
       setSliderPos(50);
-      toast.success("Image enhanced successfully!");
-    } catch (error: any) {
-      toast.error(error.message);
+      toast.success("Image detailed and upscaled without color grading.");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     } finally {
       setIsProcessing(false);
     }
@@ -65,8 +98,8 @@ export default function ImageEnhancerPage() {
 
   return (
     <ToolLayout
-      title="AI Image Enhancer"
-      description="Professional-grade enhancement that restores detail, adjusts contrast, and makes colors pop."
+      title="Image Detailer & 4K Upscaler"
+      description="Upscale generated or blurry images while preserving the original color, lighting, contrast, and saturation."
     >
       <div className="space-y-8">
         {!file ? (
@@ -86,10 +119,7 @@ export default function ImageEnhancerPage() {
                   <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => {
-                setFile(null);
-                setEnhancedUrl(null);
-              }}>Clear</Button>
+              <Button variant="ghost" size="sm" onClick={clearFile}>Clear</Button>
             </div>
 
             {/* Comparison Slider */}
@@ -136,7 +166,7 @@ export default function ImageEnhancerPage() {
                 {/* Labels */}
                 {enhancedUrl && (
                   <>
-                    <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded border border-white/20 uppercase tracking-widest">Enhanced</div>
+                    <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded border border-white/20 uppercase tracking-widest">Detailed</div>
                     <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded border border-white/20 uppercase tracking-widest">Original</div>
                   </>
                 )}
@@ -144,7 +174,7 @@ export default function ImageEnhancerPage() {
                 {!enhancedUrl && isProcessing && (
                   <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center text-white space-y-4">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    <p className="text-sm font-medium animate-pulse">Analyzing pixels & applying CLAHE filters...</p>
+                    <p className="text-sm font-medium animate-pulse">Upscaling and applying a color-safe detail pass...</p>
                   </div>
                 )}
               </div>
@@ -158,16 +188,42 @@ export default function ImageEnhancerPage() {
 
             <div className="space-y-6 pt-4">
               <div>
-                <Label className="mb-3 block text-sm">Enhancement Strength</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  {(["low", "medium", "high"] as const).map((s) => (
-                    <Button
-                      key={s}
-                      variant={strength === s ? "default" : "outline"}
-                      onClick={() => setStrength(s)}
-                      className="capitalize"
+                <Label className="mb-3 block text-sm">Output Size</Label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {TARGET_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setTarget(option.value)}
+                      className={`rounded-xl border p-4 text-left transition-colors ${
+                        target === option.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-background hover:bg-muted/40"
+                      }`}
                     >
-                      {s}
+                      <span className="block text-sm font-semibold">{option.label}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">{option.detail}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="mb-3 block text-sm">Detail Pass</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {STRENGTH_OPTIONS.map((option) => (
+                    <Button
+                      key={option.value}
+                      variant={strength === option.value ? "default" : "outline"}
+                      onClick={() => setStrength(option.value)}
+                      className="h-auto flex-col whitespace-normal py-3 text-center"
+                    >
+                      <span>{option.label}</span>
+                      <span className={`text-[11px] ${
+                        strength === option.value ? "text-primary-foreground/70" : "text-muted-foreground"
+                      }`}>
+                        {option.detail}
+                      </span>
                     </Button>
                   ))}
                 </div>
@@ -177,12 +233,12 @@ export default function ImageEnhancerPage() {
                 {!enhancedUrl ? (
                   <Button 
                     size="lg" 
-                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 h-12"
+                    className="flex-1 h-12"
                     onClick={handleEnhance}
                     disabled={isProcessing}
                   >
                     <Sparkles className="mr-2 h-5 w-5" />
-                    Enhance Image Now
+                    Create Detail Upscale
                   </Button>
                 ) : (
                   <>
@@ -196,16 +252,16 @@ export default function ImageEnhancerPage() {
                     </Button>
                     <Button 
                       size="lg" 
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 h-12 shadow-lg shadow-blue-500/20"
+                      className="flex-1 h-12"
                       onClick={() => {
                         const link = document.createElement("a");
                         link.href = enhancedUrl;
-                        link.download = `enhanced-${file.name}`;
+                        link.download = `detail-${file.name.replace(/\.[^.]+$/, "")}-${target}.png`;
                         link.click();
                       }}
                     >
                       <Download className="mr-2 h-5 w-5" />
-                      Download Enhanced
+                      Download Detail Upscale
                     </Button>
                   </>
                 )}
@@ -217,25 +273,25 @@ export default function ImageEnhancerPage() {
 
       <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
-          <div className="p-3 bg-emerald-500/10 rounded-xl w-fit text-emerald-500">
+          <div className="p-3 bg-primary/10 rounded-xl w-fit text-primary">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <h4 className="font-bold">Color-Safe Pipeline</h4>
+          <p className="text-sm text-muted-foreground">No brightness, saturation, contrast, gamma, or tone mapping filters are applied.</p>
+        </div>
+        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
+          <div className="p-3 bg-primary/10 rounded-xl w-fit text-primary">
+            <Maximize2 className="h-6 w-6" />
+          </div>
+          <h4 className="font-bold">4K Long-Edge Upscale</h4>
+          <p className="text-sm text-muted-foreground">Generated images are resized toward a 3840px long edge using high-quality Lanczos sampling.</p>
+        </div>
+        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
+          <div className="p-3 bg-primary/10 rounded-xl w-fit text-primary">
             <Zap className="h-6 w-6" />
           </div>
-          <h4 className="font-bold">CLAHE Technology</h4>
-          <p className="text-sm text-muted-foreground">Uses Contrast Limited Adaptive Histogram Equalization to reveal hidden details in shadows.</p>
-        </div>
-        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
-          <div className="p-3 bg-blue-500/10 rounded-xl w-fit text-blue-500">
-            <Sparkles className="h-6 w-6" />
-          </div>
-          <h4 className="font-bold">Pro Sharpening</h4>
-          <p className="text-sm text-muted-foreground">Multi-stage edge sharpening restores crispness to blurry or low-quality photos.</p>
-        </div>
-        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
-          <div className="p-3 bg-indigo-500/10 rounded-xl w-fit text-indigo-500">
-            <ImageIcon className="h-6 w-6" />
-          </div>
-          <h4 className="font-bold">Color Recovery</h4>
-          <p className="text-sm text-muted-foreground">Subtle saturation and luminance modulation makes colors feel natural and alive.</p>
+          <h4 className="font-bold">Controlled Detail Pass</h4>
+          <p className="text-sm text-muted-foreground">The detail pass is tuned to avoid the harsh outline look from simple sharpening.</p>
         </div>
       </div>
     </ToolLayout>

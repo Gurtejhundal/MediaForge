@@ -1,14 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Zap, Shield, FileType, CheckCircle2, Box, Crop, Download, Maximize, Film, QrCode, Link as LinkIcon2, MonitorUp, Eraser, Sparkles } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Zap, Shield, FileType, CheckCircle2, Box, Download, Maximize, Film, QrCode, Link as LinkIcon2, MonitorUp, Eraser, Sparkles, Video, FileText, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const TOOLS = [
+type Tool = {
+  title: string;
+  description: string;
+  icon: ReactNode;
+  href: string;
+  popular?: boolean;
+};
+
+const IMAGE_TOOLS: Tool[] = [
   {
-    title: "AI Image Enhancer",
-    description: "Professional-grade enhancement that restores detail, adjusts contrast, and makes colors pop.",
+    title: "Image Detailer & 4K Upscaler",
+    description: "Upscale generated or blurry images while preserving original color, lighting, and tone.",
     icon: <Sparkles className="h-6 w-6 text-emerald-500" />,
     href: "/tools/image-enhancer",
     popular: true,
@@ -38,18 +47,27 @@ const TOOLS = [
     href: "/tools/compress",
   },
   {
-    title: "Video Upscaler",
-    description: "Upscale 720p or 1080p videos to crisp 4K UHD resolution with Lanczos resampling.",
-    icon: <MonitorUp className="h-6 w-6 text-cyan-500" />,
-    href: "/tools/video-upscaler",
-    popular: true,
-  },
-  {
     title: "BG Remover",
     description: "Instantly remove backgrounds from any photo using AI-powered segmentation.",
     icon: <Eraser className="h-6 w-6 text-rose-500" />,
     href: "/tools/bg-remover",
     popular: true,
+  },
+];
+
+const VIDEO_TOOLS: Tool[] = [
+  {
+    title: "Video Converter",
+    description: "Convert videos locally between MP4, WebM, GIF, and extract high-quality audio files.",
+    icon: <RefreshCw className="h-6 w-6 text-emerald-500" />,
+    href: "/tools/video-converter",
+    popular: true,
+  },
+  {
+    title: "Video Detail Upscaler",
+    description: "Upscale video toward 4K with luma-only detail recovery and no color grading filters.",
+    icon: <MonitorUp className="h-6 w-6 text-cyan-500" />,
+    href: "/tools/video-upscaler",
   },
   {
     title: "Video to Image",
@@ -58,23 +76,32 @@ const TOOLS = [
     href: "/tools/video-to-image",
   },
   {
-    title: "QR Code Generator",
-    description: "Instantly create high resolution, deeply customizable QR Codes for texts or links.",
-    icon: <QrCode className="h-6 w-6 text-emerald-500" />,
-    href: "/tools/qr-generator",
-  },
-  {
     title: "Watermark Remover",
     description: "Remove logos or watermarks from videos by selecting the area you want to clean.",
     icon: <Eraser className="h-6 w-6 text-indigo-500" />,
     href: "/tools/watermark-remover",
-    popular: true,
   },
   {
     title: "URL Video Downloader",
-    description: "Paste a YouTube or raw .mp4 link to bypass CORS and download the whole video locally.",
+    description: "Paste a YouTube or raw .mp4 link to download the video locally securely.",
     icon: <LinkIcon2 className="h-6 w-6 text-emerald-500" />,
     href: "/tools/video-downloader",
+  },
+];
+
+const FILE_TOOLS: Tool[] = [
+  {
+    title: "Universal File Converter",
+    description: "Convert and transform between CSV, JSON, Markdown, SVG, XML, and other file types instantly.",
+    icon: <RefreshCw className="h-6 w-6 text-blue-500" />,
+    href: "/tools/file-converter",
+    popular: true,
+  },
+  {
+    title: "QR Code Generator",
+    description: "Instantly create high resolution, deeply customizable QR Codes for texts or links.",
+    icon: <QrCode className="h-6 w-6 text-emerald-500" />,
+    href: "/tools/qr-generator",
   },
 ];
 
@@ -86,7 +113,7 @@ const FEATURES = [
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center pb-24 border-t border-border/40">
+    <div className="flex flex-col items-center pb-24 border-t border-border/40 w-full">
       <section className="w-full relative flex flex-col items-center px-4 pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -96,13 +123,13 @@ export default function Home() {
         >
           <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-6 backdrop-blur-sm">
             <Zap className="mr-2 h-4 w-4" />
-            V1.0 is now live
+            V1.1 is now live
           </div>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
             Convert Media <span className="bg-gradient-to-r from-primary via-purple-500 to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent">Instantly</span>
           </h1>
           <p className="text-xl text-muted-foreground md:px-12 leading-relaxed">
-            The ultimate online toolkit for developers and creators. Generate complete favicon packages, convert formats, and compress sizes locally and securely.
+            The ultimate online toolkit for developers and creators. Process images, convert videos, and format documents locally and securely.
           </p>
         </motion.div>
 
@@ -112,7 +139,7 @@ export default function Home() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="flex flex-col sm:flex-row gap-4 z-10"
         >
-          <Link href="/tools/png-to-favicon">
+          <Link href="/tools/video-converter">
             <Button size="lg" className="rounded-full shadow-lg h-12 px-8">
               Start Converting <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -142,41 +169,80 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="tools" className="w-full max-w-6xl px-4 py-16 scroll-mt-20">
+      <section id="tools" className="w-full max-w-6xl px-4 py-16 scroll-mt-20 space-y-24">
         <div className="mb-10 text-center">
-          <h2 className="text-3xl font-bold mb-4">Powerful Media Tools</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Media Tools</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to optimize and format your visual assets. Select a tool below to get started.
+            Everything you need to optimize, convert, and format your assets, grouped by format.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-          {TOOLS.map((tool, i) => (
-            <Link key={i} href={tool.href} className="group outline-none">
-              <motion.div 
-                whileHover={{ y: -5 }}
-                className="relative h-full overflow-hidden rounded-2xl border border-border/50 bg-background/40 p-8 backdrop-blur-md transition-all group-hover:border-primary/50 group-hover:bg-background/60 group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:group-hover:shadow-[0_8px_30px_rgb(255,255,255,0.03)]"
-              >
-                {tool.popular && (
-                  <div className="absolute top-4 right-4 bg-primary/20 text-primary text-xs font-bold px-3 py-1 rounded-full">
-                    Most Popular
-                  </div>
-                )}
-                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-110 group-hover:bg-primary/20">
-                  {tool.icon}
-                </div>
-                <h3 className="mb-3 text-xl font-bold flex items-center group-hover:text-primary transition-colors">
-                  {tool.title}
-                  <ArrowRight className="ml-2 h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {tool.description}
-                </p>
-              </motion.div>
-            </Link>
-          ))}
+        {/* Image Tools Section */}
+        <div className="space-y-8">
+          <div className="flex items-center space-x-3 border-b border-border/50 pb-4">
+            <ImageIcon className="h-6 w-6 text-primary" />
+            <h3 className="text-2xl font-bold">Image Tools</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {IMAGE_TOOLS.map((tool, i) => (
+              <ToolCard key={i} tool={tool} />
+            ))}
+          </div>
+        </div>
+
+        {/* Video Tools Section */}
+        <div className="space-y-8">
+          <div className="flex items-center space-x-3 border-b border-border/50 pb-4">
+            <Video className="h-6 w-6 text-primary" />
+            <h3 className="text-2xl font-bold">Video Tools</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {VIDEO_TOOLS.map((tool, i) => (
+              <ToolCard key={i} tool={tool} />
+            ))}
+          </div>
+        </div>
+
+        {/* File Tools Section */}
+        <div className="space-y-8">
+          <div className="flex items-center space-x-3 border-b border-border/50 pb-4">
+            <FileText className="h-6 w-6 text-primary" />
+            <h3 className="text-2xl font-bold">Files & Documents</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FILE_TOOLS.map((tool, i) => (
+              <ToolCard key={i} tool={tool} />
+            ))}
+          </div>
         </div>
       </section>
     </div>
+  );
+}
+
+function ToolCard({ tool }: { tool: Tool }) {
+  return (
+    <Link href={tool.href} className="group outline-none h-full block">
+      <motion.div 
+        whileHover={{ y: -5 }}
+        className="relative h-full overflow-hidden rounded-2xl border border-border/50 bg-background/40 p-6 backdrop-blur-md transition-all group-hover:border-primary/50 group-hover:bg-background/60 group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:group-hover:shadow-[0_8px_30px_rgb(255,255,255,0.03)]"
+      >
+        {tool.popular && (
+          <div className="absolute top-4 right-4 bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+            Most Popular
+          </div>
+        )}
+        <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-110 group-hover:bg-primary/20">
+          {tool.icon}
+        </div>
+        <h4 className="mb-2 text-lg font-bold flex items-center group-hover:text-primary transition-colors">
+          {tool.title}
+          <ArrowRight className="ml-2 h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+        </h4>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {tool.description}
+        </p>
+      </motion.div>
+    </Link>
   );
 }

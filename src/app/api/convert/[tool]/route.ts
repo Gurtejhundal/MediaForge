@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { convertFormat, resizeImage } from "@/lib/imageProcessor";
 
+export const dynamic = "force-dynamic";
 export const maxDuration = 10;
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ tool: string }> }) {

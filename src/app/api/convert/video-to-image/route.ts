@@ -10,6 +10,7 @@ import JSZip from "jszip";
 const ffmpegBinary = process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
 ffmpeg.setFfmpegPath(path.join("node_modules", "ffmpeg-static", ffmpegBinary));
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
