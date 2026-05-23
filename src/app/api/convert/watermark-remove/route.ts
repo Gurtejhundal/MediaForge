@@ -119,14 +119,14 @@ export async function POST(req: NextRequest) {
             `delogo=x=${x}:y=${y}:w=${w}:h=${h}:band=4`
           ])
           .outputOptions([
-            "-c:v libx264",
-            "-preset slower",     // Better compression and detail retention
-            "-crf 14",            // Very high quality, close to visually lossless
-            "-tune film",         // Preserves original texture and grain
-            "-pix_fmt yuv420p",
-            "-c:a aac",
-            "-b:a 320k",          // High fidelity audio
-            "-movflags +faststart",
+            "-c:v", "libx264",
+            "-preset", "slower",
+            "-crf", "14",
+            "-tune", "film",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "320k",
+            "-movflags", "+faststart",
           ])
           .output(outputPath)
           .on("progress", (p) => {
@@ -144,7 +144,23 @@ export async function POST(req: NextRequest) {
       job.progress = 100;
     } catch (error: any) {
       job.status = "error";
-      job.error = error.message.split('\n')[0].replace(/.*stderr:/, "").trim();
+      const errorMsg = error.message || "";
+      const errorLines = errorMsg.split('\n')
+        .map((line: string) => line.trim())
+        .filter((line: string) => {
+          if (!line) return false;
+          const lower = line.toLowerCase();
+          return !lower.startsWith('ffmpeg version') &&
+                 !lower.startsWith('built with') &&
+                 !lower.startsWith('configuration:') &&
+                 !lower.startsWith('libav') &&
+                 !lower.startsWith('libsw') &&
+                 !lower.startsWith('libpostproc') &&
+                 !lower.includes('copyright (c)');
+        });
+      job.error = errorLines.length > 0
+        ? errorLines.slice(-2).join(' | ')
+        : errorMsg.split('\n')[0].replace(/.*stderr:/, "").trim() || "Processing failed";
       await unlink(inputPath).catch(() => {});
     }
   })();

@@ -206,13 +206,13 @@ export async function POST(req: NextRequest) {
             lumaDetail,
           ])
           .outputOptions([
-            "-c:v libx264",
-            `-preset ${ffmpegPreset}`,
-            `-crf ${crf}`,
-            "-pix_fmt yuv420p",
-            "-c:a aac",
-            "-b:a 192k",
-            "-movflags +faststart",
+            "-c:v", "libx264",
+            "-preset", ffmpegPreset,
+            "-crf", String(crf),
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-movflags", "+faststart",
           ])
           .output(outputPath)
           .on("progress", (p) => {
@@ -234,7 +234,24 @@ export async function POST(req: NextRequest) {
       const message = getErrorMessage(error);
       console.error("Job error:", message);
       job.status = "error";
-      job.error = message.split('\n')[0].replace(/.*stderr:/, "").trim() || "Processing failed";
+      
+      const errorLines = message.split('\n')
+        .map((line: string) => line.trim())
+        .filter((line: string) => {
+          if (!line) return false;
+          const lower = line.toLowerCase();
+          return !lower.startsWith('ffmpeg version') &&
+                 !lower.startsWith('built with') &&
+                 !lower.startsWith('configuration:') &&
+                 !lower.startsWith('libav') &&
+                 !lower.startsWith('libsw') &&
+                 !lower.startsWith('libpostproc') &&
+                 !lower.includes('copyright (c)');
+        });
+      job.error = errorLines.length > 0
+        ? errorLines.slice(-2).join(' | ')
+        : message.split('\n')[0].replace(/.*stderr:/, "").trim() || "Processing failed";
+      
       // Cleanup input on error
       await unlink(inputPath).catch(() => {});
       await unlink(outputPath).catch(() => {});

@@ -211,9 +211,26 @@ export async function POST(req: NextRequest) {
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Video conversion error:", error);
-    return NextResponse.json({ error: "Failed to process video file." }, { status: 500 });
+    const errorMsg = error?.message || "";
+    const errorLines = errorMsg.split('\n')
+      .map((line: string) => line.trim())
+      .filter((line: string) => {
+        if (!line) return false;
+        const lower = line.toLowerCase();
+        return !lower.startsWith('ffmpeg version') &&
+               !lower.startsWith('built with') &&
+               !lower.startsWith('configuration:') &&
+               !lower.startsWith('libav') &&
+               !lower.startsWith('libsw') &&
+               !lower.startsWith('libpostproc') &&
+               !lower.includes('copyright (c)');
+      });
+    const parsedError = errorLines.length > 0
+      ? errorLines.slice(-2).join(' | ')
+      : errorMsg.split('\n')[0].replace(/.*stderr:/, "").trim() || "Failed to process video file.";
+    return NextResponse.json({ error: parsedError }, { status: 500 });
   } finally {
     if (sessionDir) {
       await fs.rm(sessionDir, { recursive: true, force: true }).catch(() => {});
