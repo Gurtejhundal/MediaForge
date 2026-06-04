@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Zap, Shield, FileType, CheckCircle2, Box, Download, Maximize, Film, QrCode, Link as LinkIcon2, MonitorUp, Eraser, Sparkles, Video, FileText, RefreshCw } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Zap, Shield, CheckCircle2, Box, Film, QrCode, Link as LinkIcon2, MonitorUp, Eraser, Sparkles, Video, FileText, RefreshCw, SlidersHorizontal, Files } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Tool = {
@@ -16,35 +16,23 @@ type Tool = {
 
 const IMAGE_TOOLS: Tool[] = [
   {
+    title: "Image Modifier",
+    description: "Resize, crop, rotate, watermark, add meme text, compress, and convert in one pipeline.",
+    icon: <SlidersHorizontal className="h-6 w-6 text-blue-500" />,
+    href: "/tools/image-modifier",
+    popular: true,
+  },
+  {
     title: "Image Detailer & 4K Upscaler",
     description: "Upscale generated or blurry images while preserving original color, lighting, and tone.",
     icon: <Sparkles className="h-6 w-6 text-emerald-500" />,
     href: "/tools/image-enhancer",
-    popular: true,
   },
   {
     title: "PNG to Favicon",
     description: "Generate a complete .ico and .png favicon package for modern web apps with one click.",
     icon: <Box className="h-6 w-6 text-purple-500" />,
     href: "/tools/png-to-favicon",
-  },
-  {
-    title: "Format Converter",
-    description: "Convert seamlessly between PNG, JPG, WEBP, and more with high quality.",
-    icon: <FileType className="h-6 w-6 text-blue-500" />,
-    href: "/tools/format-converter",
-  },
-  {
-    title: "Image Resizer",
-    description: "Resize images to exact pixel dimensions while maintaining aspect ratio.",
-    icon: <Maximize className="h-6 w-6 text-emerald-500" />,
-    href: "/tools/resize",
-  },
-  {
-    title: "Compressor",
-    description: "Reduce file sizes significantly without losing visible image quality.",
-    icon: <Download className="h-6 w-6 text-orange-500" />,
-    href: "/tools/compress",
   },
   {
     title: "BG Remover",
@@ -91,11 +79,17 @@ const VIDEO_TOOLS: Tool[] = [
 
 const FILE_TOOLS: Tool[] = [
   {
+    title: "PDF Organizer",
+    description: "Merge, split, rotate, watermark, number, reorder, and create PDFs from images.",
+    icon: <Files className="h-6 w-6 text-rose-500" />,
+    href: "/tools/pdf-organizer",
+    popular: true,
+  },
+  {
     title: "Universal File Converter",
     description: "Convert and transform between CSV, JSON, Markdown, SVG, XML, and other file types instantly.",
     icon: <RefreshCw className="h-6 w-6 text-blue-500" />,
     href: "/tools/file-converter",
-    popular: true,
   },
   {
     title: "QR Code Generator",

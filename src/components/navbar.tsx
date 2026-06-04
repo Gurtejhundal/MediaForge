@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
-import { Layers, ChevronDown, ImageIcon, Video, FileText, Sparkles, Box, FileType, Maximize, Download, Eraser, Film, Link as LinkIcon2, MonitorUp, QrCode, RefreshCw } from "lucide-react";
+import { Layers, ChevronDown, ImageIcon, Video, FileText, Sparkles, Box, Eraser, Film, Link as LinkIcon2, MonitorUp, QrCode, RefreshCw, SlidersHorizontal, Files } from "lucide-react";
 
 export function Navbar() {
   return (
@@ -23,11 +23,18 @@ export function Navbar() {
             </button>
             <div className="absolute left-0 top-full hidden group-hover:block w-72 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg backdrop-blur-xl">
+                <Link href="/tools/image-modifier" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <SlidersHorizontal className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <div className="font-semibold text-xs">Image Modifier</div>
+                    <div className="text-[10px] text-muted-foreground">Resize, crop, rotate, watermark, convert</div>
+                  </div>
+                </Link>
                 <Link href="/tools/image-enhancer" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
                   <Sparkles className="h-4 w-4 text-emerald-500" />
                   <div>
-                    <div className="font-semibold text-xs">Image Enhancer</div>
-                    <div className="text-[10px] text-muted-foreground">Restore detail & make colors pop</div>
+                    <div className="font-semibold text-xs">Image Detailer</div>
+                    <div className="text-[10px] text-muted-foreground">4K detail upscale, color-safe</div>
                   </div>
                 </Link>
                 <Link href="/tools/png-to-favicon" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
@@ -35,27 +42,6 @@ export function Navbar() {
                   <div>
                     <div className="font-semibold text-xs">PNG to Favicon</div>
                     <div className="text-[10px] text-muted-foreground">Generate .ico package with one click</div>
-                  </div>
-                </Link>
-                <Link href="/tools/format-converter" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <FileType className="h-4 w-4 text-blue-500" />
-                  <div>
-                    <div className="font-semibold text-xs">Format Converter</div>
-                    <div className="text-[10px] text-muted-foreground">Convert image formats flawlessly</div>
-                  </div>
-                </Link>
-                <Link href="/tools/resize" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <Maximize className="h-4 w-4 text-emerald-500" />
-                  <div>
-                    <div className="font-semibold text-xs">Resizer</div>
-                    <div className="text-[10px] text-muted-foreground">Resize dimensions with aspect ratio</div>
-                  </div>
-                </Link>
-                <Link href="/tools/compress" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <Download className="h-4 w-4 text-orange-500" />
-                  <div>
-                    <div className="font-semibold text-xs">Compressor</div>
-                    <div className="text-[10px] text-muted-foreground">Reduce image size losslessly</div>
                   </div>
                 </Link>
                 <Link href="/tools/bg-remover" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
@@ -126,6 +112,13 @@ export function Navbar() {
             </button>
             <div className="absolute left-0 top-full hidden group-hover:block w-72 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg backdrop-blur-xl">
+                <Link href="/tools/pdf-organizer" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <Files className="h-4 w-4 text-rose-500" />
+                  <div>
+                    <div className="font-semibold text-xs">PDF Organizer</div>
+                    <div className="text-[10px] text-muted-foreground">Merge, split, rotate, watermark, number</div>
+                  </div>
+                </Link>
                 <Link href="/tools/file-converter" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
                   <RefreshCw className="h-4 w-4 text-blue-500" />
                   <div>
