@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eraser, Film, MousePointer2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/components/preview/image-preview";
-import { cn } from "@/lib/utils";
 
 interface Region {
   x: number;
@@ -143,8 +142,8 @@ export default function WatermarkRemoverPage() {
       };
 
       poll();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove watermark");
       setIsProcessing(false);
       setProgress("");
     }
@@ -162,6 +161,7 @@ export default function WatermarkRemoverPage() {
             accept={{ "video/mp4": [".mp4"], "video/webm": [".webm"], "video/quicktime": [".mov"] }}
             maxSizeMB={100}
             displayMode="video"
+            processingMode="server"
           />
         ) : (
           <div className="space-y-6">
@@ -276,7 +276,7 @@ export default function WatermarkRemoverPage() {
             <CheckCircle2 className="h-6 w-6" />
           </div>
           <h4 className="font-bold text-foreground">AI Interpolation</h4>
-          <p className="text-sm text-muted-foreground">We use FFmpeg's delogo filter to intelligently fill the area using surrounding pixels.</p>
+          <p className="text-sm text-muted-foreground">We use the FFmpeg delogo filter to intelligently fill the area using surrounding pixels.</p>
         </div>
         <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
           <div className="p-3 bg-indigo-500/10 rounded-xl w-fit text-indigo-500">

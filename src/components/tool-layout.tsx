@@ -9,21 +9,22 @@ interface ToolLayoutProps {
 
 export function ToolLayout({ title, description, children }: ToolLayoutProps) {
   return (
-    <div className="container mx-auto px-4 py-12 md:py-20 flex-1 flex flex-col items-center">
+    <div className="mx-auto flex w-[min(100%-24px,1120px)] flex-1 flex-col px-0 py-8 md:w-[min(100%-48px,1120px)] md:py-12">
       <motion.div 
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-4xl mb-10 text-center"
+        transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+        className="mb-6 w-full"
       >
-        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">{title}</h1>
-        <p className="text-muted-foreground text-lg">{description}</p>
+        <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">{title}</h1>
+        <p className="max-w-3xl text-base leading-7 text-muted-foreground">{description}</p>
       </motion.div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="w-full max-w-4xl bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden p-6 md:p-8"
+        transition={{ delay: 0.05, duration: 0.18, ease: [0.2, 0, 0, 1] }}
+        className="w-full rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-sm)] md:p-6"
       >
         {children}
       </motion.div>

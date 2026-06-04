@@ -10,12 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
+import { OutputCard, StatusPill } from "@/components/workspace-components";
+import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
+import { processImageLocally, type BrowserImageFormat, type WatermarkPosition } from "@/lib/local-processing/image-processing";
 import { formatBytes } from "@/components/preview/image-preview";
 
-type OutputFormat = "png" | "jpeg" | "webp" | "avif";
-type WatermarkPosition = "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-
-const FORMATS: OutputFormat[] = ["webp", "jpeg", "png", "avif"];
+const FORMATS: BrowserImageFormat[] = ["webp", "jpeg", "png", "avif"];
 const POSITIONS: WatermarkPosition[] = ["bottom-right", "center", "top-left", "top-right", "bottom-left"];
 
 function getErrorMessage(error: unknown) {
@@ -26,10 +26,11 @@ export default function ImageModifierPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultName, setResultName] = useState("modified-image.webp");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const [format, setFormat] = useState<OutputFormat>("webp");
+  const [format, setFormat] = useState<BrowserImageFormat>("webp");
   const [quality, setQuality] = useState<number[]>([82]);
   const [resizeWidth, setResizeWidth] = useState("");
   const [resizeHeight, setResizeHeight] = useState("");
@@ -53,22 +54,24 @@ export default function ImageModifierPage() {
       return;
     }
 
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    revokeObjectUrl(previewUrl);
+    revokeObjectUrl(resultUrl);
 
     const nextUrl = URL.createObjectURL(nextFile);
     setFile(nextFile);
     setPreviewUrl(nextUrl);
     setResultUrl(null);
+    setResultBlob(null);
   };
 
   const clearFile = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    revokeObjectUrl(previewUrl);
+    revokeObjectUrl(resultUrl);
 
     setFile(null);
     setPreviewUrl(null);
     setResultUrl(null);
+    setResultBlob(null);
   };
 
   const handleModify = async () => {
@@ -78,44 +81,34 @@ export default function ImageModifierPage() {
     }
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("format", format);
-    formData.append("quality", quality[0].toString());
-    formData.append("rotate", rotate);
-    formData.append("watermarkPosition", watermarkPosition);
-    formData.append("watermarkOpacity", (watermarkOpacity[0] / 100).toString());
-
-    if (resizeWidth) formData.append("resizeWidth", resizeWidth);
-    if (resizeHeight) formData.append("resizeHeight", resizeHeight);
-    if (cropLeft) formData.append("cropLeft", cropLeft);
-    if (cropTop) formData.append("cropTop", cropTop);
-    if (cropWidth) formData.append("cropWidth", cropWidth);
-    if (cropHeight) formData.append("cropHeight", cropHeight);
-    if (watermarkText.trim()) formData.append("watermarkText", watermarkText.trim());
-    if (topText.trim()) formData.append("topText", topText.trim());
-    if (bottomText.trim()) formData.append("bottomText", bottomText.trim());
-
     try {
-      const response = await fetch("/api/convert/image-modifier", {
-        method: "POST",
-        body: formData,
+      const result = await processImageLocally(file, {
+        format,
+        quality: quality[0],
+        width: resizeWidth ? Number.parseInt(resizeWidth, 10) : undefined,
+        height: resizeHeight ? Number.parseInt(resizeHeight, 10) : undefined,
+        rotate: Number.parseInt(rotate, 10),
+        crop: cropLeft && cropTop && cropWidth && cropHeight ? {
+          left: Number.parseInt(cropLeft, 10),
+          top: Number.parseInt(cropTop, 10),
+          width: Number.parseInt(cropWidth, 10),
+          height: Number.parseInt(cropHeight, 10),
+        } : undefined,
+        watermark: watermarkText.trim() ? {
+          text: watermarkText.trim(),
+          position: watermarkPosition,
+          opacity: watermarkOpacity[0] / 100,
+        } : undefined,
+        topText: topText.trim() || undefined,
+        bottomText: bottomText.trim() || undefined,
       });
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(error.error || "Image modification failed");
-      }
-
-      const blob = await response.blob();
-      const nextUrl = URL.createObjectURL(blob);
-      const extension = format === "jpeg" ? "jpg" : format;
-      const nextName = `modified-${file.name.replace(/\.[^.]+$/, "")}.${extension}`;
-
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      const nextUrl = URL.createObjectURL(result.blob);
+      revokeObjectUrl(resultUrl);
       setResultUrl(nextUrl);
-      setResultName(nextName);
-      toast.success("Image modifier output is ready");
+      setResultBlob(result.blob);
+      setResultName(`modified-${result.filename}`);
+      toast.success("Image modified locally.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -124,20 +117,19 @@ export default function ImageModifierPage() {
   };
 
   const downloadResult = () => {
-    if (!resultUrl) return;
-    const link = document.createElement("a");
-    link.href = resultUrl;
-    link.download = resultName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    if (!resultBlob) return;
+    downloadBlob(resultBlob, resultName);
   };
 
   return (
     <ToolLayout
       title="Image Modifier"
-      description="Resize, crop, rotate, watermark, add meme text, compress, and convert images in one working pipeline."
+      description="Resize, crop, rotate, watermark, add meme text, compress, and convert images locally in your browser."
     >
+      <div className="mb-6 flex flex-wrap gap-2">
+        <StatusPill>Local processing</StatusPill>
+        <StatusPill>No upload</StatusPill>
+      </div>
       <div className="space-y-8">
         <div className="rounded-xl border bg-muted/20 p-5">
           <Label htmlFor="image-file" className="mb-3 flex items-center text-sm font-semibold">
@@ -164,7 +156,7 @@ export default function ImageModifierPage() {
                 <img src={resultUrl} alt="Modified output" className="max-h-[360px] w-full rounded-lg object-contain" />
               ) : (
                 <div className="flex h-[260px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-                  Run the modifier to preview the result.
+                  Run the local modifier to preview the result.
                 </div>
               )}
             </div>
@@ -274,6 +266,15 @@ export default function ImageModifierPage() {
               Download Output
             </Button>
           </div>
+        )}
+
+        {resultUrl && (
+          <OutputCard description="Generated locally from this browser. Download your file below.">
+            <Button onClick={downloadResult} className="w-full">
+              <Download className="mr-2 h-4 w-4" />
+              Download output
+            </Button>
+          </OutputCard>
         )}
       </div>
     </ToolLayout>

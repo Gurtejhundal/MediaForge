@@ -1,242 +1,193 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Zap, Shield, CheckCircle2, Box, Film, QrCode, Link as LinkIcon2, MonitorUp, Eraser, Sparkles, Video, FileText, RefreshCw, SlidersHorizontal, Files } from "lucide-react";
+import { Archive, Box, Eraser, FileText, Film, ImageDown, Layers, Link as LinkIcon, MonitorUp, QrCode, Scissors, ShieldCheck, SlidersHorizontal, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppShell, StatusPill, ToolCard } from "@/components/workspace-components";
 
-type Tool = {
-  title: string;
-  description: string;
-  icon: ReactNode;
-  href: string;
-  popular?: boolean;
-};
-
-const IMAGE_TOOLS: Tool[] = [
+const LOCAL_TOOLS = [
   {
-    title: "Image Modifier",
-    description: "Resize, crop, rotate, watermark, add meme text, compress, and convert in one pipeline.",
-    icon: <SlidersHorizontal className="h-6 w-6 text-blue-500" />,
+    title: "Image modifier",
+    description: "Resize, crop, rotate, watermark, compress, and convert from one browser-local pipeline.",
+    meta: "PNG, JPG, WEBP, AVIF",
     href: "/tools/image-modifier",
-    popular: true,
+    icon: <SlidersHorizontal className="h-5 w-5" />,
   },
   {
-    title: "Image Detailer & 4K Upscaler",
-    description: "Upscale generated or blurry images while preserving original color, lighting, and tone.",
-    icon: <Sparkles className="h-6 w-6 text-emerald-500" />,
-    href: "/tools/image-enhancer",
-  },
-  {
-    title: "PNG to Favicon",
-    description: "Generate a complete .ico and .png favicon package for modern web apps with one click.",
-    icon: <Box className="h-6 w-6 text-purple-500" />,
+    title: "Favicon builder",
+    description: "Generate favicon PNG sizes, ICO, Apple touch icon, manifest, and ZIP without uploading.",
+    meta: "ICO, PNG, ZIP",
     href: "/tools/png-to-favicon",
+    icon: <Box className="h-5 w-5" />,
   },
   {
-    title: "BG Remover",
-    description: "Instantly remove backgrounds from any photo using AI-powered segmentation.",
-    icon: <Eraser className="h-6 w-6 text-rose-500" />,
-    href: "/tools/bg-remover",
-    popular: true,
-  },
-];
-
-const VIDEO_TOOLS: Tool[] = [
-  {
-    title: "Video Converter",
-    description: "Convert videos locally between MP4, WebM, GIF, and extract high-quality audio files.",
-    icon: <RefreshCw className="h-6 w-6 text-emerald-500" />,
-    href: "/tools/video-converter",
-    popular: true,
-  },
-  {
-    title: "Video Detail Upscaler",
-    description: "Upscale video toward 4K with luma-only detail recovery and no color grading filters.",
-    icon: <MonitorUp className="h-6 w-6 text-cyan-500" />,
-    href: "/tools/video-upscaler",
-  },
-  {
-    title: "Video to Image",
-    description: "Extract high-quality JPG frames or generate animated GIFs from MP4 videos.",
-    icon: <Film className="h-6 w-6 text-pink-500" />,
-    href: "/tools/video-to-image",
-  },
-  {
-    title: "Watermark Remover",
-    description: "Remove logos or watermarks from videos by selecting the area you want to clean.",
-    icon: <Eraser className="h-6 w-6 text-indigo-500" />,
-    href: "/tools/watermark-remover",
-  },
-  {
-    title: "URL Video Downloader",
-    description: "Paste a YouTube or raw .mp4 link to download the video locally securely.",
-    icon: <LinkIcon2 className="h-6 w-6 text-emerald-500" />,
-    href: "/tools/video-downloader",
-  },
-];
-
-const FILE_TOOLS: Tool[] = [
-  {
-    title: "PDF Organizer",
-    description: "Merge, split, rotate, watermark, number, reorder, and create PDFs from images.",
-    icon: <Files className="h-6 w-6 text-rose-500" />,
-    href: "/tools/pdf-organizer",
-    popular: true,
-  },
-  {
-    title: "Universal File Converter",
-    description: "Convert and transform between CSV, JSON, Markdown, SVG, XML, and other file types instantly.",
-    icon: <RefreshCw className="h-6 w-6 text-blue-500" />,
-    href: "/tools/file-converter",
-  },
-  {
-    title: "QR Code Generator",
-    description: "Instantly create high resolution, deeply customizable QR Codes for texts or links.",
-    icon: <QrCode className="h-6 w-6 text-emerald-500" />,
+    title: "QR generator",
+    description: "Create QR codes from text or URLs and export PNG, JPEG, or SVG locally.",
+    meta: "PNG, JPG, SVG",
     href: "/tools/qr-generator",
+    icon: <QrCode className="h-5 w-5" />,
+  },
+  {
+    title: "Frame extractor",
+    description: "Open a local video, seek to a timestamp, and capture a still frame with Canvas.",
+    meta: "PNG, JPG, WEBP",
+    href: "/tools/video-to-image",
+    icon: <ImageDown className="h-5 w-5" />,
   },
 ];
 
-const FEATURES = [
-  { text: "Lightning Fast Conversion", icon: <Zap className="h-5 w-5 text-yellow-500" /> },
-  { text: "Secure Processing", icon: <Shield className="h-5 w-5 text-green-500" /> },
-  { text: "No Uploads Stored", icon: <CheckCircle2 className="h-5 w-5 text-blue-500" /> },
+const SERVER_TOOLS = [
+  {
+    title: "Video downloader",
+    description: "Fetch media from a public URL. This uses network/server assistance and is not local-only.",
+    meta: "Network tool",
+    href: "/tools/video-downloader",
+    icon: <LinkIcon className="h-5 w-5" />,
+  },
+  {
+    title: "Video converter",
+    description: "Server-assisted video conversion for formats and audio extraction that need FFmpeg.",
+    meta: "Server-assisted",
+    href: "/tools/video-converter",
+    icon: <Film className="h-5 w-5" />,
+  },
+  {
+    title: "Video detail upscaler",
+    description: "Server-assisted FFmpeg upscale and luma detail pass for larger video work.",
+    meta: "Server-assisted",
+    href: "/tools/video-upscaler",
+    icon: <MonitorUp className="h-5 w-5" />,
+  },
+  {
+    title: "Image detailer",
+    description: "Server-assisted image enhancement and upscaling. It is not part of the no-upload guarantee.",
+    meta: "Server-assisted",
+    href: "/tools/image-enhancer",
+    icon: <Sparkles className="h-5 w-5" />,
+  },
+  {
+    title: "Background remover",
+    description: "Server-assisted background segmentation for images.",
+    meta: "Server-assisted",
+    href: "/tools/bg-remover",
+    icon: <Eraser className="h-5 w-5" />,
+  },
+  {
+    title: "Watermark remover",
+    description: "Server-assisted video cleanup using FFmpeg processing.",
+    meta: "Server-assisted",
+    href: "/tools/watermark-remover",
+    icon: <Eraser className="h-5 w-5" />,
+  },
+  {
+    title: "Universal file converter",
+    description: "Server-assisted document, data, and image conversion outside the browser-local core tools.",
+    meta: "Server-assisted",
+    href: "/tools/file-converter",
+    icon: <Archive className="h-5 w-5" />,
+  },
+  {
+    title: "PDF organizer",
+    description: "Merge, split, rotate, watermark, number, and reorder PDFs through the app route.",
+    meta: "Server-assisted",
+    href: "/tools/pdf-organizer",
+    icon: <FileText className="h-5 w-5" />,
+  },
 ];
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center pb-24 border-t border-border/40 w-full">
-      <section className="w-full relative flex flex-col items-center px-4 pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center max-w-3xl mb-8 relative z-10"
-        >
-          <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-6 backdrop-blur-sm">
-            <Zap className="mr-2 h-4 w-4" />
-            V1.1 is now live
+    <AppShell>
+      <section className="grid gap-10 py-10 lg:grid-cols-[1fr_460px] lg:items-center lg:py-16">
+        <div>
+          <div className="mb-5 flex flex-wrap gap-2">
+            <StatusPill>Local media toolkit</StatusPill>
+            <StatusPill>No upload for core tools</StatusPill>
           </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-            Convert Media <span className="bg-gradient-to-r from-primary via-purple-500 to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent">Instantly</span>
+          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-6xl">
+            Convert and export media without the clutter.
           </h1>
-          <p className="text-xl text-muted-foreground md:px-12 leading-relaxed">
-            The ultimate online toolkit for developers and creators. Process images, convert videos, and format documents locally and securely.
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
+            MediaForge gives you one clean workspace for image conversion, favicon packages,
+            compression, video frames, and QR codes. Core tools process files in your browser where supported.
           </p>
-        </motion.div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href="/tools/image-modifier">
+              <Button size="lg" className="h-11 px-5">Open workspace</Button>
+            </Link>
+            <Link href="#tools">
+              <Button size="lg" variant="outline" className="h-11 px-5">View tools</Button>
+            </Link>
+          </div>
+        </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex flex-col sm:flex-row gap-4 z-10"
-        >
-          <Link href="/tools/video-converter">
-            <Button size="lg" className="rounded-full shadow-lg h-12 px-8">
-              Start Converting <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="#tools">
-            <Button size="lg" variant="outline" className="rounded-full h-12 px-8 group backdrop-blur-sm bg-background/50">
-              View All Tools
-            </Button>
-          </Link>
-        </motion.div>
-      </section>
-
-      <section className="w-full max-w-6xl px-4 py-8 relative z-10 flex justify-center mb-16">
-        <div className="flex flex-wrap justify-center gap-6 text-sm font-medium text-muted-foreground">
-          {FEATURES.map((feature, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 + i * 0.1 }}
-              className="flex items-center gap-2 bg-background/50 border border-border/50 px-4 py-2 rounded-full backdrop-blur-md"
-            >
-              {feature.icon}
-              <span>{feature.text}</span>
-            </motion.div>
-          ))}
+        <div className="rounded-3xl border border-border bg-white p-5 shadow-[var(--shadow-md)]">
+          <div className="mb-4 flex items-center justify-between border-b border-border pb-4">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-semibold">Workspace / Convert</span>
+            </div>
+            <StatusPill>Browser-only</StatusPill>
+          </div>
+          <div className="rounded-2xl border border-dashed bg-muted/40 p-5">
+            <p className="font-medium">hero-image.png</p>
+            <p className="mt-1 font-mono text-xs text-muted-foreground">2.4 MB - PNG to WEBP</p>
+          </div>
+          <div className="mt-5 space-y-4">
+            <div className="flex items-center justify-between rounded-xl border bg-white p-3">
+              <span className="text-sm text-muted-foreground">Quality</span>
+              <span className="font-mono text-sm">82%</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted">
+              <div className="h-2 w-[82%] rounded-full bg-blue-600" />
+            </div>
+            <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
+              <p className="text-sm font-semibold text-teal-950">Export ready</p>
+              <p className="mt-1 font-mono text-xs text-teal-800">Generated locally - 742 KB</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section id="tools" className="w-full max-w-6xl px-4 py-16 scroll-mt-20 space-y-24">
-        <div className="mb-10 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Media Tools</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to optimize, convert, and format your assets, grouped by format.
+      <section id="tools" className="space-y-10 py-10">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Local-first tools</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            These tools use File API, Canvas, Blob URLs, JSZip, and browser APIs. User files are not posted to MediaForge API routes.
           </p>
         </div>
-
-        {/* Image Tools Section */}
-        <div className="space-y-8">
-          <div className="flex items-center space-x-3 border-b border-border/50 pb-4">
-            <ImageIcon className="h-6 w-6 text-primary" />
-            <h3 className="text-2xl font-bold">Image Tools</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {IMAGE_TOOLS.map((tool, i) => (
-              <ToolCard key={i} tool={tool} />
-            ))}
-          </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {LOCAL_TOOLS.map((tool) => <ToolCard key={tool.href} {...tool} />)}
         </div>
 
-        {/* Video Tools Section */}
-        <div className="space-y-8">
-          <div className="flex items-center space-x-3 border-b border-border/50 pb-4">
-            <Video className="h-6 w-6 text-primary" />
-            <h3 className="text-2xl font-bold">Video Tools</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {VIDEO_TOOLS.map((tool, i) => (
-              <ToolCard key={i} tool={tool} />
-            ))}
-          </div>
+        <div className="pt-8">
+          <h2 className="text-2xl font-semibold tracking-tight">Server-assisted and network tools</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            These features may contact external services or process data outside the browser. They are not part of the no-upload promise.
+          </p>
         </div>
-
-        {/* File Tools Section */}
-        <div className="space-y-8">
-          <div className="flex items-center space-x-3 border-b border-border/50 pb-4">
-            <FileText className="h-6 w-6 text-primary" />
-            <h3 className="text-2xl font-bold">Files & Documents</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FILE_TOOLS.map((tool, i) => (
-              <ToolCard key={i} tool={tool} />
-            ))}
-          </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {SERVER_TOOLS.map((tool) => <ToolCard key={tool.href} {...tool} />)}
         </div>
       </section>
-    </div>
-  );
-}
 
-function ToolCard({ tool }: { tool: Tool }) {
-  return (
-    <Link href={tool.href} className="group outline-none h-full block">
-      <motion.div 
-        whileHover={{ y: -5 }}
-        className="relative h-full overflow-hidden rounded-2xl border border-border/50 bg-background/40 p-6 backdrop-blur-md transition-all group-hover:border-primary/50 group-hover:bg-background/60 group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:group-hover:shadow-[0_8px_30px_rgb(255,255,255,0.03)]"
-      >
-        {tool.popular && (
-          <div className="absolute top-4 right-4 bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
-            Most Popular
-          </div>
-        )}
-        <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-110 group-hover:bg-primary/20">
-          {tool.icon}
+      <section className="my-10 grid gap-4 rounded-3xl border bg-white p-6 md:grid-cols-3">
+        <div>
+          <ShieldCheck className="mb-3 h-5 w-5 text-blue-600" />
+          <h3 className="font-semibold">No upload by default</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Core file operations generate local Blob outputs in the current browser session.</p>
         </div>
-        <h4 className="mb-2 text-lg font-bold flex items-center group-hover:text-primary transition-colors">
-          {tool.title}
-          <ArrowRight className="ml-2 h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
-        </h4>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {tool.description}
-        </p>
-      </motion.div>
-    </Link>
+        <div>
+          <Scissors className="mb-3 h-5 w-5 text-blue-600" />
+          <h3 className="font-semibold">Precise controls</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Use direct format, quality, dimension, timestamp, and package settings.</p>
+        </div>
+        <div>
+          <Archive className="mb-3 h-5 w-5 text-blue-600" />
+          <h3 className="font-semibold">Honest limits</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Large videos and unsupported browser encoders are called out instead of hidden.</p>
+        </div>
+      </section>
+    </AppShell>
   );
 }

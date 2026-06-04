@@ -106,6 +106,7 @@ export default function BgRemoverPage() {
               "image/webp": [".webp"],
             }}
             maxSizeMB={20}
+            processingMode="server"
           />
         ) : !showComparison ? (
           <ImagePreview
@@ -161,7 +162,6 @@ export default function BgRemoverPage() {
                   alt="Original"
                   fill
                   className="object-contain"
-                  style={{ minWidth: comparisonRef.current?.offsetWidth || "100%" }}
                   unoptimized
                 />
               </div>

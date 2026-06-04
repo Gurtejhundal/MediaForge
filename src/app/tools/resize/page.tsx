@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Loader2, Maximize, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
+import { getImageDimensions, processImageLocally } from "@/lib/local-processing/image-processing";
+import { StatusPill } from "@/components/workspace-components";
 
 export default function ResizePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -18,20 +21,18 @@ export default function ResizePage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFileAccepted = (acceptedFile: File) => {
-    setFile(acceptedFile);
-
-    // Provide default dimensions based on original
-    const img = new Image();
-    img.onload = () => {
-       setWidth(img.width.toString());
-       setHeight(img.height.toString());
-    };
+    revokeObjectUrl(previewUrl);
     const url = URL.createObjectURL(acceptedFile);
-    img.src = url;
+    setFile(acceptedFile);
     setPreviewUrl(url);
+    getImageDimensions(acceptedFile).then((dimensions) => {
+      setWidth(dimensions.width.toString());
+      setHeight(dimensions.height.toString());
+    }).catch(() => undefined);
   };
 
   const clearFile = () => {
+    revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
     setWidth("");
@@ -47,34 +48,17 @@ export default function ResizePage() {
     }
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    if (width) formData.append("width", width);
-    if (height) formData.append("height", height);
-
     try {
-      const response = await fetch("/api/convert/resize", {
-        method: "POST",
-        body: formData,
+      const result = await processImageLocally(file, {
+        format: "png",
+        width: width ? Number.parseInt(width, 10) : undefined,
+        height: height ? Number.parseInt(height, 10) : undefined,
       });
-
-      if (!response.ok) {
-         const errData = await response.json().catch(() => ({}));
-         throw new Error(errData.error || "Failed to resize image");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `resized-${file.name}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      downloadBlob(result.blob, `resized-${result.filename}`);
       
-      toast.success("Image resized and downloaded!");
-    } catch (error: any) {
-      toast.error(error.message);
+      toast.success("Image resized locally.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to resize image");
     } finally {
       setIsProcessing(false);
     }
@@ -83,8 +67,12 @@ export default function ResizePage() {
   return (
     <ToolLayout 
       title="Image Resizer" 
-      description="Change image dimensions precisely while maintaining high quality."
+      description="Resize images locally with Canvas. No upload required."
     >
+      <div className="mb-6 flex flex-wrap gap-2">
+        <StatusPill>Local processing</StatusPill>
+        <StatusPill>No upload</StatusPill>
+      </div>
       <div className="space-y-8">
         {!file ? (
           <Dropzone 

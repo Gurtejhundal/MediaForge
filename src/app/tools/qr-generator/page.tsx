@@ -1,203 +1,166 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Download, Loader2, QrCode } from "lucide-react";
+import { toast } from "sonner";
 import { ToolLayout } from "@/components/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, Download, QrCode } from "lucide-react";
-import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { OutputCard, SettingsPanel, StatusPill } from "@/components/workspace-components";
+import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
+import { generateQrLocally, getContrastRatio, type QrErrorCorrection, type QrFormat } from "@/lib/local-processing/qr-processing";
 
 export default function QrGeneratorPage() {
   const [text, setText] = useState("");
-  const [darkColor, setDarkColor] = useState("#000000");
+  const [darkColor, setDarkColor] = useState("#111827");
   const [lightColor, setLightColor] = useState("#ffffff");
   const [margin, setMargin] = useState<number[]>([4]);
-  const [errorCorrection, setErrorCorrection] = useState<"L" | "M" | "Q" | "H">("H");
-  const [format, setFormat] = useState<"png" | "jpeg">("png");
-  
+  const [errorCorrection, setErrorCorrection] = useState<QrErrorCorrection>("H");
+  const [format, setFormat] = useState<QrFormat>("png");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [outputBlob, setOutputBlob] = useState<Blob | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Debounced live preview generation
-  useEffect(() => {
-    if (!text.trim()) {
-       setPreviewUrl(null);
-       return;
+  const contrastRatio = getContrastRatio(darkColor, lightColor);
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const blob = await generateQrLocally({
+        text,
+        darkColor,
+        lightColor,
+        margin: margin[0],
+        errorCorrection,
+        format,
+      });
+      const nextUrl = URL.createObjectURL(blob);
+      revokeObjectUrl(previewUrl);
+      setPreviewUrl(nextUrl);
+      setOutputBlob(blob);
+      toast.success("QR code generated locally.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to generate QR code");
+    } finally {
+      setIsGenerating(false);
     }
-
-    const timer = setTimeout(async () => {
-      setIsGenerating(true);
-      const formData = new FormData();
-      formData.append("text", text);
-      formData.append("dark", darkColor);
-      formData.append("light", lightColor);
-      formData.append("margin", margin?.[0]?.toString() || "4");
-      formData.append("errorCorrection", errorCorrection);
-      formData.append("format", format);
-
-      try {
-        const response = await fetch("/api/convert/qr", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          setPreviewUrl(url);
-        }
-      } catch (error) {
-        console.error("Preview generation failed", error);
-      } finally {
-        setIsGenerating(false);
-      }
-    }, 500); // 500ms debounce
-
-    return () => clearTimeout(timer);
-  }, [text, darkColor, lightColor, margin, errorCorrection, format]);
+  };
 
   const handleDownload = () => {
-     if (!previewUrl) {
-         toast.error("Please enter some text first.");
-         return;
-     }
-     
-     const link = document.createElement("a");
-     link.href = previewUrl;
-     link.download = `qr-code-${Date.now()}.${format === 'jpeg' ? 'jpg' : 'png'}`;
-     document.body.appendChild(link);
-     link.click();
-     link.remove();
-     
-     toast.success("QR Code downloaded successfully!");
+    if (!outputBlob) {
+      toast.error("Generate the QR code first.");
+      return;
+    }
+
+    downloadBlob(outputBlob, `qr-code.${format === "jpeg" ? "jpg" : format}`);
   };
 
   return (
-    <ToolLayout 
-      title="QR Code Generator" 
-      description="Instantly convert links, passwords, and text into high-resolution, branded QR codes."
+    <ToolLayout
+      title="QR generator"
+      description="Generate QR codes in the browser and export PNG, JPEG, or SVG without uploading content."
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Settings Column */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        <StatusPill>Local processing</StatusPill>
+        <StatusPill>No upload</StatusPill>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
-           <div className="bg-muted/30 p-6 rounded-xl border">
-              <Label className="mb-2 block">Content Text or URL</Label>
-              <Textarea 
-                placeholder="https://example.com" 
-                value={text} 
-                onChange={e => setText(e.target.value)}
-                className="h-32 resize-none bg-background/50"
-              />
-           </div>
+          <SettingsPanel title="Content">
+            <Label className="mb-2 block">Text or URL</Label>
+            <Textarea
+              placeholder="https://example.com"
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              className="min-h-36 resize-none"
+            />
+          </SettingsPanel>
 
-           <div className="bg-muted/30 p-6 rounded-xl border space-y-6">
-              <h3 className="font-semibold flex items-center mb-2"><QrCode className="mr-2 h-5 w-5 text-primary" /> Appearance</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <Label className="mb-2 block text-xs">Foreground Color</Label>
-                    <div className="flex bg-background border rounded-md overflow-hidden h-10">
-                       <input 
-                         type="color" 
-                         value={darkColor} 
-                         onChange={e => setDarkColor(e.target.value)} 
-                         className="h-full w-12 cursor-pointer border-r"
-                       />
-                       <span className="flex items-center px-3 text-sm font-mono uppercase bg-muted/10 w-full">{darkColor}</span>
-                    </div>
-                 </div>
-                 <div>
-                    <Label className="mb-2 block text-xs">Background Color</Label>
-                    <div className="flex bg-background border rounded-md overflow-hidden h-10">
-                       <input 
-                         type="color" 
-                         value={lightColor} 
-                         onChange={e => setLightColor(e.target.value)} 
-                         className="h-full w-12 cursor-pointer border-r"
-                       />
-                       <span className="flex items-center px-3 text-sm font-mono uppercase bg-muted/10 w-full">{lightColor}</span>
-                    </div>
-                 </div>
-              </div>
-
+          <SettingsPanel title="Appearance">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <Label>Quiet Zone Margin</Label>
-                    <span className="text-sm font-bold bg-primary/20 text-primary px-2 py-1 rounded">
-                      {margin[0]}px
-                    </span>
-                  </div>
-                  <Slider 
-                    value={margin} 
-                    onValueChange={(val) => setMargin(val as number[])} 
-                    max={10} 
-                    min={0} 
-                    step={1}
-                  />
+                <Label className="mb-2 block text-xs">Foreground</Label>
+                <input className="h-10 w-full rounded-md border border-input bg-white" type="color" value={darkColor} onChange={(event) => setDarkColor(event.target.value)} />
               </div>
-
               <div>
-                 <Label className="mb-3 block text-sm">Error Correction Level</Label>
-                 <div className="flex gap-2">
-                    {(["L", "M", "Q", "H"] as const).map(level => (
-                       <Button 
-                         key={level}
-                         variant={errorCorrection === level ? "default" : "outline"}
-                         onClick={() => setErrorCorrection(level)}
-                         className="flex-1"
-                       >
-                         {level}
-                       </Button>
-                    ))}
-                 </div>
-                 <p className="text-xs text-muted-foreground mt-2">Higher error correction creates denser codes but allows for logos/damage.</p>
+                <Label className="mb-2 block text-xs">Background</Label>
+                <input className="h-10 w-full rounded-md border border-input bg-white" type="color" value={lightColor} onChange={(event) => setLightColor(event.target.value)} />
               </div>
-           </div>
+            </div>
+
+            {contrastRatio < 3 && (
+              <p className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
+                Low contrast may make this QR difficult to scan.
+              </p>
+            )}
+
+            <div className="mt-5">
+              <div className="mb-3 flex items-center justify-between">
+                <Label>Margin</Label>
+                <span className="font-mono text-xs text-muted-foreground">{margin[0]} modules</span>
+              </div>
+              <Slider value={margin} onValueChange={(value) => setMargin(value as number[])} min={0} max={10} step={1} />
+            </div>
+
+            <div className="mt-5">
+              <Label className="mb-3 block">Error correction</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {(["L", "M", "Q", "H"] as const).map((level) => (
+                  <Button key={level} variant={errorCorrection === level ? "default" : "outline"} onClick={() => setErrorCorrection(level)}>
+                    {level}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <Label className="mb-3 block">Export format</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(["png", "jpeg", "svg"] as const).map((nextFormat) => (
+                  <Button key={nextFormat} variant={format === nextFormat ? "default" : "outline"} onClick={() => setFormat(nextFormat)}>
+                    {nextFormat === "jpeg" ? "JPG" : nextFormat.toUpperCase()}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </SettingsPanel>
         </div>
 
-        {/* Preview Column */}
-        <div className="bg-muted/10 p-6 rounded-xl border flex flex-col justify-between">
-           <div className="flex-1 flex flex-col items-center justify-center min-h-[350px]">
-             {isGenerating ? (
-               <div className="flex flex-col items-center justify-center text-muted-foreground animate-pulse">
-                 <Loader2 className="h-10 w-10 animate-spin mb-4 text-primary" />
-                 <p>Building QR Matrix...</p>
-               </div>
-             ) : previewUrl ? (
-               <div className="bg-white p-4 rounded-xl shadow-xl transform transition-all hover:scale-105" style={{ backgroundColor: lightColor }}>
-                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                 <img src={previewUrl} alt="Generated QR Code" className="w-[280px] h-[280px] object-contain rounded-md" />
-               </div>
-             ) : (
-               <div className="text-center p-8 border-2 border-dashed rounded-xl w-full max-w-[280px] aspect-square flex flex-col items-center justify-center">
-                 <QrCode className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                 <p className="text-muted-foreground font-medium">Your preview will appear here</p>
-                 <p className="text-xs text-muted-foreground mt-2 opacity-70">Type some text to get started</p>
-               </div>
-             )}
-           </div>
+        <div className="space-y-6">
+          <SettingsPanel title="Preview">
+            <div className="flex min-h-[320px] items-center justify-center rounded-xl border bg-white p-5">
+              {previewUrl ? (
+                format === "svg" ? (
+                  <object data={previewUrl} type="image/svg+xml" aria-label="Generated QR code" className="h-72 w-72" />
+                ) : (
+                  <img src={previewUrl} alt="Generated QR code" className="h-72 w-72 object-contain" />
+                )
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  <QrCode className="mx-auto mb-3 h-12 w-12 opacity-45" />
+                  <p className="text-sm">Generated QR preview appears here.</p>
+                </div>
+              )}
+            </div>
+          </SettingsPanel>
 
-           <div className="mt-8 space-y-4 pt-4 border-t border-border/50">
-             <div className="flex gap-2 items-center mb-4">
-                 <Label className="whitespace-nowrap mr-2">Export As:</Label>
-                 <Button variant={format === "png" ? "secondary" : "ghost"} size="sm" onClick={() => setFormat("png")}>PNG</Button>
-                 <Button variant={format === "jpeg" ? "secondary" : "ghost"} size="sm" onClick={() => setFormat("jpeg")}>JPG</Button>
-             </div>
-             <Button 
-               size="lg" 
-               className="w-full h-12" 
-               disabled={!previewUrl || isGenerating}
-               onClick={handleDownload}
-             >
-               <Download className="mr-2 h-5 w-5" /> Download QR Code
-             </Button>
-           </div>
+          {outputBlob && (
+            <OutputCard description="Generated locally. Download your file below.">
+              <Button onClick={handleDownload} className="w-full">
+                <Download className="mr-2 h-4 w-4" />
+                Download QR code
+              </Button>
+            </OutputCard>
+          )}
+
+          <Button size="lg" onClick={handleGenerate} disabled={isGenerating || !text.trim()} className="w-full">
+            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+            Generate locally
+          </Button>
         </div>
-
       </div>
     </ToolLayout>
   );

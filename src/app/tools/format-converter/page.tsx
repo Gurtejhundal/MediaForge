@@ -6,21 +6,26 @@ import { Dropzone } from "@/components/upload/dropzone";
 import { ImagePreview } from "@/components/preview/image-preview";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Download, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
+import { processImageLocally, type BrowserImageFormat } from "@/lib/local-processing/image-processing";
+import { StatusPill } from "@/components/workspace-components";
 
 export default function FormatConverterPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [targetFormat, setTargetFormat] = useState<"png" | "jpeg" | "webp" | "avif" | "heif">("webp");
+  const [targetFormat, setTargetFormat] = useState<BrowserImageFormat>("webp");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFileAccepted = (acceptedFile: File) => {
     setFile(acceptedFile);
+    revokeObjectUrl(previewUrl);
     setPreviewUrl(URL.createObjectURL(acceptedFile));
   };
 
   const clearFile = () => {
+    revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
   };
@@ -29,34 +34,13 @@ export default function FormatConverterPage() {
     if (!file) return;
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("format", targetFormat);
-
     try {
-      const response = await fetch("/api/convert/format", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-         const errData = await response.json().catch(() => ({}));
-         throw new Error(errData.error || "Failed to convert image");
-      }
-
-      // Handle binary response
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `converted.${targetFormat === 'jpeg' ? 'jpg' : targetFormat}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const result = await processImageLocally(file, { format: targetFormat, quality: 90 });
+      downloadBlob(result.blob, `converted-${result.filename}`);
       
-      toast.success("Image converted successfully!");
-    } catch (error: any) {
-      toast.error(error.message);
+      toast.success("Image converted locally.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to convert image");
     } finally {
       setIsProcessing(false);
     }
@@ -65,8 +49,12 @@ export default function FormatConverterPage() {
   return (
     <ToolLayout 
       title="Format Converter" 
-      description="Convert images between PNG, JPG, and WEBP formats flawlessly."
+      description="Convert images in the browser. No upload required."
     >
+      <div className="mb-6 flex flex-wrap gap-2">
+        <StatusPill>Local processing</StatusPill>
+        <StatusPill>No upload</StatusPill>
+      </div>
       <div className="space-y-8">
         {!file ? (
           <Dropzone 
@@ -89,7 +77,7 @@ export default function FormatConverterPage() {
                <div>
                   <Label className="mb-3 block text-sm text-muted-foreground">Target Format</Label>
                   <div className="flex flex-wrap gap-3">
-                     {(["png", "jpeg", "webp", "avif", "heif"] as const).map(fmt => (
+                     {(["png", "jpeg", "webp", "avif"] as const).map(fmt => (
                        <Button 
                          key={fmt}
                          variant={targetFormat === fmt ? "default" : "outline"}

@@ -40,6 +40,10 @@ function sanitizeBaseName(filename: string) {
   return sanitized || "video";
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "";
+}
+
 export async function POST(req: NextRequest) {
   let sessionDir = "";
 
@@ -156,9 +160,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Video conversion error:", error);
-    const errorMsg = error.message || "";
+    const errorMsg = getErrorMessage(error);
     const errorLines = errorMsg.split('\n')
       .map((line: string) => line.trim())
       .filter((line: string) => {

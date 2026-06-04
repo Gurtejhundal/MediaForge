@@ -9,55 +9,43 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Loader2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBlob, formatFileSize, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
+import { processImageLocally } from "@/lib/local-processing/image-processing";
+import { StatusPill } from "@/components/workspace-components";
 
 export default function CompressPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [quality, setQuality] = useState<number[]>([70]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastOutputSize, setLastOutputSize] = useState<number | null>(null);
 
   const handleFileAccepted = (acceptedFile: File) => {
+    revokeObjectUrl(previewUrl);
     setFile(acceptedFile);
     setPreviewUrl(URL.createObjectURL(acceptedFile));
+    setLastOutputSize(null);
   };
 
   const clearFile = () => {
+    revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
+    setLastOutputSize(null);
   };
 
   const handleCompress = async () => {
     if (!file) return;
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("quality", quality[0].toString());
-    formData.append("format", "webp"); // Compress to webp for best results by default, or could pass user setting
-
     try {
-      const response = await fetch("/api/convert/compress", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-         const errData = await response.json().catch(() => ({}));
-         throw new Error(errData.error || "Failed to compress image");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `compressed-${file.name.split('.')[0]}.webp`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const result = await processImageLocally(file, { format: "webp", quality: quality[0] });
+      setLastOutputSize(result.blob.size);
+      downloadBlob(result.blob, `compressed-${result.filename}`);
       
-      toast.success("Image compressed successfully!");
-    } catch (error: any) {
-      toast.error(error.message);
+      toast.success("Image compressed locally.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to compress image");
     } finally {
       setIsProcessing(false);
     }
@@ -66,8 +54,12 @@ export default function CompressPage() {
   return (
     <ToolLayout 
       title="Image Compressor" 
-      description="Reduce image file size significantly via smart compression algorithms."
+      description="Compress images locally with browser-native WebP export."
     >
+      <div className="mb-6 flex flex-wrap gap-2">
+        <StatusPill>Local processing</StatusPill>
+        <StatusPill>No upload</StatusPill>
+      </div>
       <div className="space-y-8">
         {!file ? (
           <Dropzone 
@@ -108,6 +100,19 @@ export default function CompressPage() {
                     <span>Best Quality</span>
                   </div>
                </div>
+
+               {lastOutputSize !== null && file && (
+                 <div className="rounded-xl border bg-background p-4 text-sm">
+                   <div className="flex justify-between">
+                     <span className="text-muted-foreground">Original</span>
+                     <span className="font-mono">{formatFileSize(file.size)}</span>
+                   </div>
+                   <div className="mt-2 flex justify-between">
+                     <span className="text-muted-foreground">Output</span>
+                     <span className="font-mono">{formatFileSize(lastOutputSize)}</span>
+                   </div>
+                 </div>
+               )}
 
                <div className="pt-4">
                 <Button 

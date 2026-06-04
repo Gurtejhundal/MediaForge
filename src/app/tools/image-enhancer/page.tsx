@@ -108,6 +108,7 @@ export default function ImageEnhancerPage() {
             accept={{ "image/*": [".png", ".jpg", ".jpeg", ".webp"] }}
             maxSizeMB={10}
             displayMode="image"
+            processingMode="server"
           />
         ) : (
           <div className="space-y-6">

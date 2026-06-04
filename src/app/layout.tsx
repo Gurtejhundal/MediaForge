@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MediaForge | Modern Media Converter Platform",
-  description: "Convert images to WebP, resize, compress, extract video frames, and generate favicon ZIPs instantly locally in your browser/server. Fast and minimal UI.",
+  title: "MediaForge | Local media toolkit",
+  description: "Convert, resize, compress, generate QR codes, build favicons, and extract video frames locally in your browser where supported.",
 };
 
 export default function RootLayout({
@@ -35,13 +35,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col relative bg-background">
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
+          forcedTheme="light"
           disableTransitionOnChange
         >
           <Navbar />
           <main className="flex-1 flex flex-col relative">
-            {/* Soft global background flair */}
-            <div className="absolute inset-0 z-[-1] min-h-screen bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))] pointer-events-none" />
             {children}
           </main>
           <Footer />

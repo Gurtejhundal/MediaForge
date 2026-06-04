@@ -1,305 +1,147 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Download, Film, ImageDown, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { Loader2, Film, RefreshCw, Images, Image as ImageIcon, Clapperboard } from "lucide-react";
-import { toast } from "sonner";
-import { formatBytes } from "@/components/preview/image-preview";
-
-type ExportAction = "sequence" | "frame" | "gif";
-type FrameFormat = "jpg" | "png";
-type SequenceMode = "sampled" | "source";
-
-function getFilenameFromResponse(response: Response, fallback: string) {
-  const contentDisposition = response.headers.get("content-disposition");
-  const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
-
-  return filenameMatch?.[1] || fallback;
-}
-
-function getBaseName(filename: string) {
-  return filename.replace(/\.[^.]+$/, "") || "video";
-}
+import { Label } from "@/components/ui/label";
+import { OutputCard, StatusPill } from "@/components/workspace-components";
+import { downloadBlob, formatFileSize, revokeObjectUrl, safeBaseName } from "@/lib/local-processing/blob-utils";
+import { captureFrameFromVideo, parseTimestamp, type FrameExportFormat } from "@/lib/local-processing/video-frame-processing";
 
 export default function VideoToImagePage() {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [targetAction, setTargetAction] = useState<ExportAction>("sequence");
-  const [frameFormat, setFrameFormat] = useState<FrameFormat>("jpg");
-  const [sequenceMode, setSequenceMode] = useState<SequenceMode>("sampled");
-  const [frameRate, setFrameRate] = useState<number[]>([12]);
-  const [maxFrames, setMaxFrames] = useState<string>("240");
-  const [timestamp, setTimestamp] = useState<string>("00:00:01");
-  const [gifDuration, setGifDuration] = useState<string>("3");
+  const [timestamp, setTimestamp] = useState("00:00:01");
+  const [format, setFormat] = useState<FrameExportFormat>("png");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [outputBlob, setOutputBlob] = useState<Blob | null>(null);
+  const [outputUrl, setOutputUrl] = useState<string | null>(null);
 
   const handleFileAccepted = (acceptedFile: File) => {
+    revokeObjectUrl(previewUrl);
+    revokeObjectUrl(outputUrl);
     setFile(acceptedFile);
     setPreviewUrl(URL.createObjectURL(acceptedFile));
+    setOutputBlob(null);
+    setOutputUrl(null);
   };
 
   const clearFile = () => {
+    revokeObjectUrl(previewUrl);
+    revokeObjectUrl(outputUrl);
     setFile(null);
     setPreviewUrl(null);
+    setOutputBlob(null);
+    setOutputUrl(null);
   };
 
-  const exportLabel = targetAction === "sequence"
-    ? "Export Frame ZIP"
-    : targetAction === "gif"
-      ? "Generate GIF"
-      : "Extract Still Frame";
-
-  const handleConvert = async () => {
-    if (!file) return;
+  const handleCapture = async () => {
+    if (!videoRef.current || !file) return;
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("action", targetAction);
-    formData.append("format", frameFormat);
-    formData.append("timestamp", timestamp);
-
-    if (targetAction === "sequence") {
-      formData.append("sequenceMode", sequenceMode);
-      formData.append("frameRate", String(frameRate[0]));
-      formData.append("maxFrames", maxFrames);
-    }
-
-    if (targetAction === "gif") {
-      formData.append("duration", gifDuration);
-    }
-
     try {
-      const response = await fetch("/api/convert/video-to-image", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-         const errData = await response.json().catch(() => ({}));
-         throw new Error(errData.error || "Failed to process video");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = getFilenameFromResponse(
-        response,
-        `${getBaseName(file.name)}-${targetAction === "sequence" ? "frames.zip" : targetAction === "gif" ? "clip.gif" : `frame.${frameFormat}`}`
-      );
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      
-      toast.success(targetAction === "sequence" ? "Frame ZIP exported successfully." : "Video export completed.");
+      const blob = await captureFrameFromVideo(videoRef.current, parseTimestamp(timestamp), format);
+      const nextUrl = URL.createObjectURL(blob);
+      revokeObjectUrl(outputUrl);
+      setOutputBlob(blob);
+      setOutputUrl(nextUrl);
+      toast.success("Frame extracted locally.");
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to process video");
+      toast.error(error instanceof Error ? error.message : "Failed to extract frame");
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const downloadFrame = () => {
+    if (!outputBlob || !file) return;
+    const extension = format === "jpeg" ? "jpg" : format;
+    downloadBlob(outputBlob, `${safeBaseName(file.name)}-frame.${extension}`);
+  };
+
   return (
-    <ToolLayout 
-      title="Video to Image Suite" 
-      description="Export numbered image sequences, still frames, or compact GIFs from uploaded videos."
+    <ToolLayout
+      title="Frame extractor"
+      description="Extract a still frame from a selected video using the browser video element and Canvas. No upload required."
     >
+      <div className="mb-6 flex flex-wrap gap-2">
+        <StatusPill>Local processing</StatusPill>
+        <StatusPill>No upload</StatusPill>
+        <StatusPill tone="warning">Large videos use this device CPU and memory</StatusPill>
+      </div>
+
       <div className="space-y-8">
         {!file ? (
-          <Dropzone 
-            onFileAccepted={handleFileAccepted} 
+          <Dropzone
+            onFileAccepted={handleFileAccepted}
             accept={{ "video/mp4": [".mp4"], "video/webm": [".webm"], "video/quicktime": [".mov"] }}
-            maxSizeMB={50} 
+            maxSizeMB={300}
             displayMode="video"
           />
         ) : (
-          <div className="relative flex flex-col p-4 border rounded-xl bg-card overflow-hidden">
-             <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center min-w-0">
-                   <Film className="h-5 w-5 mr-3 text-primary" />
-                   <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate text-foreground">{file.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{formatBytes(file.size)}</p>
-                   </div>
+          <div className="rounded-2xl border bg-card p-4">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center">
+                <Film className="mr-3 h-5 w-5 text-primary" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{file.name}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={clearFile} className="text-muted-foreground hover:text-destructive">Remove File</Button>
-             </div>
-             
-             {/* Native HTML5 Video Player for scrubbing */}
-             <div className="rounded-lg overflow-hidden bg-black/10 border aspect-video flex items-center justify-center">
-                 <video 
-                   src={previewUrl!} 
-                   controls 
-                   className="max-h-full max-w-full"
-                 />
-             </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={clearFile}>Remove</Button>
+            </div>
+            <video ref={videoRef} src={previewUrl!} controls className="aspect-video max-h-[520px] w-full rounded-xl border bg-black object-contain" />
           </div>
         )}
 
         {file && (
-          <div className="bg-muted/30 p-6 rounded-xl border">
-            <h3 className="mb-4 font-semibold text-lg flex items-center"><Film className="mr-2 h-5 w-5 text-primary" /> Export Settings</h3>
-            
-            <div className="space-y-6">
-               <div>
-                  <Label className="mb-3 block text-sm text-foreground">Output Type</Label>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                     <Button 
-                       variant={targetAction === "sequence" ? "default" : "outline"}
-                       onClick={() => setTargetAction("sequence")}
-                       className="h-11 justify-center"
-                     >
-                       <Images className="mr-2 h-4 w-4" />
-                       Frame ZIP
-                     </Button>
-                     <Button 
-                       variant={targetAction === "frame" ? "default" : "outline"}
-                       onClick={() => setTargetAction("frame")}
-                       className="h-11 justify-center"
-                     >
-                       <ImageIcon className="mr-2 h-4 w-4" />
-                       Still Frame
-                     </Button>
-                     <Button 
-                       variant={targetAction === "gif" ? "default" : "outline"}
-                       onClick={() => setTargetAction("gif")}
-                       className="h-11 justify-center"
-                     >
-                       <Clapperboard className="mr-2 h-4 w-4" />
-                       GIF
-                     </Button>
-                  </div>
-               </div>
+          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+            <section className="rounded-2xl border bg-card p-5">
+              <h2 className="mb-4 text-sm font-semibold">Output preview</h2>
+              {outputUrl ? (
+                <img src={outputUrl} alt="Captured video frame" className="max-h-[460px] w-full rounded-xl border bg-white object-contain" />
+              ) : (
+                <div className="flex min-h-[260px] items-center justify-center rounded-xl border border-dashed bg-muted/30 text-sm text-muted-foreground">
+                  Captured frame appears here.
+                </div>
+              )}
+            </section>
 
-               {targetAction !== "gif" && (
-                 <div>
-                    <Label className="mb-3 block text-sm text-foreground">Image Format</Label>
-                    <div className="grid grid-cols-2 gap-3 sm:max-w-sm">
-                       {(["jpg", "png"] as const).map((format) => (
-                         <Button
-                           key={format}
-                           variant={frameFormat === format ? "default" : "outline"}
-                           onClick={() => setFrameFormat(format)}
-                           className="h-10 uppercase"
-                         >
-                           {format}
-                         </Button>
-                       ))}
-                    </div>
-                 </div>
-               )}
+            <section className="rounded-2xl border bg-card p-5">
+              <h2 className="mb-4 text-sm font-semibold">Frame settings</h2>
+              <Label htmlFor="timestamp">Timestamp</Label>
+              <Input id="timestamp" value={timestamp} onChange={(event) => setTimestamp(event.target.value)} placeholder="00:00:01" className="mt-2 font-mono" />
+              <p className="mt-2 text-xs text-muted-foreground">Use HH:MM:SS, MM:SS, or seconds.</p>
 
-               {targetAction === "sequence" && (
-                 <div className="space-y-5 rounded-xl border bg-background/60 p-5">
-                    <div>
-                       <Label className="mb-3 block text-sm text-foreground">Sequence Mode</Label>
-                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Button
-                            variant={sequenceMode === "sampled" ? "default" : "outline"}
-                            onClick={() => setSequenceMode("sampled")}
-                            className="h-10"
-                          >
-                            Sampled FPS
-                          </Button>
-                          <Button
-                            variant={sequenceMode === "source" ? "default" : "outline"}
-                            onClick={() => setSequenceMode("source")}
-                            className="h-10"
-                          >
-                            Source Frames
-                          </Button>
-                       </div>
-                    </div>
+              <Label className="mb-3 mt-5 block">Export format</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(["png", "jpeg", "webp"] as const).map((nextFormat) => (
+                  <Button key={nextFormat} variant={format === nextFormat ? "default" : "outline"} onClick={() => setFormat(nextFormat)}>
+                    {nextFormat === "jpeg" ? "JPG" : nextFormat.toUpperCase()}
+                  </Button>
+                ))}
+              </div>
 
-                    {sequenceMode === "sampled" && (
-                      <div>
-                        <div className="mb-4 flex items-center justify-between gap-4">
-                          <Label>Frames Per Second</Label>
-                          <span className="rounded-md bg-primary/15 px-2 py-1 text-sm font-semibold text-primary">
-                            {frameRate[0]} fps
-                          </span>
-                        </div>
-                        <Slider
-                          value={frameRate}
-                          onValueChange={(value) => setFrameRate(value as number[])}
-                          min={1}
-                          max={30}
-                          step={1}
-                        />
-                      </div>
-                    )}
-
-                    <div>
-                      <Label htmlFor="maxFrames">Maximum Frames</Label>
-                      <Input
-                        id="maxFrames"
-                        type="number"
-                        min={1}
-                        max={600}
-                        value={maxFrames}
-                        onChange={(event) => setMaxFrames(event.target.value)}
-                        className="mt-2 max-w-xs"
-                      />
-                    </div>
-                 </div>
-               )}
-
-               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                   <div>
-                      <Label htmlFor="timestamp">Start Timestamp (HH:MM:SS)</Label>
-                      <Input 
-                        id="timestamp" 
-                        placeholder="00:00:01" 
-                        value={timestamp} 
-                        onChange={e => setTimestamp(e.target.value)} 
-                        className="mt-2" 
-                      />
-                   </div>
-                   {targetAction === "gif" && (
-                     <div>
-                        <Label htmlFor="duration">GIF Duration (Seconds)</Label>
-                        <Input 
-                          id="duration" 
-                          type="number" 
-                          placeholder="3" 
-                          value={gifDuration} 
-                          onChange={e => setGifDuration(e.target.value)} 
-                          className="mt-2" 
-                        />
-                     </div>
-                   )}
-               </div>
-
-               <div className="pt-4 border-t border-border/50">
-                <Button 
-                  size="lg" 
-                  onClick={handleConvert} 
-                  disabled={isProcessing}
-                  className="w-full text-md h-12 relative overflow-hidden group"
-                >
-                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] animate-[shimmer_2s_infinite] group-hover:block transition-all"></span>
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Parsing Video Streams...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-5 w-5" />
-                      {exportLabel}
-                    </>
-                  )}
-                </Button>
-               </div>
-            </div>
+              <Button onClick={handleCapture} disabled={isProcessing} className="mt-6 w-full">
+                {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageDown className="mr-2 h-4 w-4" />}
+                Capture frame
+              </Button>
+            </section>
           </div>
+        )}
+
+        {outputBlob && (
+          <OutputCard description="Frame extracted locally. Download your file below.">
+            <Button onClick={downloadFrame} className="w-full">
+              <Download className="mr-2 h-4 w-4" />
+              Download frame
+            </Button>
+          </OutputCard>
         )}
       </div>
     </ToolLayout>

@@ -3,6 +3,10 @@ import ytdl from "@distube/ytdl-core";
 
 export const dynamic = "force-dynamic";
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Failed to process the requested URL.";
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json();
@@ -63,8 +67,8 @@ export async function POST(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Link Downloader Error:", error);
-    return NextResponse.json({ error: error.message || "Failed to process the requested URL." }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

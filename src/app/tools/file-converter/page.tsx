@@ -120,8 +120,8 @@ export default function FileConverterPage() {
       URL.revokeObjectURL(url);
       
       toast.success("File converted successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to convert file");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to convert file");
     } finally {
       setIsProcessing(false);
     }
@@ -145,6 +145,7 @@ export default function FileConverterPage() {
             }}
             maxSizeMB={10} 
             displayMode="image"
+            processingMode="server"
           />
         ) : (
           <div className="relative flex flex-col p-4 border rounded-xl bg-card overflow-hidden">

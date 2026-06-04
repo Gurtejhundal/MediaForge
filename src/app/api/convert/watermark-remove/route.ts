@@ -37,8 +37,16 @@ interface WatermarkJob {
   originalName?: string;
 }
 
-const jobs = (global as any).watermarkJobs || new Map<string, WatermarkJob>();
-(global as any).watermarkJobs = jobs;
+const globalForWatermark = globalThis as typeof globalThis & {
+  watermarkJobs?: Map<string, WatermarkJob>;
+};
+
+const jobs = globalForWatermark.watermarkJobs || new Map<string, WatermarkJob>();
+globalForWatermark.watermarkJobs = jobs;
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "";
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -70,7 +78,7 @@ export async function GET(req: NextRequest) {
           "Content-Disposition": `attachment; filename="${job.originalName}-cleaned.mp4"`,
         },
       });
-    } catch (err) {
+    } catch {
       return NextResponse.json({ error: "Failed to read file" }, { status: 500 });
     }
   }
@@ -142,9 +150,9 @@ export async function POST(req: NextRequest) {
 
       job.status = "completed";
       job.progress = 100;
-    } catch (error: any) {
+    } catch (error: unknown) {
       job.status = "error";
-      const errorMsg = error.message || "";
+      const errorMsg = getErrorMessage(error);
       const errorLines = errorMsg.split('\n')
         .map((line: string) => line.trim())
         .filter((line: string) => {

@@ -27,8 +27,6 @@ export async function convertFormat(inputBuffer: Buffer, targetFormat: ImageForm
 }
 
 export async function resizeImage(inputBuffer: Buffer, width?: number, height?: number): Promise<Buffer> {
-  const metadata = await sharp(inputBuffer).metadata();
-  
   return await sharp(inputBuffer)
     .resize(width || null, height || null, {
       fit: 'contain',

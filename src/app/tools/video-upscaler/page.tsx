@@ -148,6 +148,7 @@ export default function VideoUpscalerPage() {
             }}
             maxSizeMB={100}
             displayMode="video"
+            processingMode="server"
           />
         ) : (
           <div className="relative flex flex-col p-4 border rounded-xl bg-card overflow-hidden">

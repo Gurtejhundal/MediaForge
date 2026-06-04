@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, DownloadCloud, Film, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
+import { StatusPill } from "@/components/workspace-components";
 
 export default function VideoDownloaderPage() {
   const [url, setUrl] = useState("");
@@ -61,8 +62,8 @@ export default function VideoDownloaderPage() {
 
       toast.success("Download started successfully!");
       setUrl("");
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to download media");
     } finally {
       setIsDownloading(false);
     }
@@ -71,8 +72,12 @@ export default function VideoDownloaderPage() {
   return (
     <ToolLayout 
       title="Universal Video Downloader" 
-      description="Paste a standard YouTube link or direct video file link (.mp4) below to securely download the full raw video file."
+      description="Network tool for fetching media from a public URL. This is not a local-only file operation."
     >
+      <div className="mb-6 flex flex-wrap gap-2">
+        <StatusPill tone="server">Server-assisted</StatusPill>
+        <StatusPill tone="warning">Only download media you own or have permission to use</StatusPill>
+      </div>
       <div className="max-w-2xl mx-auto mt-4 mb-20">
          <div className="bg-muted/30 p-8 md:p-12 rounded-3xl border text-center shadow-sm relative overflow-hidden">
             
@@ -88,7 +93,7 @@ export default function VideoDownloaderPage() {
 
                <h2 className="text-2xl font-bold mb-2">Download Media by Link</h2>
                <p className="text-muted-foreground mb-8">
-                 Supports standard YouTube URLs and public `.mp4` / `.webm` raw links.
+                 This feature contacts external URLs and may use a server route to fetch the media.
                </p>
 
                <div className="w-full flex flex-col md:flex-row gap-3">

@@ -13,9 +13,10 @@ interface DropzoneProps {
   accept: Record<string, string[]>;
   maxSizeMB?: number;
   displayMode?: "image" | "video";
+  processingMode?: "local" | "server";
 }
 
-export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode = "image" }: DropzoneProps) {
+export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode = "image", processingMode = "local" }: DropzoneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
@@ -60,8 +61,8 @@ export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode =
 
       onFileAccepted(file);
       setUrlInput("");
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to fetch from URL");
     } finally {
       setIsFetchingUrl(false);
     }
@@ -103,10 +104,12 @@ export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode =
             ? isDragReject
               ? "File type not supported"
               : `Drop ${displayMode} here`
-            : `Drag & drop a ${displayMode} here`}
+            : `Drop a ${displayMode} here`}
         </h3>
         <p className="text-sm text-muted-foreground max-w-sm">
-          or click to browse. Max file size {maxSizeMB}MB.
+          {processingMode === "local"
+            ? "Processed locally in your browser. No upload required."
+            : "Server-assisted processing. This file may be uploaded for processing."} Max file size {maxSizeMB}MB.
         </p>
 
         <div className="mt-8 flex gap-3 text-xs text-muted-foreground/70">

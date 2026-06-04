@@ -5,7 +5,7 @@ import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Film, RefreshCw, VolumeX, Volume2, Shield } from "lucide-react";
+import { Loader2, Film, RefreshCw, VolumeX, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/components/preview/image-preview";
 
@@ -72,8 +72,8 @@ export default function VideoConverterPage() {
       URL.revokeObjectURL(url);
       
       toast.success("Video converted and downloaded successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to convert video");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to convert video");
     } finally {
       setIsProcessing(false);
     }
@@ -99,6 +99,7 @@ export default function VideoConverterPage() {
             }}
             maxSizeMB={100} 
             displayMode="video"
+            processingMode="server"
           />
         ) : (
           <div className="relative flex flex-col p-4 border rounded-xl bg-card overflow-hidden">
