@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Layers, ChevronDown, ImageIcon, Video, FileText, Sparkles, Box, Eraser, Film, Link as LinkIcon2, MonitorUp, QrCode, RefreshCw, SlidersHorizontal, Files, ShieldCheck } from "lucide-react";
+import { Layers, ChevronDown, ImageIcon, Video, FileText, Sparkles, Box, Eraser, Film, Link as LinkIcon2, MonitorUp, QrCode, RefreshCw, SlidersHorizontal, Files, ShieldCheck, MessageSquareText } from "lucide-react";
 
 export function Navbar() {
   return (
@@ -140,6 +140,10 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <Link href="/report" className="inline-flex items-center rounded-full border border-border bg-white px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-purple-200 hover:text-purple-700">
+            <MessageSquareText className="mr-1.5 h-3.5 w-3.5" />
+            Report
+          </Link>
           <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
             <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
             Local-first

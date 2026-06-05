@@ -44,6 +44,7 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-semibold text-foreground">Network</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link href="/tools/video-downloader" className="hover:text-primary">Video Downloader</Link></li>
+              <li><Link href="/report" className="hover:text-primary">Report a problem</Link></li>
             </ul>
             <p className="mt-3 max-w-xs text-xs leading-5 text-muted-foreground">
               URL download requires network access. Only download media you own or have permission to use.
@@ -64,6 +65,8 @@ export function Footer() {
           <p>(C) {new Date().getFullYear()} MediaForge. All rights reserved.</p>
           <div className="flex space-x-4">
             <span>Local processing by default</span>
+            <span>/</span>
+            <Link href="/report" className="hover:text-primary">Feedback</Link>
             <span>/</span>
             <span>Network tools marked clearly</span>
           </div>

@@ -30,6 +30,25 @@ The app should not upload selected user files to MediaForge API routes for norma
 ## Network tool
 
 - Video Downloader: fetches media from a public URL. This is a network tool by definition and is separate from local file conversion. Only download media you own or have permission to use.
+- Report Feedback: sends text-only feedback through `/api/report`. This is a network/contact feature, not a local file processor. It does not accept file attachments.
+
+## Report delivery
+
+The report form logs submissions server-side and can forward them to an external webhook.
+
+Set this environment variable in deployment settings for reliable delivery:
+
+```txt
+MEDIAFORGE_REPORT_WEBHOOK_URL=https://...
+```
+
+Supported webhook targets:
+
+- Discord incoming webhook
+- Slack incoming webhook
+- Generic JSON webhook
+
+If the webhook is not configured, reports are accepted and written to server logs only.
 
 ## Known limitations
 
