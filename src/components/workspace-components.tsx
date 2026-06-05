@@ -17,7 +17,7 @@ export function StatusPill({
   return (
     <span className={cn(
       "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
-      tone === "local" && "border-blue-200 bg-blue-50 text-blue-700",
+      tone === "local" && "border-purple-200 bg-purple-50 text-purple-700",
       tone === "server" && "border-amber-200 bg-amber-50 text-amber-800",
       tone === "warning" && "border-orange-200 bg-orange-50 text-orange-800",
       tone === "success" && "border-teal-200 bg-teal-50 text-teal-700",
@@ -43,8 +43,8 @@ export function ToolCard({
   href: string;
 }) {
   return (
-    <a href={href} className="group block rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-sm)] transition-colors hover:border-blue-200 hover:bg-blue-50/30">
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-blue-600">
+    <a href={href} className="group block rounded-2xl border border-purple-100 bg-white/92 p-5 shadow-[0_14px_38px_rgba(88,28,135,0.07)] transition-all duration-300 hover:-translate-y-1 hover:border-purple-200 hover:bg-purple-50/40 hover:shadow-[0_22px_55px_rgba(88,28,135,0.12)]">
+      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-purple-100 bg-white text-purple-700 transition-transform duration-300 group-hover:scale-105">
         {icon}
       </div>
       <h3 className="text-[17px] font-semibold text-foreground">{title}</h3>
@@ -66,7 +66,7 @@ export function UploadDropzone({
   return (
     <div className="rounded-2xl border border-dashed border-border-strong bg-muted/40 p-6">
       <div className="mb-4 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-white text-blue-600">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-white text-purple-700">
           <UploadCloud className="h-5 w-5" />
         </div>
         <div>
@@ -122,7 +122,7 @@ export function OutputCard({
 
 export function ProcessingProgress({ label = "Processing on this device..." }: { label?: string }) {
   return (
-    <div className="flex items-center rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
+    <div className="flex items-center rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-purple-800">
       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
       {label}
     </div>

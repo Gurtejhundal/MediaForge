@@ -90,7 +90,6 @@ export default function VideoUpscalerPage() {
               "video/x-flv": [".flv"],
               "video/mp2t": [".ts"]
             }}
-            maxSizeMB={100}
             displayMode="video"
             processingMode="local"
           />

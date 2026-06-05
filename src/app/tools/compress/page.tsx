@@ -65,7 +65,6 @@ export default function CompressPage() {
           <Dropzone 
             onFileAccepted={handleFileAccepted} 
             accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] }}
-            maxSizeMB={20} 
           />
         ) : (
           <ImagePreview 

@@ -11,12 +11,11 @@ import { cn } from "@/lib/utils";
 interface DropzoneProps {
   onFileAccepted: (file: File) => void;
   accept: Record<string, string[]>;
-  maxSizeMB?: number;
   displayMode?: "image" | "video";
   processingMode?: "local" | "server";
 }
 
-export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode = "image", processingMode = "local" }: DropzoneProps) {
+export function Dropzone({ onFileAccepted, accept, displayMode = "image", processingMode = "local" }: DropzoneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
@@ -71,7 +70,6 @@ export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode =
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
     accept,
-    maxSize: maxSizeMB * 1024 * 1024,
     multiple: false,
   });
 
@@ -108,8 +106,8 @@ export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode =
         </h3>
         <p className="text-sm text-muted-foreground max-w-sm">
           {processingMode === "local"
-            ? "Processed locally in your browser. No upload required."
-            : "Server-assisted processing. This file may be uploaded for processing."} Max file size {maxSizeMB}MB.
+            ? "Processed locally in your browser. No app-side file limit; your device and browser decide what can run."
+            : "Server-assisted processing. This file may be uploaded for processing."}
         </p>
 
         <div className="mt-8 flex gap-3 text-xs text-muted-foreground/70">

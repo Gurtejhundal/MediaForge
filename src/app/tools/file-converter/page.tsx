@@ -117,7 +117,6 @@ export default function FileConverterPage() {
               "text/csv": [".csv"],
               "application/xml": [".xml"]
             }}
-            maxSizeMB={10} 
             displayMode="image"
             processingMode="local"
           />

@@ -80,7 +80,6 @@ export default function VideoToImagePage() {
           <Dropzone
             onFileAccepted={handleFileAccepted}
             accept={{ "video/mp4": [".mp4"], "video/webm": [".webm"], "video/quicktime": [".mov"] }}
-            maxSizeMB={300}
             displayMode="video"
           />
         ) : (

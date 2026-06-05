@@ -101,7 +101,6 @@ export default function BgRemoverPage() {
               "image/png": [".png"],
               "image/webp": [".webp"],
             }}
-            maxSizeMB={20}
             processingMode="local"
           />
         ) : !showComparison ? (

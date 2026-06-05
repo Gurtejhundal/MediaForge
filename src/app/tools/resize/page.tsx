@@ -78,7 +78,6 @@ export default function ResizePage() {
           <Dropzone 
             onFileAccepted={handleFileAccepted} 
             accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] }}
-            maxSizeMB={10} 
           />
         ) : (
           <ImagePreview 

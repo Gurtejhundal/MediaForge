@@ -60,7 +60,6 @@ export default function FormatConverterPage() {
           <Dropzone 
             onFileAccepted={handleFileAccepted} 
             accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"], "image/avif": [".avif"], "image/heic": [".heic"], "image/heif": [".heif"] }}
-            maxSizeMB={10} 
           />
         ) : (
           <ImagePreview 

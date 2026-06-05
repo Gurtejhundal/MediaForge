@@ -6,7 +6,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="container mx-auto flex h-16 items-center px-4 md:px-8">
         <Link href="/" className="mr-8 flex items-center space-x-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-700 text-white shadow-[0_10px_25px_rgba(88,28,135,0.22)]">
             <Layers className="h-4 w-4" />
           </span>
           <span className="text-xl font-semibold tracking-tight text-foreground">
@@ -25,7 +25,7 @@ export function Navbar() {
             <div className="absolute left-0 top-full hidden group-hover:block w-72 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg">
                 <Link href="/tools/image-modifier" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <SlidersHorizontal className="h-4 w-4 text-blue-500" />
+                  <SlidersHorizontal className="h-4 w-4 text-purple-600" />
                   <div>
                     <div className="font-semibold text-xs">Image Modifier</div>
                     <div className="text-[10px] text-muted-foreground">Local resize, crop, rotate, convert</div>
@@ -121,7 +121,7 @@ export function Navbar() {
                   </div>
                 </Link>
                 <Link href="/tools/file-converter" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <RefreshCw className="h-4 w-4 text-blue-500" />
+                  <RefreshCw className="h-4 w-4 text-purple-600" />
                   <div>
                     <div className="font-semibold text-xs">File Converter</div>
                     <div className="text-[10px] text-muted-foreground">Local docs and data conversion</div>
@@ -140,7 +140,7 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+          <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
             <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
             Local-first
           </span>

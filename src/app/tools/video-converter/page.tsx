@@ -73,7 +73,6 @@ export default function VideoConverterPage() {
               "audio/mpeg": [".mp3"],
               "audio/wav": [".wav"]
             }}
-            maxSizeMB={100} 
             displayMode="video"
             processingMode="local"
           />

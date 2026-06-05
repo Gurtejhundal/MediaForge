@@ -99,7 +99,6 @@ export default function ImageEnhancerPage() {
           <Dropzone
             onFileAccepted={handleFileAccepted}
             accept={{ "image/*": [".png", ".jpg", ".jpeg", ".webp"] }}
-            maxSizeMB={10}
             displayMode="image"
             processingMode="local"
           />
