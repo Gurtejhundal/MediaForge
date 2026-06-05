@@ -34,64 +34,64 @@ const LOCAL_TOOLS = [
     href: "/tools/video-to-image",
     icon: <ImageDown className="h-5 w-5" />,
   },
-];
-
-const SERVER_TOOLS = [
-  {
-    title: "Video downloader",
-    description: "Fetch media from a public URL. This uses network/server assistance and is not local-only.",
-    meta: "Network tool",
-    href: "/tools/video-downloader",
-    icon: <LinkIcon className="h-5 w-5" />,
-  },
   {
     title: "Video converter",
-    description: "Server-assisted video conversion for formats and audio extraction that need FFmpeg.",
-    meta: "Server-assisted",
+    description: "Browser-native WebM export from local video files. No upload route is used.",
+    meta: "WEBM",
     href: "/tools/video-converter",
     icon: <Film className="h-5 w-5" />,
   },
   {
     title: "Video detail upscaler",
-    description: "Server-assisted FFmpeg upscale and luma detail pass for larger video work.",
-    meta: "Server-assisted",
+    description: "Render a larger local WebM through browser canvas on this device.",
+    meta: "WEBM, local",
     href: "/tools/video-upscaler",
     icon: <MonitorUp className="h-5 w-5" />,
   },
   {
     title: "Image detailer",
-    description: "Server-assisted image enhancement and upscaling. It is not part of the no-upload guarantee.",
-    meta: "Server-assisted",
+    description: "Upscale and apply a controlled local detail pass without changing color tone.",
+    meta: "PNG, local",
     href: "/tools/image-enhancer",
     icon: <Sparkles className="h-5 w-5" />,
   },
   {
     title: "Background remover",
-    description: "Server-assisted background segmentation for images.",
-    meta: "Server-assisted",
+    description: "Use an in-browser segmentation model to export transparent PNGs.",
+    meta: "PNG, local model",
     href: "/tools/bg-remover",
     icon: <Eraser className="h-5 w-5" />,
   },
   {
     title: "Watermark remover",
-    description: "Server-assisted video cleanup using FFmpeg processing.",
-    meta: "Server-assisted",
+    description: "Clean a selected video area locally and export a browser-generated WebM.",
+    meta: "WEBM, local",
     href: "/tools/watermark-remover",
     icon: <Eraser className="h-5 w-5" />,
   },
   {
     title: "Universal file converter",
-    description: "Server-assisted document, data, and image conversion outside the browser-local core tools.",
-    meta: "Server-assisted",
+    description: "Convert images, structured data, Markdown, HTML, TXT, and PDF exports locally.",
+    meta: "Docs, data",
     href: "/tools/file-converter",
     icon: <Archive className="h-5 w-5" />,
   },
   {
     title: "PDF organizer",
-    description: "Merge, split, rotate, watermark, number, and reorder PDFs through the app route.",
-    meta: "Server-assisted",
+    description: "Merge, split, rotate, watermark, number, and reorder PDFs in the browser.",
+    meta: "PDF, ZIP",
     href: "/tools/pdf-organizer",
     icon: <FileText className="h-5 w-5" />,
+  },
+];
+
+const NETWORK_TOOLS = [
+  {
+    title: "Video downloader",
+    description: "Fetch media from a public URL. This is network-assisted and separate from local file tools.",
+    meta: "Network tool",
+    href: "/tools/video-downloader",
+    icon: <LinkIcon className="h-5 w-5" />,
   },
 ];
 
@@ -161,13 +161,13 @@ export default function Home() {
         </div>
 
         <div className="pt-8">
-          <h2 className="text-2xl font-semibold tracking-tight">Server-assisted and network tools</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Network tools</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            These features may contact external services or process data outside the browser. They are not part of the no-upload promise.
+            These features contact external URLs by design. They are separate from local file conversion and modification.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {SERVER_TOOLS.map((tool) => <ToolCard key={tool.href} {...tool} />)}
+          {NETWORK_TOOLS.map((tool) => <ToolCard key={tool.href} {...tool} />)}
         </div>
       </section>
 

@@ -11,9 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBytes } from "@/components/preview/image-preview";
-
-type PdfMode = "merge" | "split" | "rotate" | "watermark" | "pageNumbers" | "organize" | "jpgToPdf";
-type WatermarkPosition = "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+import { downloadBlob } from "@/lib/local-processing/blob-utils";
+import { processPdfLocally, type PdfMode, type WatermarkPosition } from "@/lib/local-processing/pdf-processing";
 
 type ModeOption = {
   value: PdfMode;
@@ -93,42 +92,20 @@ export default function PdfOrganizerPage() {
     }
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("mode", mode);
-    files.forEach((file) => formData.append("files", file));
-
-    if (pages.trim()) formData.append("pages", pages.trim());
-    if (pageOrder.trim()) formData.append("pageOrder", pageOrder.trim());
-    if (splitEveryPage) formData.append("splitEveryPage", "true");
-    formData.append("angle", angle);
-    formData.append("watermarkText", watermarkText);
-    formData.append("position", watermarkPosition);
-    formData.append("opacity", (opacity[0] / 100).toString());
 
     try {
-      const response = await fetch("/api/convert/pdf-organizer", {
-        method: "POST",
-        body: formData,
+      const result = await processPdfLocally(files, {
+        mode,
+        pages: pages.trim(),
+        pageOrder: pageOrder.trim(),
+        splitEveryPage,
+        angle,
+        watermarkText,
+        position: watermarkPosition,
+        opacity: opacity[0] / 100,
       });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(error.error || "PDF operation failed");
-      }
-
-      const blob = await response.blob();
-      const contentDisposition = response.headers.get("content-disposition") || "";
-      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-      const filename = filenameMatch?.[1] || (mode === "split" && splitEveryPage ? "split-pages.zip" : "processed.pdf");
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      toast.success(`${selectedMode.label} output downloaded`);
+      downloadBlob(result.blob, result.filename);
+      toast.success(`${selectedMode.label} output generated locally`);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -139,7 +116,7 @@ export default function PdfOrganizerPage() {
   return (
     <ToolLayout
       title="PDF Organizer"
-      description="Merge, split, rotate, watermark, number, reorder, and create PDFs from images with one local PDF tool."
+      description="Merge, split, rotate, watermark, number, reorder, and create PDFs from images locally in this browser."
     >
       <div className="space-y-8">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">

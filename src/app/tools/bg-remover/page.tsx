@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Eraser, Download, RotateCcw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { downloadBlob } from "@/lib/local-processing/blob-utils";
 
 export default function BgRemoverPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -15,6 +16,7 @@ export default function BgRemoverPage() {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState("");
   const [showComparison, setShowComparison] = useState(false);
   const [sliderPosition, setSliderPosition] = useState(50);
   const comparisonRef = useRef<HTMLDivElement>(null);
@@ -25,6 +27,7 @@ export default function BgRemoverPage() {
     setResultUrl(null);
     setResultBlob(null);
     setShowComparison(false);
+    setProgress("");
   };
 
   const clearFile = () => {
@@ -41,44 +44,37 @@ export default function BgRemoverPage() {
     if (!file) return;
 
     setIsProcessing(true);
-
-    const formData = new FormData();
-    formData.append("file", file);
+    setProgress("Loading local model...");
 
     try {
-      const response = await fetch("/api/convert/bg-remove", {
-        method: "POST",
-        body: formData,
+      const { removeBackground } = await import("@imgly/background-removal");
+      const blob = await removeBackground(file, {
+        model: "isnet_quint8",
+        device: "cpu",
+        output: { format: "image/png", quality: 0.92 },
+        progress: (key: string, current: number, total: number) => {
+          const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+          setProgress(`Preparing local model: ${percent}% ${key}`);
+        },
       });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to remove background");
-      }
-
-      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setResultBlob(blob);
       setResultUrl(url);
       setShowComparison(true);
 
-      toast.success("Background removed successfully!");
+      toast.success("Background removed locally.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to remove background");
     } finally {
       setIsProcessing(false);
+      setProgress("");
     }
   };
 
   const handleDownload = () => {
     if (!resultUrl || !resultBlob) return;
 
-    const link = document.createElement("a");
-    link.href = resultUrl;
-    link.download = `${file?.name.replace(/\.[^.]+$/, "") || "image"}-no-bg.png`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    downloadBlob(resultBlob, `${file?.name.replace(/\.[^.]+$/, "") || "image"}-no-bg.png`);
   };
 
   const handleSliderMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
@@ -94,7 +90,7 @@ export default function BgRemoverPage() {
   return (
     <ToolLayout
       title="Background Remover"
-      description="Instantly remove backgrounds from any photo using AI-powered segmentation."
+      description="Remove backgrounds locally in the browser with an on-device segmentation model."
     >
       <div className="space-y-8">
         {!file ? (
@@ -106,7 +102,7 @@ export default function BgRemoverPage() {
               "image/webp": [".webp"],
             }}
             maxSizeMB={20}
-            processingMode="server"
+            processingMode="local"
           />
         ) : !showComparison ? (
           <ImagePreview
@@ -198,7 +194,7 @@ export default function BgRemoverPage() {
               Background Removal
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              Our AI model will automatically detect and remove the background from your image, producing a transparent PNG. Works best with people, products, and objects.
+              The browser downloads a segmentation model on first use, then processes your image locally and exports a transparent PNG.
             </p>
             <Button
               size="lg"
@@ -210,7 +206,7 @@ export default function BgRemoverPage() {
               {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  AI is processing your image...
+                  Removing background locally...
                 </>
               ) : (
                 <>
@@ -221,7 +217,7 @@ export default function BgRemoverPage() {
             </Button>
             {isProcessing && (
               <p className="text-xs text-muted-foreground text-center mt-3 animate-pulse">
-                First use may take longer as the AI model downloads (~30MB).
+                {progress || "First use may take longer because the browser downloads and caches the model."}
               </p>
             )}
           </div>

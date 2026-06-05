@@ -213,6 +213,61 @@ export async function processImageLocally(file: File, options: ImageProcessOptio
   };
 }
 
+function applyDetailKernel(ctx: CanvasRenderingContext2D, width: number, height: number, amount: number) {
+  const source = ctx.getImageData(0, 0, width, height);
+  const src = source.data;
+  const out = new Uint8ClampedArray(src);
+  const center = 1 + amount * 4;
+  const side = -amount;
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const index = (y * width + x) * 4;
+
+      for (let channel = 0; channel < 3; channel += 1) {
+        const top = src[((y - 1) * width + x) * 4 + channel];
+        const left = src[(y * width + x - 1) * 4 + channel];
+        const current = src[index + channel];
+        const right = src[(y * width + x + 1) * 4 + channel];
+        const bottom = src[((y + 1) * width + x) * 4 + channel];
+        out[index + channel] = Math.max(0, Math.min(255, current * center + (top + left + right + bottom) * side));
+      }
+    }
+  }
+
+  ctx.putImageData(new ImageData(out, width, height), 0, 0);
+}
+
+export async function detailUpscaleImageLocally(file: File, options: {
+  target: "2x" | "4k";
+  strength: "low" | "medium" | "high";
+}) {
+  const image = await decodeImage(file);
+  const longEdge = Math.max(image.width, image.height);
+  const scale = options.target === "4k" ? Math.min(3840 / longEdge, 4) : Math.min(2, 3840 / longEdge);
+  const width = Math.max(1, Math.round(image.width * Math.max(scale, 1)));
+  const height = Math.max(1, Math.round(image.height * Math.max(scale, 1)));
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) throw new Error("Canvas is not available in this browser");
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(image, 0, 0, width, height);
+
+  const amount = options.strength === "high" ? 0.42 : options.strength === "medium" ? 0.26 : 0.14;
+  applyDetailKernel(ctx, width, height, amount);
+
+  const blob = await canvasToBlob(canvas, "png");
+  return {
+    blob,
+    filename: `detail-${safeBaseName(file.name)}-${options.target}.png`,
+    width,
+    height,
+  };
+}
+
 export async function getImageDimensions(file: File) {
   const image = await decodeImage(file);
   return { width: image.width, height: image.height };

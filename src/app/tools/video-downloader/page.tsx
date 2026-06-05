@@ -75,7 +75,7 @@ export default function VideoDownloaderPage() {
       description="Network tool for fetching media from a public URL. This is not a local-only file operation."
     >
       <div className="mb-6 flex flex-wrap gap-2">
-        <StatusPill tone="server">Server-assisted</StatusPill>
+        <StatusPill tone="server">Network tool</StatusPill>
         <StatusPill tone="warning">Only download media you own or have permission to use</StatusPill>
       </div>
       <div className="max-w-2xl mx-auto mt-4 mb-20">

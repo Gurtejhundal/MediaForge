@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Download, Image as ImageIcon, Loader2, Maximize2, MousePointer2, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/components/preview/image-preview";
+import { detailUpscaleImageLocally } from "@/lib/local-processing/image-processing";
+import { downloadBlob } from "@/lib/local-processing/blob-utils";
 
 type Strength = "low" | "medium" | "high";
 type Target = "2x" | "4k";
@@ -31,6 +33,7 @@ export default function ImageEnhancerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
+  const [enhancedBlob, setEnhancedBlob] = useState<Blob | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [strength, setStrength] = useState<Strength>("medium");
   const [target, setTarget] = useState<Target>("4k");
@@ -44,6 +47,7 @@ export default function ImageEnhancerPage() {
     setFile(acceptedFile);
     setOriginalUrl(URL.createObjectURL(acceptedFile));
     setEnhancedUrl(null);
+    setEnhancedBlob(null);
   };
 
   const clearFile = () => {
@@ -53,34 +57,23 @@ export default function ImageEnhancerPage() {
     setFile(null);
     setOriginalUrl(null);
     setEnhancedUrl(null);
+    setEnhancedBlob(null);
   };
 
   const handleEnhance = async () => {
     if (!file) return;
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("strength", strength);
-    formData.append("target", target);
 
     try {
-      const res = await fetch("/api/convert/image-enhance", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.error || "Failed to detail image");
-      }
-
-      const blob = await res.blob();
+      const result = await detailUpscaleImageLocally(file, { strength, target });
+      const blob = result.blob;
       const url = URL.createObjectURL(blob);
       if (enhancedUrl) URL.revokeObjectURL(enhancedUrl);
       setEnhancedUrl(url);
+      setEnhancedBlob(blob);
       setSliderPos(50);
-      toast.success("Image detailed and upscaled without color grading.");
+      toast.success("Image upscaled locally without color grading.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -99,7 +92,7 @@ export default function ImageEnhancerPage() {
   return (
     <ToolLayout
       title="Image Detailer & 4K Upscaler"
-      description="Upscale generated or blurry images while preserving the original color, lighting, contrast, and saturation."
+      description="Upscale generated or blurry images locally while preserving the original color, lighting, contrast, and saturation."
     >
       <div className="space-y-8">
         {!file ? (
@@ -108,7 +101,7 @@ export default function ImageEnhancerPage() {
             accept={{ "image/*": [".png", ".jpg", ".jpeg", ".webp"] }}
             maxSizeMB={10}
             displayMode="image"
-            processingMode="server"
+            processingMode="local"
           />
         ) : (
           <div className="space-y-6">
@@ -251,14 +244,13 @@ export default function ImageEnhancerPage() {
                     >
                       Reset
                     </Button>
-                    <Button 
+                    <Button
                       size="lg" 
                       className="flex-1 h-12"
                       onClick={() => {
-                        const link = document.createElement("a");
-                        link.href = enhancedUrl;
-                        link.download = `detail-${file.name.replace(/\.[^.]+$/, "")}-${target}.png`;
-                        link.click();
+                        if (enhancedBlob) {
+                          downloadBlob(enhancedBlob, `detail-${file.name.replace(/\.[^.]+$/, "")}-${target}.png`);
+                        }
                       }}
                     >
                       <Download className="mr-2 h-5 w-5" />
@@ -285,14 +277,14 @@ export default function ImageEnhancerPage() {
             <Maximize2 className="h-6 w-6" />
           </div>
           <h4 className="font-bold">4K Long-Edge Upscale</h4>
-          <p className="text-sm text-muted-foreground">Generated images are resized toward a 3840px long edge using high-quality Lanczos sampling.</p>
+          <p className="text-sm text-muted-foreground">Images are resized toward a 3840px long edge in the browser using high-quality canvas sampling.</p>
         </div>
         <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
           <div className="p-3 bg-primary/10 rounded-xl w-fit text-primary">
             <Zap className="h-6 w-6" />
           </div>
           <h4 className="font-bold">Controlled Detail Pass</h4>
-          <p className="text-sm text-muted-foreground">The detail pass is tuned to avoid the harsh outline look from simple sharpening.</p>
+          <p className="text-sm text-muted-foreground">The local detail pass improves edge clarity without sending the image to a server.</p>
         </div>
       </div>
     </ToolLayout>

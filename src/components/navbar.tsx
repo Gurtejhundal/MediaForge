@@ -49,7 +49,7 @@ export function Navbar() {
                   <Eraser className="h-4 w-4 text-rose-500" />
                   <div>
                     <div className="font-semibold text-xs">BG Remover</div>
-                    <div className="text-[10px] text-muted-foreground">AI-powered background removal</div>
+                    <div className="text-[10px] text-muted-foreground">Local browser model</div>
                   </div>
                 </Link>
               </div>
@@ -69,14 +69,14 @@ export function Navbar() {
                   <RefreshCw className="h-4 w-4 text-emerald-500" />
                   <div>
                     <div className="font-semibold text-xs">Video Converter</div>
-                    <div className="text-[10px] text-muted-foreground">Convert to MP4, WebM, GIF, MP3, etc.</div>
+                    <div className="text-[10px] text-muted-foreground">Local WebM export</div>
                   </div>
                 </Link>
                 <Link href="/tools/video-upscaler" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
                   <MonitorUp className="h-4 w-4 text-cyan-500" />
                   <div>
                     <div className="font-semibold text-xs">Video Upscaler</div>
-                    <div className="text-[10px] text-muted-foreground">Upscale resolutions up to 4K</div>
+                    <div className="text-[10px] text-muted-foreground">Local canvas upscale</div>
                   </div>
                 </Link>
                 <Link href="/tools/video-to-image" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
@@ -90,14 +90,14 @@ export function Navbar() {
                   <LinkIcon2 className="h-4 w-4 text-emerald-500" />
                   <div>
                     <div className="font-semibold text-xs">URL Downloader</div>
-                    <div className="text-[10px] text-muted-foreground">Network/server-assisted download</div>
+                    <div className="text-[10px] text-muted-foreground">Network download</div>
                   </div>
                 </Link>
                 <Link href="/tools/watermark-remover" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
                   <Eraser className="h-4 w-4 text-indigo-500" />
                   <div>
                     <div className="font-semibold text-xs">Watermark Remover</div>
-                    <div className="text-[10px] text-muted-foreground">Remove logos & clean up videos</div>
+                    <div className="text-[10px] text-muted-foreground">Local selected-area cleanup</div>
                   </div>
                 </Link>
               </div>
@@ -124,7 +124,7 @@ export function Navbar() {
                   <RefreshCw className="h-4 w-4 text-blue-500" />
                   <div>
                     <div className="font-semibold text-xs">File Converter</div>
-                    <div className="text-[10px] text-muted-foreground">Convert CSV, JSON, Markdown, SVG, XML</div>
+                    <div className="text-[10px] text-muted-foreground">Local docs and data conversion</div>
                   </div>
                 </Link>
                 <Link href="/tools/qr-generator" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">

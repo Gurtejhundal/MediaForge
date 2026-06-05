@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, FileText, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/components/preview/image-preview";
+import { convertFileLocally } from "@/lib/local-processing/document-processing";
+import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
 
 type FileCategory = "image" | "data" | "document" | "unknown";
 
@@ -26,7 +28,7 @@ function getTargetFormats(ext: string): string[] {
   const category = getFileCategory(ext);
   
   if (category === "image") {
-    return ["png", "jpeg", "webp", "gif", "tiff", "avif"];
+    return ["png", "jpeg", "webp", "avif"];
   }
   if (ext === "json") {
     return ["csv", "xml", "yaml", "txt", "pdf"];
@@ -52,12 +54,6 @@ function getTargetFormats(ext: string): string[] {
   return ["txt", "json"];
 }
 
-function getFilenameFromResponse(response: Response, fallback: string) {
-  const contentDisposition = response.headers.get("content-disposition");
-  const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
-  return filenameMatch?.[1] || fallback;
-}
-
 export default function FileConverterPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -68,6 +64,7 @@ export default function FileConverterPage() {
   const availableFormats = file ? getTargetFormats(fileExt) : [];
 
   const handleFileAccepted = (acceptedFile: File) => {
+    revokeObjectUrl(previewUrl);
     setFile(acceptedFile);
     const ext = (acceptedFile.name.split('.').pop() || "").toLowerCase();
     const formats = getTargetFormats(ext);
@@ -82,6 +79,7 @@ export default function FileConverterPage() {
   };
 
   const clearFile = () => {
+    revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
     setTargetFormat("");
@@ -91,35 +89,11 @@ export default function FileConverterPage() {
     if (!file) return;
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("format", targetFormat);
 
     try {
-      const response = await fetch("/api/convert/file-converter", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to convert file");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      
-      const downloadName = `${file.name.replace(/\.[^.]+$/, "")}.${targetFormat === "jpeg" ? "jpg" : targetFormat}`;
-      link.download = getFilenameFromResponse(response, downloadName);
-      
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      
-      toast.success("File converted successfully!");
+      const result = await convertFileLocally(file, targetFormat);
+      downloadBlob(result.blob, result.filename);
+      toast.success("File converted locally.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to convert file");
     } finally {
@@ -130,7 +104,7 @@ export default function FileConverterPage() {
   return (
     <ToolLayout 
       title="Universal File Converter" 
-      description="Convert images, structure data formats, and transform document text locally and securely."
+      description="Convert images, structured data, and document text locally in this browser."
     >
       <div className="space-y-8 w-full">
         {!file ? (
@@ -145,7 +119,7 @@ export default function FileConverterPage() {
             }}
             maxSizeMB={10} 
             displayMode="image"
-            processingMode="server"
+            processingMode="local"
           />
         ) : (
           <div className="relative flex flex-col p-4 border rounded-xl bg-card overflow-hidden">
@@ -155,7 +129,7 @@ export default function FileConverterPage() {
                    <div className="min-w-0">
                       <p className="text-sm font-semibold truncate text-foreground">{file.name}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Format: <span className="uppercase font-semibold">{fileExt}</span> • {formatBytes(file.size)}
+                        Format: <span className="uppercase font-semibold">{fileExt}</span> / {formatBytes(file.size)}
                       </p>
                    </div>
                 </div>

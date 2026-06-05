@@ -8,70 +8,46 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Film, RefreshCw, VolumeX, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/components/preview/image-preview";
+import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
+import { renderVideoToWebMLocally, type VideoResolutionMode } from "@/lib/local-processing/video-processing";
 
-type VideoFormat = "mp4" | "webm" | "mkv" | "avi" | "mov" | "gif" | "mp3" | "wav";
-type ResolutionMode = "original" | "1080p" | "720p" | "480p";
-
-function getFilenameFromResponse(response: Response, fallback: string) {
-  const contentDisposition = response.headers.get("content-disposition");
-  const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
-  return filenameMatch?.[1] || fallback;
-}
-
-function getBaseName(filename: string) {
-  return filename.replace(/\.[^.]+$/, "") || "video";
-}
+type ResolutionMode = Extract<VideoResolutionMode, "original" | "1080p" | "720p" | "480p">;
 
 export default function VideoConverterPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [targetFormat, setTargetFormat] = useState<VideoFormat>("mp4");
   const [resolution, setResolution] = useState<ResolutionMode>("original");
   const [muteAudio, setMuteAudio] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const handleFileAccepted = (acceptedFile: File) => {
+    revokeObjectUrl(previewUrl);
     setFile(acceptedFile);
     setPreviewUrl(URL.createObjectURL(acceptedFile));
   };
 
   const clearFile = () => {
+    revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
+    setProgress(0);
   };
 
   const handleConvert = async () => {
     if (!file) return;
 
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("format", targetFormat);
-    formData.append("resolution", resolution);
-    formData.append("muteAudio", String(muteAudio));
+    setProgress(0);
 
     try {
-      const response = await fetch("/api/convert/video-converter", {
-        method: "POST",
-        body: formData,
+      const result = await renderVideoToWebMLocally(file, {
+        resolution,
+        fps: 24,
+        onProgress: setProgress,
       });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to convert video");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = getFilenameFromResponse(response, `${getBaseName(file.name)}.${targetFormat}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      
-      toast.success("Video converted and downloaded successfully!");
+      downloadBlob(result.blob, result.filename);
+      toast.success("Video exported locally as WebM.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to convert video");
     } finally {
@@ -82,7 +58,7 @@ export default function VideoConverterPage() {
   return (
     <ToolLayout 
       title="Video Converter" 
-      description="Convert video files to any format locally and securely using our built-in video encoder."
+      description="Convert playable videos locally in your browser and export a WebM file without uploading."
     >
       <div className="space-y-8 w-full">
         {!file ? (
@@ -99,7 +75,7 @@ export default function VideoConverterPage() {
             }}
             maxSizeMB={100} 
             displayMode="video"
-            processingMode="server"
+            processingMode="local"
           />
         ) : (
           <div className="relative flex flex-col p-4 border rounded-xl bg-card overflow-hidden">
@@ -134,71 +110,56 @@ export default function VideoConverterPage() {
             </h3>
             
             <div className="space-y-6">
-              {/* Target Format Selector */}
               <div>
                 <Label className="mb-3 block text-sm text-foreground">Target Format</Label>
-                <div className="flex flex-wrap gap-2">
-                  {(["mp4", "webm", "mkv", "avi", "mov", "gif", "mp3", "wav"] as const).map((format) => (
-                    <Button
-                      key={format}
-                      variant={targetFormat === format ? "default" : "outline"}
-                      onClick={() => setTargetFormat(format)}
-                      className="capitalize min-w-[70px] h-10"
-                    >
-                      {format.toUpperCase()}
-                    </Button>
-                  ))}
+                <div className="rounded-lg border bg-background p-4 text-sm">
+                  <span className="font-semibold">WEBM</span>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Browser-native local export. MP4, MOV, AVI, MKV, GIF, MP3, and WAV need a future local FFmpeg WASM engine.
+                  </p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Select GIF to convert video to an animated GIF, or MP3/WAV to extract audio only.
+                  This stays on your device. Encoding runs in real time, so a 2 minute video can take about 2 minutes.
                 </p>
               </div>
 
-              {/* Resolution Selector (Disabled for Audio Formats) */}
-              {targetFormat !== "mp3" && targetFormat !== "wav" && (
-                <div>
-                  <Label className="mb-3 block text-sm text-foreground">Target Resolution</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {(["original", "1080p", "720p", "480p"] as const).map((res) => (
-                      <Button
-                        key={res}
-                        variant={resolution === res ? "default" : "outline"}
-                        onClick={() => setResolution(res)}
-                        className="capitalize min-w-[90px] h-10"
-                      >
-                        {res === "original" ? "Original Size" : res}
-                      </Button>
-                    ))}
-                  </div>
+              <div>
+                <Label className="mb-3 block text-sm text-foreground">Target Resolution</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(["original", "1080p", "720p", "480p"] as const).map((res) => (
+                    <Button
+                      key={res}
+                      variant={resolution === res ? "default" : "outline"}
+                      onClick={() => setResolution(res)}
+                      className="capitalize min-w-[90px] h-10"
+                    >
+                      {res === "original" ? "Original Size" : res}
+                    </Button>
+                  ))}
                 </div>
-              )}
+              </div>
 
-              {/* Mute Audio Option (Disabled for Audio Formats and GIF) */}
-              {targetFormat !== "mp3" && targetFormat !== "wav" && targetFormat !== "gif" && (
-                <div>
-                  <Label className="mb-3 block text-sm text-foreground">Audio Track</Label>
-                  <div className="flex items-center space-x-3">
-                    <Button
-                      type="button"
-                      variant={muteAudio ? "outline" : "default"}
-                      onClick={() => setMuteAudio(false)}
-                      className="h-10"
-                    >
-                      <Volume2 className="mr-2 h-4 w-4" />
-                      Keep Audio
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={muteAudio ? "default" : "outline"}
-                      onClick={() => setMuteAudio(true)}
-                      className="h-10"
-                    >
-                      <VolumeX className="mr-2 h-4 w-4" />
-                      Mute Audio
-                    </Button>
-                  </div>
+              <div>
+                <Label className="mb-3 block text-sm text-foreground">Audio Track</Label>
+                <div className="flex items-center space-x-3">
+                  <Button type="button" variant="outline" disabled className="h-10">
+                    <Volume2 className="mr-2 h-4 w-4" />
+                    Keep Audio
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={muteAudio ? "default" : "outline"}
+                    onClick={() => setMuteAudio(true)}
+                    className="h-10"
+                  >
+                    <VolumeX className="mr-2 h-4 w-4" />
+                    Muted Local Export
+                  </Button>
                 </div>
-              )}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Browser canvas export strips audio in this local mode. Audio muxing needs local FFmpeg WASM.
+                </p>
+              </div>
 
               <div className="pt-4 border-t border-border/50">
                 <Button 
@@ -210,15 +171,20 @@ export default function VideoConverterPage() {
                   {isProcessing ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Converting Video Streams (This may take a minute)...
+                        Converting Video Streams (This may take a minute)...
                     </>
                   ) : (
                     <>
                       <RefreshCw className="mr-2 h-5 w-5" />
-                      Convert to {targetFormat.toUpperCase()}
+                      Export Local WEBM
                     </>
                   )}
                 </Button>
+                {isProcessing && (
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                  </div>
+                )}
               </div>
             </div>
           </div>

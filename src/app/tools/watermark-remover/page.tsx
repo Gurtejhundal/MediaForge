@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eraser, Film, MousePointer2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/components/preview/image-preview";
+import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
+import { makeBlurRegionTransform, renderVideoToWebMLocally } from "@/lib/local-processing/video-processing";
 
 interface Region {
   x: number;
@@ -30,6 +32,7 @@ export default function WatermarkRemoverPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleFileAccepted = (acceptedFile: File) => {
+    revokeObjectUrl(previewUrl);
     setFile(acceptedFile);
     setPreviewUrl(URL.createObjectURL(acceptedFile));
   };
@@ -86,7 +89,7 @@ export default function WatermarkRemoverPage() {
     if (!file || !containerRef.current || !videoRef.current) return;
 
     setIsProcessing(true);
-    setProgress("Initializing...");
+    setProgress("Processing: 0%");
 
     // Scale coordinates to actual video resolution
     const rect = containerRef.current.getBoundingClientRect();
@@ -98,52 +101,18 @@ export default function WatermarkRemoverPage() {
     const actualW = Math.round(selection.w * scaleX);
     const actualH = Math.round(selection.h * scaleY);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("x", actualX.toString());
-    formData.append("y", actualY.toString());
-    formData.append("w", actualW.toString());
-    formData.append("h", actualH.toString());
-
     try {
-      const res = await fetch("/api/convert/watermark-remove", {
-        method: "POST",
-        body: formData,
+      const result = await renderVideoToWebMLocally(file, {
+        resolution: "original",
+        fps: 24,
+        transform: makeBlurRegionTransform({ x: actualX, y: actualY, w: actualW, h: actualH }),
+        onProgress: (percent) => setProgress(`Processing: ${percent}%`),
       });
-
-      if (!res.ok) throw new Error("Failed to start processing");
-      const { jobId } = await res.json();
-
-      const poll = async () => {
-        const statusRes = await fetch(`/api/convert/watermark-remove?jobId=${jobId}`);
-        const job = await statusRes.json();
-
-        if (job.status === "error") throw new Error(job.error || "Processing failed");
-        
-        if (job.status === "completed") {
-          setProgress("Downloading...");
-          const downloadRes = await fetch(`/api/convert/watermark-remove?jobId=${jobId}&download=true`);
-          const blob = await downloadRes.blob();
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `${file.name.replace(/\.[^.]+$/, "")}-no-watermark.mp4`;
-          link.click();
-          URL.revokeObjectURL(url);
-          
-          toast.success("Watermark removed successfully!");
-          setIsProcessing(false);
-          setProgress("");
-          return;
-        }
-
-        setProgress(`Processing: ${job.progress || 0}%`);
-        setTimeout(poll, 1000);
-      };
-
-      poll();
+      downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-cleaned.webm`);
+      toast.success("Selected area cleaned locally.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to remove watermark");
+    } finally {
       setIsProcessing(false);
       setProgress("");
     }
@@ -152,7 +121,7 @@ export default function WatermarkRemoverPage() {
   return (
     <ToolLayout
       title="Watermark Remover"
-      description="Remove unwanted watermarks or logos from your videos by selecting the area to clean."
+      description="Clean a selected video area locally with a browser canvas blur pass. Output is WebM and no upload is used."
     >
       <div className="space-y-8">
         {!file ? (
@@ -161,7 +130,7 @@ export default function WatermarkRemoverPage() {
             accept={{ "video/mp4": [".mp4"], "video/webm": [".webm"], "video/quicktime": [".mov"] }}
             maxSizeMB={100}
             displayMode="video"
-            processingMode="server"
+            processingMode="local"
           />
         ) : (
           <div className="space-y-6">
@@ -216,11 +185,11 @@ export default function WatermarkRemoverPage() {
               <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
                  <div className="space-y-1">
                    <Label className="text-xs text-muted-foreground">Original Resolution</Label>
-                   <p className="text-sm font-mono font-bold">{videoSize.width} × {videoSize.height}</p>
+                   <p className="text-sm font-mono font-bold">{videoSize.width} x {videoSize.height}</p>
                  </div>
                  <div className="space-y-1">
                    <Label className="text-xs text-muted-foreground">Selection Area</Label>
-                   <p className="text-sm font-mono font-bold">{Math.round(selection.w)} × {Math.round(selection.h)} px</p>
+                   <p className="text-sm font-mono font-bold">{Math.round(selection.w)} x {Math.round(selection.h)} px</p>
                  </div>
               </div>
             </div>
@@ -234,7 +203,7 @@ export default function WatermarkRemoverPage() {
                   disabled={selection.w < 5 || selection.h < 5}
                 >
                   <Eraser className="mr-2 h-5 w-5" />
-                  Remove Watermark from Selected Area
+                  Clean Selected Area Locally
                 </Button>
               ) : (
                 <div className="space-y-4">
@@ -254,7 +223,7 @@ export default function WatermarkRemoverPage() {
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground text-center animate-pulse">
-                      Analyzing pixels and interpolating surrounding area...
+                      Rendering a local WebM with the selected area softened.
                     </p>
                   </div>
               )}
@@ -275,15 +244,15 @@ export default function WatermarkRemoverPage() {
           <div className="p-3 bg-purple-500/10 rounded-xl w-fit text-purple-500">
             <CheckCircle2 className="h-6 w-6" />
           </div>
-          <h4 className="font-bold text-foreground">AI Interpolation</h4>
-          <p className="text-sm text-muted-foreground">We use the FFmpeg delogo filter to intelligently fill the area using surrounding pixels.</p>
+          <h4 className="font-bold text-foreground">Local canvas cleanup</h4>
+          <p className="text-sm text-muted-foreground">The browser softens the selected area frame by frame without uploading the video.</p>
         </div>
         <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
           <div className="p-3 bg-indigo-500/10 rounded-xl w-fit text-indigo-500">
             <Film className="h-6 w-6" />
           </div>
-          <h4 className="font-bold text-foreground">High Quality</h4>
-          <p className="text-sm text-muted-foreground">Original video quality and audio are preserved during the removal process.</p>
+          <h4 className="font-bold text-foreground">Local WebM export</h4>
+          <p className="text-sm text-muted-foreground">The output is encoded by your browser, so quality and speed depend on this device.</p>
         </div>
       </div>
     </ToolLayout>

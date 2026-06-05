@@ -153,35 +153,36 @@ export function Dropzone({ onFileAccepted, accept, maxSizeMB = 10, displayMode =
         </div>
       </div>
 
-      {/* 2. URL Import Card */}
-      <div className="bg-muted/30 p-6 rounded-xl border flex flex-col items-center">
-         <h3 className="mb-4 font-semibold flex items-center self-start text-muted-foreground">
-           <LinkIcon className="h-4 w-4 mr-2" /> Or Import from URL
-         </h3>
-         <div className="flex w-full gap-3">
-            <Input 
-              placeholder={`e.g. https://example.com/media.${displayMode === 'image' ? 'png' : 'mp4'}`} 
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              disabled={isFetchingUrl}
-              className="bg-background flex-1"
-              onKeyDown={(e) => {
-                if(e.key === 'Enter') {
-                  e.preventDefault();
-                  handleUrlImport();
-                }
-              }}
-            />
-            <Button 
-               variant="default" 
-               disabled={!urlInput.trim() || isFetchingUrl} 
-               onClick={handleUrlImport}
-               className="w-28"
-            >
-               {isFetchingUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch File"}
-            </Button>
-         </div>
-      </div>
+      {processingMode === "server" && (
+        <div className="bg-muted/30 p-6 rounded-xl border flex flex-col items-center">
+          <h3 className="mb-4 font-semibold flex items-center self-start text-muted-foreground">
+            <LinkIcon className="h-4 w-4 mr-2" /> Or Import from URL
+          </h3>
+          <div className="flex w-full gap-3">
+              <Input
+                placeholder={`e.g. https://example.com/media.${displayMode === 'image' ? 'png' : 'mp4'}`}
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                disabled={isFetchingUrl}
+                className="bg-background flex-1"
+                onKeyDown={(e) => {
+                  if(e.key === 'Enter') {
+                    e.preventDefault();
+                    handleUrlImport();
+                  }
+                }}
+              />
+              <Button
+                variant="default"
+                disabled={!urlInput.trim() || isFetchingUrl}
+                onClick={handleUrlImport}
+                className="w-28"
+              >
+                {isFetchingUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch File"}
+              </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

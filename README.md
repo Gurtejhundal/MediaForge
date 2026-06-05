@@ -1,43 +1,44 @@
 # MediaForge
 
-MediaForge is a light-mode, local-first media utility for common browser-safe media operations.
+MediaForge is a light-mode, local-first media utility for browser-based media, video, image, PDF, and document operations.
 
-Most core file tools run directly in the browser. Files selected for those tools stay in the current browser session, are processed with browser APIs such as File, Blob, Canvas, object URLs, and JSZip, then export through a local Blob download.
-
-MediaForge is not 100% local. Network and server-assisted tools are marked separately.
-
-## Local-first tools
-
-- Image Modifier: resize, crop, rotate, watermark, meme text, compress, and convert images with Canvas.
-- Image Format Converter: convert images through browser-native Canvas export.
-- Image Resizer: resize images locally.
-- Image Compressor: compress to WebP locally where supported by the browser.
-- Favicon Builder: generate PNG sizes, ICO, manifest, and ZIP locally with Canvas and JSZip.
-- QR Generator: generate PNG, JPEG, or SVG QR codes in the browser.
-- Frame Extractor: open a local video, seek to a timestamp, draw the frame to Canvas, and export an image Blob.
-
-## Server-assisted or network tools
-
-These features may upload files to an app route, use Node/FFmpeg/Sharp, or fetch external URLs:
-
-- Video Downloader
-- Video Converter
-- Video Detail Upscaler
-- Video Watermark Remover
-- Background Remover
-- Image Detailer
-- PDF Organizer
-- Universal File Converter
-
-## Local-first contract
-
-For local tools, the default flow is:
+The default file workflow is:
 
 ```txt
 Input file -> Browser memory -> Local processing -> Browser Blob download
 ```
 
-Server-assisted tools are not covered by the no-upload promise.
+The app should not upload selected user files to MediaForge API routes for normal conversion, modification, PDF organization, background removal, image detail/upscale, or browser-native video exports.
+
+## Local tools
+
+- Image Modifier: resize, crop, rotate, watermark, caption, compress, and convert images with Canvas.
+- Image Format Converter: export images through browser-native Canvas encoders.
+- Image Resizer: resize images locally.
+- Image Compressor: compress images locally where supported by the browser.
+- Favicon Builder: generate PNG sizes, ICO, manifest, and ZIP locally with Canvas and JSZip.
+- QR Generator: generate PNG, JPEG, or SVG QR codes in the browser.
+- Frame Extractor: seek a local video and export a still image with video and Canvas APIs.
+- Image Detailer: upscale and apply a local detail pass without server upload.
+- Background Remover: removes backgrounds with a browser-side model. The model/WASM assets may download on first use, but the image file is processed in the browser.
+- Video Converter: exports local WebM through browser Canvas and MediaRecorder.
+- Video Detail Upscaler: renders a larger local WebM through Canvas and MediaRecorder.
+- Watermark Remover: softens a selected video region locally and exports WebM.
+- PDF Organizer: merge, split, rotate, watermark, number, reorder, and create PDFs from images in the browser with pdf-lib.
+- Universal File Converter: convert images, structured data, Markdown, HTML, TXT, and PDF exports locally.
+
+## Network tool
+
+- Video Downloader: fetches media from a public URL. This is a network tool by definition and is separate from local file conversion. Only download media you own or have permission to use.
+
+## Known limitations
+
+- Browser-native video export is WebM. MP4, MOV, AVI, MKV, GIF, audio extraction, and high-quality muxing require a future local FFmpeg WASM engine.
+- Browser-native video processing runs in real time and can be slow for long clips.
+- Canvas video export currently strips audio.
+- Background removal downloads and caches model/runtime assets on first use.
+- Browser image export support varies. Some browsers may not support AVIF or WebP encoding.
+- Local processing depends on the user's CPU, RAM, browser, and available memory.
 
 ## Getting started
 

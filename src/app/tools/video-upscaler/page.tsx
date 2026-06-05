@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Loader2, MonitorUp, Film, Sparkles, Zap, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/components/preview/image-preview";
+import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils";
+import { renderVideoToWebMLocally, type VideoResolutionMode } from "@/lib/local-processing/video-processing";
 
-type Resolution = "1080p" | "1440p" | "2160p";
+type Resolution = Extract<VideoResolutionMode, "1080p" | "1440p" | "2160p">;
 type Preset = "fast" | "balanced" | "max-quality";
 
 const RESOLUTION_OPTIONS: { value: Resolution; label: string; detail: string; icon: React.ReactNode }[] = [
@@ -37,12 +39,13 @@ export default function VideoUpscalerPage() {
   const [progress, setProgress] = useState("");
 
   const handleFileAccepted = (acceptedFile: File) => {
+    revokeObjectUrl(previewUrl);
     setFile(acceptedFile);
     setPreviewUrl(URL.createObjectURL(acceptedFile));
   };
 
   const clearFile = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
   };
@@ -51,78 +54,19 @@ export default function VideoUpscalerPage() {
     if (!file) return;
 
     setIsProcessing(true);
-    setProgress("Uploading video...");
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("resolution", resolution);
-    formData.append("preset", preset);
+    setProgress("Processing: 0%");
 
     try {
-      // 1. Start the job
-      const startRes = await fetch("/api/convert/upscale", {
-        method: "POST",
-        body: formData,
+      const result = await renderVideoToWebMLocally(file, {
+        resolution,
+        fps: preset === "fast" ? 18 : preset === "balanced" ? 24 : 30,
+        onProgress: (percent) => setProgress(`Processing: ${percent}%`),
       });
-
-      if (!startRes.ok) {
-        const errData = await startRes.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to start upscaling");
-      }
-
-      const { jobId } = await startRes.json();
-      
-      // 2. Poll for progress
-      const poll = async () => {
-        try {
-          const statusRes = await fetch(`/api/convert/upscale?jobId=${jobId}`);
-          if (!statusRes.ok) throw new Error("Failed to check status");
-          
-          const job = await statusRes.json();
-          
-          if (job.status === "error") {
-            throw new Error(job.error || "Upscale failed");
-          }
-
-          if (job.status === "completed") {
-            // 3. Download the result
-            setProgress("Preparing download...");
-            const downloadRes = await fetch(`/api/convert/upscale?jobId=${jobId}&download=true`);
-            if (!downloadRes.ok) throw new Error("Download failed");
-            
-            const blob = await downloadRes.blob();
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `${file.name.replace(/\.[^.]+$/, "")}-${resolution}.mp4`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
-            
-            toast.success(`Video upscaled successfully!`);
-            setIsProcessing(false);
-            setProgress("");
-            return;
-          }
-
-          // Update progress bar
-          const percent = job.progress || 0;
-          setProgress(`Processing: ${percent}%`);
-          
-          // Poll again
-          setTimeout(poll, 1000);
-        } catch (error: unknown) {
-          toast.error(getErrorMessage(error));
-          setIsProcessing(false);
-          setProgress("");
-        }
-      };
-
-      poll();
-
+      downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-${resolution}.webm`);
+      toast.success("Video upscaled locally as WebM.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
+    } finally {
       setIsProcessing(false);
       setProgress("");
     }
@@ -131,7 +75,7 @@ export default function VideoUpscalerPage() {
   return (
     <ToolLayout
       title="Video Detail Upscaler"
-      description="Upscale video toward 4K with aspect-preserving Lanczos sampling and a luma-only detail pass. No color grading filters."
+      description="Upscale video locally with browser canvas sampling. Output is WebM and files are not uploaded."
     >
       <div className="space-y-8">
         {!file ? (
@@ -148,7 +92,7 @@ export default function VideoUpscalerPage() {
             }}
             maxSizeMB={100}
             displayMode="video"
-            processingMode="server"
+            processingMode="local"
           />
         ) : (
           <div className="relative flex flex-col p-4 border rounded-xl bg-card overflow-hidden">
@@ -269,7 +213,7 @@ export default function VideoUpscalerPage() {
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground text-center animate-pulse">
-                      Upscaling frames with a color-safe luma detail pass. This is compute-heavy.
+                      Upscaling frames on this device. This is compute-heavy and runs in real time.
                     </p>
                   </div>
                 )}
