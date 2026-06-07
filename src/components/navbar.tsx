@@ -1,155 +1,54 @@
 import Link from "next/link";
-import { Layers, ChevronDown, ImageIcon, Video, FileText, Sparkles, Box, Eraser, Film, Link as LinkIcon2, MonitorUp, QrCode, RefreshCw, SlidersHorizontal, Files, ShieldCheck, MessageSquareText } from "lucide-react";
+import { FileText, ImageIcon, Layers, MessageSquareText, RadioTower, ShieldCheck, Video } from "lucide-react";
+
+const navItems = [
+  { href: "/#image-tools", label: "Image", icon: ImageIcon },
+  { href: "/#video-tools", label: "Video", icon: Video },
+  { href: "/#document-tools", label: "Docs", icon: FileText },
+  { href: "/#network-tools", label: "Network", icon: RadioTower },
+];
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <div className="container mx-auto flex h-16 items-center px-4 md:px-8">
-        <Link href="/" className="mr-8 flex items-center space-x-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-700 text-white shadow-[0_10px_25px_rgba(88,28,135,0.22)]">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-[#fbfbf8]/90 backdrop-blur supports-[backdrop-filter]:bg-[#fbfbf8]/82">
+      <div className="mx-auto flex h-16 w-[min(100%-24px,1320px)] items-center gap-4 md:w-[min(100%-48px,1320px)]">
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-violet-700 text-white shadow-[0_12px_28px_rgba(76,29,149,0.22)]">
             <Layers className="h-4 w-4" />
           </span>
-          <span className="text-xl font-semibold tracking-tight text-foreground">
-            MediaForge
+          <span className="min-w-0">
+            <span className="block truncate text-lg font-semibold tracking-tight text-foreground">MediaForge</span>
+            <span className="hidden font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:block">
+              Local export bench
+            </span>
           </span>
         </Link>
-        
-        <nav className="flex flex-1 items-center space-x-6 text-sm font-medium">
-          {/* Image Tools Dropdown */}
-          <div className="relative group py-4">
-            <button className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-              <ImageIcon className="h-4 w-4" />
-              <span>Image Tools</span>
-              <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
-            </button>
-            <div className="absolute left-0 top-full hidden group-hover:block w-72 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg">
-                <Link href="/tools/image-modifier" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <SlidersHorizontal className="h-4 w-4 text-purple-600" />
-                  <div>
-                    <div className="font-semibold text-xs">Image Modifier</div>
-                    <div className="text-[10px] text-muted-foreground">Local resize, crop, rotate, convert</div>
-                  </div>
-                </Link>
-                <Link href="/tools/image-enhancer" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <Sparkles className="h-4 w-4 text-emerald-500" />
-                  <div>
-                    <div className="font-semibold text-xs">Image Detailer</div>
-                    <div className="text-[10px] text-muted-foreground">4K detail upscale, color-safe</div>
-                  </div>
-                </Link>
-                <Link href="/tools/png-to-favicon" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <Box className="h-4 w-4 text-purple-500" />
-                  <div>
-                    <div className="font-semibold text-xs">PNG to Favicon</div>
-                    <div className="text-[10px] text-muted-foreground">Generate .ico package with one click</div>
-                  </div>
-                </Link>
-                <Link href="/tools/bg-remover" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <Eraser className="h-4 w-4 text-rose-500" />
-                  <div>
-                    <div className="font-semibold text-xs">BG Remover</div>
-                    <div className="text-[10px] text-muted-foreground">Local browser model</div>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </div>
 
-          {/* Video Tools Dropdown */}
-          <div className="relative group py-4">
-            <button className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-              <Video className="h-4 w-4" />
-              <span>Video Tools</span>
-              <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
-            </button>
-            <div className="absolute left-0 top-full hidden group-hover:block w-72 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg">
-                <Link href="/tools/video-converter" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <RefreshCw className="h-4 w-4 text-emerald-500" />
-                  <div>
-                    <div className="font-semibold text-xs">Video Converter</div>
-                    <div className="text-[10px] text-muted-foreground">Local WebM export</div>
-                  </div>
-                </Link>
-                <Link href="/tools/video-upscaler" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <MonitorUp className="h-4 w-4 text-cyan-500" />
-                  <div>
-                    <div className="font-semibold text-xs">Video Upscaler</div>
-                    <div className="text-[10px] text-muted-foreground">Local canvas upscale</div>
-                  </div>
-                </Link>
-                <Link href="/tools/video-to-image" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <Film className="h-4 w-4 text-pink-500" />
-                  <div>
-                    <div className="font-semibold text-xs">Frame Extractor</div>
-                    <div className="text-[10px] text-muted-foreground">Local still-frame capture</div>
-                  </div>
-                </Link>
-                <Link href="/tools/video-downloader" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <LinkIcon2 className="h-4 w-4 text-emerald-500" />
-                  <div>
-                    <div className="font-semibold text-xs">URL Downloader</div>
-                    <div className="text-[10px] text-muted-foreground">Network download</div>
-                  </div>
-                </Link>
-                <Link href="/tools/watermark-remover" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <Eraser className="h-4 w-4 text-indigo-500" />
-                  <div>
-                    <div className="font-semibold text-xs">Watermark Remover</div>
-                    <div className="text-[10px] text-muted-foreground">Local selected-area cleanup</div>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </div>
+        <nav className="ml-auto hidden items-center rounded-full border border-border bg-white p-1 shadow-[var(--shadow-sm)] lg:flex">
+          {navItems.map((item) => {
+            const Icon = item.icon;
 
-          {/* Files Dropdown */}
-          <div className="relative group py-4">
-            <button className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-              <FileText className="h-4 w-4" />
-              <span>Files</span>
-              <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
-            </button>
-            <div className="absolute left-0 top-full hidden group-hover:block w-72 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg">
-                <Link href="/tools/pdf-organizer" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <Files className="h-4 w-4 text-rose-500" />
-                  <div>
-                    <div className="font-semibold text-xs">PDF Organizer</div>
-                    <div className="text-[10px] text-muted-foreground">Merge, split, rotate, watermark, number</div>
-                  </div>
-                </Link>
-                <Link href="/tools/file-converter" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <RefreshCw className="h-4 w-4 text-purple-600" />
-                  <div>
-                    <div className="font-semibold text-xs">File Converter</div>
-                    <div className="text-[10px] text-muted-foreground">Local docs and data conversion</div>
-                  </div>
-                </Link>
-                <Link href="/tools/qr-generator" className="flex items-center space-x-3 rounded-lg p-2 hover:bg-accent hover:text-accent-foreground transition-colors">
-                  <QrCode className="h-4 w-4 text-emerald-500" />
-                  <div>
-                    <div className="font-semibold text-xs">QR Generator</div>
-                    <div className="text-[10px] text-muted-foreground">Generate custom, high-quality QR codes</div>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </div>
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-violet-50 hover:text-violet-800"
+              >
+                <Icon className="mr-1.5 h-3.5 w-3.5" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
-          <Link href="/report" className="inline-flex items-center rounded-full border border-border bg-white px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-purple-200 hover:text-purple-700">
+        <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <Link href="/report" className="inline-flex items-center rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-violet-200 hover:text-violet-800">
             <MessageSquareText className="mr-1.5 h-3.5 w-3.5" />
-            Report
+            <span className="hidden sm:inline">Report</span>
           </Link>
-          <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
+          <span className="hidden items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-800 md:inline-flex">
             <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-            Local-first
-          </span>
-          <span className="rounded-full border border-border bg-white px-3 py-1 text-xs font-medium text-muted-foreground">
-            Light
+            No upload
           </span>
         </div>
       </div>

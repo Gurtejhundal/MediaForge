@@ -112,13 +112,14 @@ export default function ReportPage() {
   }
 
   return (
-    <main className="mx-auto w-[min(100%-24px,1040px)] flex-1 px-0 py-8 md:w-[min(100%-48px,1040px)] md:py-12">
-      <section className="mb-8">
+    <main className="mx-auto w-[min(100%-24px,1080px)] flex-1 px-0 py-8 md:w-[min(100%-48px,1080px)] md:py-10">
+      <section className="mb-6 rounded-[28px] border border-border bg-white p-5 shadow-[var(--shadow-sm)] md:p-6">
         <div className="mb-4 flex flex-wrap gap-2">
           <StatusPill tone="server">Network feedback</StatusPill>
           <StatusPill tone="warning">No file attachments</StatusPill>
         </div>
-        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+        <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-700">Feedback intake</p>
+        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-foreground md:text-5xl">
           Report a problem or request a tool
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
@@ -127,7 +128,7 @@ export default function ReportPage() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-white p-5 shadow-[var(--shadow-sm)] md:p-6">
+        <form onSubmit={handleSubmit} className="rounded-[24px] border border-border bg-white p-5 shadow-[var(--shadow-sm)] md:p-6">
           <div className="sr-only" aria-hidden="true">
             <Label htmlFor="website">Website</Label>
             <Input id="website" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(event) => setWebsite(event.target.value)} />
@@ -148,8 +149,8 @@ export default function ReportPage() {
                       onClick={() => setType(item.value)}
                       className={`flex items-center rounded-xl border px-3 py-2 text-left text-sm transition-colors ${
                         selected
-                          ? "border-purple-300 bg-purple-50 text-purple-800"
-                          : "border-border bg-white text-muted-foreground hover:border-purple-200 hover:text-foreground"
+                          ? "border-violet-300 bg-violet-50 text-violet-800"
+                          : "border-border bg-white text-muted-foreground hover:border-violet-200 hover:text-foreground"
                       }`}
                     >
                       <Icon className="mr-2 h-4 w-4" />
@@ -231,7 +232,7 @@ export default function ReportPage() {
         </form>
 
         <aside className="space-y-4">
-          <section className="rounded-2xl border border-border bg-white p-5 shadow-[var(--shadow-sm)]">
+          <section className="rounded-[24px] border border-border bg-white p-5 shadow-[var(--shadow-sm)]">
             <h2 className="text-sm font-semibold text-foreground">What gets sent</h2>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-muted-foreground">
               <li>Report type, selected tool, and your message.</li>
@@ -241,9 +242,9 @@ export default function ReportPage() {
             </ul>
           </section>
 
-          <section className="rounded-2xl border border-purple-100 bg-purple-50/70 p-5">
-            <h2 className="text-sm font-semibold text-purple-950">For reliable delivery</h2>
-            <p className="mt-3 text-sm leading-6 text-purple-800">
+          <section className="rounded-[24px] border border-violet-200 bg-violet-50 p-5">
+            <h2 className="text-sm font-semibold text-violet-950">For reliable delivery</h2>
+            <p className="mt-3 text-sm leading-6 text-violet-800">
               Set <span className="font-mono">MEDIAFORGE_REPORT_WEBHOOK_URL</span> in deployment settings. Discord, Slack, and generic JSON webhooks are supported.
             </p>
           </section>

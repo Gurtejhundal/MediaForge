@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone, FileRejection } from "react-dropzone";
-import { UploadCloud, Image as ImageIcon, Link as LinkIcon, Loader2 } from "lucide-react";
+import { ArrowRight, Cpu, Image as ImageIcon, Link as LinkIcon, Loader2, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ export function Dropzone({ onFileAccepted, accept, displayMode = "image", proces
   const [isHovered, setIsHovered] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+  const displayLabel = displayMode === "image" ? "an image" : "a video";
 
   const onDrop = useCallback((acceptedFiles: File[], fileRejections: FileRejection[]) => {
     if (acceptedFiles.length > 0) {
@@ -75,84 +76,109 @@ export function Dropzone({ onFileAccepted, accept, displayMode = "image", proces
 
   return (
     <div className="space-y-4 w-full">
-      {/* 1. Drag and Drop Area */}
       <div
         {...getRootProps()}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          "relative w-full rounded-2xl border-2 border-dashed transition-all duration-200 ease-in-out cursor-pointer overflow-hidden",
-          "flex flex-col items-center justify-center p-12 text-center",
-          isDragActive && !isDragReject ? "border-primary bg-primary/5" : "border-border/60 bg-muted/20 hover:bg-muted/40",
+          "relative w-full cursor-pointer overflow-hidden rounded-[22px] border border-dashed transition-all duration-200 ease-in-out",
+          "grid gap-6 p-6 md:grid-cols-[1fr_280px] md:p-8",
+          isDragActive && !isDragReject ? "border-violet-400 bg-violet-50" : "border-border-strong bg-[#f8f8f5] hover:border-violet-300 hover:bg-white",
           isDragReject && "border-destructive bg-destructive/5"
         )}
       >
         <input {...getInputProps()} />
-        
-        <div className={cn(
-          "p-4 rounded-full mb-4 transition-transform duration-300",
-          isDragActive ? "scale-110 bg-primary/20 text-primary" : "bg-background text-muted-foreground",
-          isHovered && !isDragActive && "scale-105"
-        )}>
-          <UploadCloud className="h-8 w-8" />
+
+        <div>
+          <div className={cn(
+            "mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border transition-transform duration-300",
+            isDragActive ? "scale-105 border-violet-200 bg-white text-violet-700" : "border-border bg-white text-violet-700",
+            isHovered && !isDragActive && "scale-105"
+          )}>
+            <UploadCloud className="h-6 w-6" />
+          </div>
+
+          <h3 className="text-2xl font-semibold tracking-tight">
+            {isDragActive
+              ? isDragReject
+                ? "File type not supported"
+                : `Drop ${displayLabel} here`
+              : `Drop ${displayLabel} here`}
+          </h3>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
+            {processingMode === "local"
+              ? "Processed locally in your browser. No app-side file limit; your device and browser decide what can run."
+              : "Server-assisted processing. This file may be uploaded for processing."}
+          </p>
+
+          <div className="mt-6 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            {displayMode === "image" ? (
+              <>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <ImageIcon className="mr-1 h-3 w-3" /> PNG
+                </span>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <ImageIcon className="mr-1 h-3 w-3" /> JPG
+                </span>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <ImageIcon className="mr-1 h-3 w-3" /> WEBP
+                </span>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <ImageIcon className="mr-1 h-3 w-3" /> AVIF
+                </span>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <ImageIcon className="mr-1 h-3 w-3" /> HEIC
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <UploadCloud className="mr-1 h-3 w-3" /> MP4
+                </span>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <UploadCloud className="mr-1 h-3 w-3" /> WEBM
+                </span>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <UploadCloud className="mr-1 h-3 w-3" /> MOV
+                </span>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <UploadCloud className="mr-1 h-3 w-3" /> MKV
+                </span>
+                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
+                  <UploadCloud className="mr-1 h-3 w-3" /> AVI
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
-        <h3 className="text-xl font-semibold mb-2">
-          {isDragActive
-            ? isDragReject
-              ? "File type not supported"
-              : `Drop ${displayMode} here`
-            : `Drop a ${displayMode} here`}
-        </h3>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          {processingMode === "local"
-            ? "Processed locally in your browser. No app-side file limit; your device and browser decide what can run."
-            : "Server-assisted processing. This file may be uploaded for processing."}
-        </p>
-
-        <div className="mt-8 flex gap-3 text-xs text-muted-foreground/70">
-          {displayMode === "image" ? (
-            <>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <ImageIcon className="h-3 w-3 mr-1" /> PNG
-              </span>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <ImageIcon className="h-3 w-3 mr-1" /> JPG
-              </span>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <ImageIcon className="h-3 w-3 mr-1" /> WEBP
-              </span>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <ImageIcon className="h-3 w-3 mr-1" /> AVIF
-              </span>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <ImageIcon className="h-3 w-3 mr-1" /> HEIC
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <UploadCloud className="h-3 w-3 mr-1" /> MP4
-              </span>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <UploadCloud className="h-3 w-3 mr-1" /> WEBM
-              </span>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <UploadCloud className="h-3 w-3 mr-1" /> MOV
-              </span>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <UploadCloud className="h-3 w-3 mr-1" /> MKV
-              </span>
-              <span className="flex items-center bg-background px-2 py-1 rounded-md border">
-                <UploadCloud className="h-3 w-3 mr-1" /> AVI
-              </span>
-            </>
-          )}
+        <div className="rounded-[18px] border border-border bg-white p-4">
+          <p className="mb-4 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">File path</p>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">Selected file</span>
+              <UploadCloud className="h-4 w-4 text-violet-700" />
+            </div>
+            <div className="flex items-center justify-center text-muted-foreground">
+              <ArrowRight className="h-4 w-4" />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">Browser memory</span>
+              <Cpu className="h-4 w-4 text-violet-700" />
+            </div>
+            <div className="flex items-center justify-center text-muted-foreground">
+              <ArrowRight className="h-4 w-4" />
+            </div>
+            <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-teal-800">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">Blob export</p>
+              <p className="mt-1 text-xs">Download generated in this tab.</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {processingMode === "server" && (
-        <div className="bg-muted/30 p-6 rounded-xl border flex flex-col items-center">
+        <div className="flex flex-col items-center rounded-[18px] border bg-white p-5">
           <h3 className="mb-4 font-semibold flex items-center self-start text-muted-foreground">
             <LinkIcon className="h-4 w-4 mr-2" /> Or Import from URL
           </h3>
