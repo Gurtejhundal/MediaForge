@@ -9,7 +9,18 @@ import { BeforeAfterInspector } from "@/components/preview/before-after-inspecto
 import { Cpu, Download, Eraser, Layers, Loader2, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { downloadBlob } from "@/lib/local-processing/blob-utils";
+import { cleanupTransparentMatte, type AlphaCleanupStrength } from "@/lib/local-processing/image-processing";
 import { StatusPill } from "@/components/workspace-components";
+
+const cleanupModes: Array<{
+  value: AlphaCleanupStrength;
+  label: string;
+  detail: string;
+}> = [
+  { value: "soft", label: "Soft", detail: "Preserve fine hair" },
+  { value: "balanced", label: "Balanced", detail: "Clean normal edges" },
+  { value: "strong", label: "Strong", detail: "Remove dirty halos" },
+];
 
 export default function BgRemoverPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -20,6 +31,7 @@ export default function BgRemoverPage() {
   const [progress, setProgress] = useState("");
   const [showComparison, setShowComparison] = useState(false);
   const [modelProgress, setModelProgress] = useState(0);
+  const [cleanupStrength, setCleanupStrength] = useState<AlphaCleanupStrength>("strong");
 
   const handleFileAccepted = (acceptedFile: File) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -59,14 +71,19 @@ export default function BgRemoverPage() {
         output: { format: "image/png", quality: 0.92 },
         progress: (key: string, current: number, total: number) => {
           const percent = total > 0 ? Math.round((current / total) * 100) : 0;
-          setModelProgress(percent);
+          setModelProgress(Math.min(90, Math.round(percent * 0.9)));
           setProgress(`Preparing local model: ${percent}% ${key}`);
         },
       });
-      const url = URL.createObjectURL(blob);
-      setResultBlob(blob);
+
+      setProgress("Cleaning transparent matte...");
+      setModelProgress(96);
+      const cleanedBlob = await cleanupTransparentMatte(blob, cleanupStrength);
+      const url = URL.createObjectURL(cleanedBlob);
+      setResultBlob(cleanedBlob);
       setResultUrl(url);
       setShowComparison(true);
+      setModelProgress(100);
 
       toast.success("Background removed locally.");
     } catch (error: unknown) {
@@ -152,6 +169,39 @@ export default function BgRemoverPage() {
                   </p>
                 </div>
               )}
+
+              <div className="mt-5 rounded-2xl border border-border bg-[#f8f8f5] p-4">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Matte cleanup</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Removes semi-transparent background dust after the local model finishes.</p>
+                  </div>
+                  <span className="font-mono text-xs font-semibold text-violet-800">PNG alpha pass</span>
+                </div>
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  {cleanupModes.map((mode) => {
+                    const active = cleanupStrength === mode.value;
+
+                    return (
+                      <button
+                        key={mode.value}
+                        type="button"
+                        aria-pressed={active}
+                        disabled={isProcessing}
+                        onClick={() => setCleanupStrength(mode.value)}
+                        className={`rounded-2xl border p-3 text-left transition ${
+                          active
+                            ? "border-violet-300 bg-white text-violet-950 shadow-[var(--shadow-sm)]"
+                            : "border-transparent bg-white/60 text-foreground hover:border-border hover:bg-white"
+                        } disabled:cursor-not-allowed disabled:opacity-60`}
+                      >
+                        <span className="block text-sm font-semibold">{mode.label}</span>
+                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{mode.detail}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               <Button
                 size="lg"

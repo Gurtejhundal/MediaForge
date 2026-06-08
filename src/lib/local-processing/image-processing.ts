@@ -4,6 +4,7 @@ import { safeBaseName } from "./blob-utils";
 export type BrowserImageFormat = "png" | "jpeg" | "webp" | "avif";
 export type ImageFitMode = "contain" | "cover" | "stretch";
 export type WatermarkPosition = "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+export type AlphaCleanupStrength = "soft" | "balanced" | "strong";
 
 export interface ImageProcessOptions {
   format: BrowserImageFormat;
@@ -116,6 +117,112 @@ function canvasToBlob(canvas: HTMLCanvasElement, format: BrowserImageFormat, qua
       resolve(blob);
     }, mime, quality ? quality / 100 : undefined);
   });
+}
+
+const ALPHA_CLEANUP_SETTINGS: Record<AlphaCleanupStrength, {
+  transparentCutoff: number;
+  solidCutoff: number;
+  residueAlphaMax: number;
+  residueAlphaMultiplier: number;
+  grayTolerance: number;
+  lightResidueLuma: number;
+  edgeGamma: number;
+}> = {
+  soft: {
+    transparentCutoff: 24,
+    solidCutoff: 232,
+    residueAlphaMax: 180,
+    residueAlphaMultiplier: 0.72,
+    grayTolerance: 30,
+    lightResidueLuma: 170,
+    edgeGamma: 1.1,
+  },
+  balanced: {
+    transparentCutoff: 58,
+    solidCutoff: 214,
+    residueAlphaMax: 220,
+    residueAlphaMultiplier: 0.34,
+    grayTolerance: 42,
+    lightResidueLuma: 150,
+    edgeGamma: 1.25,
+  },
+  strong: {
+    transparentCutoff: 92,
+    solidCutoff: 190,
+    residueAlphaMax: 246,
+    residueAlphaMultiplier: 0.12,
+    grayTolerance: 58,
+    lightResidueLuma: 128,
+    edgeGamma: 1.45,
+  },
+};
+
+function smoothStep(value: number) {
+  const clamped = Math.max(0, Math.min(1, value));
+  return clamped * clamped * (3 - 2 * clamped);
+}
+
+function releaseDecodedImage(source: Awaited<ReturnType<typeof decodeImage>>) {
+  if ("close" in source && typeof source.close === "function") {
+    source.close();
+  }
+}
+
+export async function cleanupTransparentMatte(blob: Blob, strength: AlphaCleanupStrength = "balanced") {
+  const source = await decodeImage(blob);
+  const canvas = createCanvas(source.width, source.height);
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+  if (!ctx) throw new Error("Canvas is not available in this browser");
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(source, 0, 0);
+  releaseDecodedImage(source);
+
+  const settings = ALPHA_CLEANUP_SETTINGS[strength];
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = imageData.data;
+
+  for (let index = 0; index < pixels.length; index += 4) {
+    const red = pixels[index];
+    const green = pixels[index + 1];
+    const blue = pixels[index + 2];
+    const alpha = pixels[index + 3];
+
+    if (alpha === 0) {
+      pixels[index] = 0;
+      pixels[index + 1] = 0;
+      pixels[index + 2] = 0;
+      continue;
+    }
+
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    const luma = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    const lowSaturation = max - min <= settings.grayTolerance;
+    const likelyBackgroundDust = lowSaturation && luma >= settings.lightResidueLuma && alpha <= settings.residueAlphaMax;
+    let nextAlpha = likelyBackgroundDust ? alpha * settings.residueAlphaMultiplier : alpha;
+
+    if (nextAlpha <= settings.transparentCutoff) {
+      nextAlpha = 0;
+    } else if (nextAlpha >= settings.solidCutoff) {
+      nextAlpha = 255;
+    } else {
+      const normalized = (nextAlpha - settings.transparentCutoff) / (settings.solidCutoff - settings.transparentCutoff);
+      nextAlpha = Math.round(255 * Math.pow(smoothStep(normalized), settings.edgeGamma));
+    }
+
+    pixels[index + 3] = nextAlpha;
+
+    if (nextAlpha === 0) {
+      pixels[index] = 0;
+      pixels[index + 1] = 0;
+      pixels[index + 2] = 0;
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return await canvasToBlob(canvas, "png");
 }
 
 function drawWatermark(ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number, watermark: NonNullable<ImageProcessOptions["watermark"]>) {
