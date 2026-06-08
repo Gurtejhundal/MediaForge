@@ -41,7 +41,7 @@ export default function CompressPage() {
     try {
       const result = await processImageLocally(file, { format: "webp", quality: quality[0] });
       setLastOutputSize(result.blob.size);
-      downloadBlob(result.blob, `compressed-${result.filename}`);
+      downloadBlob(result.blob, `compressed-${result.filename}`, { kind: "modification" });
       
       toast.success("Image compressed locally.");
     } catch (error: unknown) {

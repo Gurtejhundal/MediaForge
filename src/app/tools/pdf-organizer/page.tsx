@@ -104,7 +104,7 @@ export default function PdfOrganizerPage() {
         position: watermarkPosition,
         opacity: opacity[0] / 100,
       });
-      downloadBlob(result.blob, result.filename);
+      downloadBlob(result.blob, result.filename, { kind: "document" });
       toast.success(`${selectedMode.label} output generated locally`);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));

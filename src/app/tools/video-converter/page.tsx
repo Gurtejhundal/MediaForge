@@ -46,7 +46,7 @@ export default function VideoConverterPage() {
         fps: 24,
         onProgress: setProgress,
       });
-      downloadBlob(result.blob, result.filename);
+      downloadBlob(result.blob, result.filename, { kind: "video" });
       toast.success("Video exported locally as WebM.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to convert video");

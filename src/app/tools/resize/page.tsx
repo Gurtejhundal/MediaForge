@@ -54,7 +54,7 @@ export default function ResizePage() {
         width: width ? Number.parseInt(width, 10) : undefined,
         height: height ? Number.parseInt(height, 10) : undefined,
       });
-      downloadBlob(result.blob, `resized-${result.filename}`);
+      downloadBlob(result.blob, `resized-${result.filename}`, { kind: "modification" });
       
       toast.success("Image resized locally.");
     } catch (error: unknown) {

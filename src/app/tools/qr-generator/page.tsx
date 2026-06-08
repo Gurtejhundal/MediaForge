@@ -54,7 +54,7 @@ export default function QrGeneratorPage() {
       return;
     }
 
-    downloadBlob(outputBlob, `qr-code.${format === "jpeg" ? "jpg" : format}`);
+    downloadBlob(outputBlob, `qr-code.${format === "jpeg" ? "jpg" : format}`, { kind: "generation" });
   };
 
   return (

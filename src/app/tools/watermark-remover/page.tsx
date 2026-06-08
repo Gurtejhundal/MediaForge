@@ -108,7 +108,7 @@ export default function WatermarkRemoverPage() {
         transform: makeBlurRegionTransform({ x: actualX, y: actualY, w: actualW, h: actualH }),
         onProgress: (percent) => setProgress(`Processing: ${percent}%`),
       });
-      downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-cleaned.webm`);
+      downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-cleaned.webm`, { kind: "modification" });
       toast.success("Selected area cleaned locally.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to remove watermark");

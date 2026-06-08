@@ -248,7 +248,7 @@ export default function ImageEnhancerPage() {
                       className="flex-1 h-12"
                       onClick={() => {
                         if (enhancedBlob) {
-                          downloadBlob(enhancedBlob, `detail-${file.name.replace(/\.[^.]+$/, "")}-${target}.png`);
+                          downloadBlob(enhancedBlob, `detail-${file.name.replace(/\.[^.]+$/, "")}-${target}.png`, { kind: "modification" });
                         }
                       }}
                     >

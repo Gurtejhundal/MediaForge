@@ -92,7 +92,7 @@ export default function FileConverterPage() {
 
     try {
       const result = await convertFileLocally(file, targetFormat);
-      downloadBlob(result.blob, result.filename);
+      downloadBlob(result.blob, result.filename, { kind: "conversion" });
       toast.success("File converted locally.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to convert file");

@@ -97,7 +97,7 @@ export default function BgRemoverPage() {
   const handleDownload = () => {
     if (!resultUrl || !resultBlob) return;
 
-    downloadBlob(resultBlob, `${file?.name.replace(/\.[^.]+$/, "") || "image"}-no-bg.png`);
+    downloadBlob(resultBlob, `${file?.name.replace(/\.[^.]+$/, "") || "image"}-no-bg.png`, { kind: "modification" });
   };
 
   return (

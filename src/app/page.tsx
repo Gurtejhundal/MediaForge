@@ -1,15 +1,18 @@
 "use client";
 
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
+  Activity,
   Archive,
-  ArrowRight,
+  BarChart3,
   Box,
   Cpu,
   Download,
   Eraser,
   FileText,
   Film,
+  HardDrive,
   ImageDown,
   Link as LinkIcon,
   MonitorUp,
@@ -22,6 +25,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppShell, StatusPill, ToolCard } from "@/components/workspace-components";
+import { formatFileSize } from "@/lib/local-processing/blob-utils";
+import { readLocalActivityStats, subscribeLocalActivity, type LocalActivityStats } from "@/lib/local-processing/activity-stats";
 
 const IMAGE_TOOLS = [
   {
@@ -147,69 +152,213 @@ const contractSteps = [
   ["04", "Clear session", "Temporary object URLs are session-bound and disposable."],
 ];
 
-function WorkbenchPreview() {
+const emptyActivityStats: LocalActivityStats = {
+  totalExports: 0,
+  conversions: 0,
+  modifiedFiles: 0,
+  generatedFiles: 0,
+  extractedFiles: 0,
+  documentExports: 0,
+  videoExports: 0,
+  bytesExported: 0,
+  lastFilename: null,
+  lastUpdatedAt: null,
+};
+
+interface BrowserResourceStats {
+  heapUsedLabel: string;
+  heapLimitLabel: string;
+  heapPercent: number;
+  storageUsedLabel: string;
+  storageQuotaLabel: string;
+  storagePercent: number;
+  cpuThreads: string;
+  deviceMemoryLabel: string;
+}
+
+const emptyResourceStats: BrowserResourceStats = {
+  heapUsedLabel: "Hidden",
+  heapLimitLabel: "Browser limited",
+  heapPercent: 0,
+  storageUsedLabel: "Checking",
+  storageQuotaLabel: "Checking",
+  storagePercent: 0,
+  cpuThreads: "Unknown",
+  deviceMemoryLabel: "Hidden",
+};
+
+type PerformanceWithMemory = Performance & {
+  memory?: {
+    usedJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+};
+
+type NavigatorWithDeviceMemory = Navigator & {
+  deviceMemory?: number;
+};
+
+function getPercent(value: number, max: number) {
+  if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((value / max) * 100)));
+}
+
+async function readBrowserResourceStats(): Promise<BrowserResourceStats> {
+  if (typeof window === "undefined") return emptyResourceStats;
+
+  const performanceWithMemory = window.performance as PerformanceWithMemory;
+  const navigatorWithMemory = window.navigator as NavigatorWithDeviceMemory;
+  const heap = performanceWithMemory.memory;
+  const storageEstimate = await window.navigator.storage?.estimate?.();
+  const usage = storageEstimate?.usage || 0;
+  const quota = storageEstimate?.quota || 0;
+
+  return {
+    heapUsedLabel: heap ? formatFileSize(heap.usedJSHeapSize, 1) : "Hidden",
+    heapLimitLabel: heap ? formatFileSize(heap.jsHeapSizeLimit, 1) : "Browser limited",
+    heapPercent: heap ? getPercent(heap.usedJSHeapSize, heap.jsHeapSizeLimit) : 0,
+    storageUsedLabel: quota ? formatFileSize(usage, 1) : "Unavailable",
+    storageQuotaLabel: quota ? formatFileSize(quota, 1) : "Unavailable",
+    storagePercent: quota ? getPercent(usage, quota) : 0,
+    cpuThreads: window.navigator.hardwareConcurrency ? `${window.navigator.hardwareConcurrency}` : "Unknown",
+    deviceMemoryLabel: navigatorWithMemory.deviceMemory ? `${navigatorWithMemory.deviceMemory} GB hint` : "Hidden",
+  };
+}
+
+function useWorkbenchMeters() {
+  const [activityStats, setActivityStats] = useState<LocalActivityStats>(emptyActivityStats);
+  const [resourceStats, setResourceStats] = useState<BrowserResourceStats>(emptyResourceStats);
+
+  useEffect(() => {
+    let active = true;
+
+    const refreshResources = async () => {
+      const nextStats = await readBrowserResourceStats();
+      if (active) setResourceStats(nextStats);
+    };
+
+    const initialTimer = window.setTimeout(() => {
+      if (active) setActivityStats(readLocalActivityStats());
+    }, 0);
+    void refreshResources();
+    const unsubscribe = subscribeLocalActivity(setActivityStats);
+    const interval = window.setInterval(refreshResources, 5000);
+
+    return () => {
+      active = false;
+      unsubscribe();
+      window.clearTimeout(initialTimer);
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  return { activityStats, resourceStats };
+}
+
+function MeterRow({
+  icon,
+  label,
+  value,
+  percent,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  percent: number;
+}) {
   return (
-    <div className="mf-scan-line rounded-[28px] border border-border bg-white p-4 shadow-[0_24px_70px_rgba(20,20,24,0.10)] md:p-5">
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+        <span className="flex items-center text-muted-foreground">{icon}{label}</span>
+        <span className="font-mono text-xs font-semibold">{value}</span>
+      </div>
+      <div className="h-2 rounded-full bg-border">
+        <div className="h-full rounded-full bg-violet-700 transition-all duration-500" style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function WorkbenchPreview() {
+  const { activityStats, resourceStats } = useWorkbenchMeters();
+  const processedCount = activityStats.conversions + activityStats.modifiedFiles + activityStats.generatedFiles + activityStats.extractedFiles + activityStats.documentExports + activityStats.videoExports;
+  const conversionPercent = activityStats.totalExports ? Math.round((activityStats.conversions / activityStats.totalExports) * 100) : 0;
+  const modificationPercent = activityStats.totalExports ? Math.round((activityStats.modifiedFiles / activityStats.totalExports) * 100) : 0;
+
+  return (
+    <div className="mf-scan-line min-w-0 rounded-[28px] border border-border bg-white p-4 shadow-[0_24px_70px_rgba(20,20,24,0.10)] md:p-5">
       <div className="mb-4 flex items-center justify-between border-b border-border pb-4">
         <div>
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Workspace / image detail</p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">local-frame-04.png</h2>
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Workspace / local meter</p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight">Current browser session</h2>
         </div>
         <StatusPill>Browser only</StatusPill>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
-        <div className="rounded-[22px] border border-dashed border-border-strong bg-[#f8f8f5] p-5">
-          <div className="flex h-40 items-center justify-center rounded-[18px] border border-border bg-white">
-            <div className="text-center">
-              <UploadCloud className="mx-auto h-8 w-8 text-violet-700" />
-              <p className="mt-3 text-sm font-semibold">Drop source file</p>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">2.4 MB PNG</p>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,260px)]">
+        <div className="min-w-0 rounded-[22px] border border-dashed border-border-strong bg-[#f8f8f5] p-5">
+          <div className="rounded-[18px] border border-border bg-white p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Local exports</p>
+                <p className="mt-2 text-4xl font-semibold tracking-tight">{activityStats.totalExports}</p>
+              </div>
+              <p className="max-w-24 text-right text-xs leading-5 text-muted-foreground">Downloads created in this browser.</p>
+            </div>
+            <div className="mt-4 space-y-3">
+              <MeterRow icon={<BarChart3 className="mr-2 h-4 w-4 text-violet-700" />} label="Converted" value={`${activityStats.conversions}`} percent={conversionPercent} />
+              <MeterRow icon={<SlidersHorizontal className="mr-2 h-4 w-4 text-violet-700" />} label="Modified" value={`${activityStats.modifiedFiles}`} percent={modificationPercent} />
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3">
-            {[
-              ["Input", "File API"],
-              ["Runtime", "Browser memory"],
-              ["Output", "Blob download"],
-            ].map(([label, value], index) => (
-              <div key={label} className="relative rounded-2xl border border-border bg-white p-3">
-                {index < 2 && <ArrowRight className="absolute -bottom-3 left-1/2 z-10 h-4 w-4 -translate-x-1/2 rotate-90 rounded-full bg-white p-0.5 text-muted-foreground" />}
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-                  <p className="text-sm font-semibold">{value}</p>
-                </div>
+          <div className="mt-4 rounded-[18px] border border-border bg-white p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Processed files</p>
+                <p className="mt-2 text-4xl font-semibold tracking-tight">{processedCount}</p>
               </div>
-            ))}
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-200 bg-violet-50 text-violet-800">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-4 grid gap-2 text-sm">
+              <div className="flex items-center justify-between rounded-xl bg-[#f8f8f5] p-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Generated</span>
+                <p className="font-semibold">{activityStats.generatedFiles}</p>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-[#f8f8f5] p-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Extracted</span>
+                <p className="font-semibold">{activityStats.extractedFiles}</p>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-[#f8f8f5] p-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Bytes out</span>
+                <p className="font-semibold">{formatFileSize(activityStats.bytesExported, 1)}</p>
+              </div>
+            </div>
+            <p className="mt-3 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              Last export: {activityStats.lastFilename || "none yet"}
+            </p>
           </div>
         </div>
 
-        <div className="rounded-[22px] border border-border bg-[#fbfbf8] p-4">
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Inspector</p>
-          <div className="mt-4 space-y-4">
-            <div>
-              <div className="mb-2 flex justify-between text-sm">
-                <span className="text-muted-foreground">Detail pass</span>
-                <span className="font-mono font-semibold">42%</span>
-              </div>
-              <div className="h-2 rounded-full bg-border">
-                <div className="h-full w-[42%] rounded-full bg-violet-700" />
-              </div>
-            </div>
+        <div className="min-w-0 rounded-[22px] border border-border bg-[#fbfbf8] p-4">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Browser stats</p>
+          <div className="mt-4 space-y-5">
+            <MeterRow icon={<Activity className="mr-2 h-4 w-4 text-violet-700" />} label="JS heap" value={resourceStats.heapUsedLabel} percent={resourceStats.heapPercent} />
+            <MeterRow icon={<HardDrive className="mr-2 h-4 w-4 text-violet-700" />} label="Storage" value={resourceStats.storageUsedLabel} percent={resourceStats.storagePercent} />
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-xl border border-border bg-white p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Format</p>
-                <p className="mt-1 font-semibold">PNG</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">CPU</p>
+                <p className="mt-1 font-semibold">{resourceStats.cpuThreads} threads</p>
               </div>
               <div className="rounded-xl border border-border bg-white p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Color</p>
-                <p className="mt-1 font-semibold">Preserved</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">RAM</p>
+                <p className="mt-1 font-semibold">{resourceStats.deviceMemoryLabel}</p>
               </div>
             </div>
             <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-teal-900">
-              <p className="font-semibold">Export ready</p>
-              <p className="mt-1 text-xs leading-5 text-teal-800">Generated locally. No upload route used.</p>
+              <p className="font-semibold">Measured locally</p>
+              <p className="mt-1 text-xs leading-5 text-teal-800">Counters stay in this browser. Files are not uploaded for these stats.</p>
             </div>
           </div>
         </div>

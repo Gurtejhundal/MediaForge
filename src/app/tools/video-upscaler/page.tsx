@@ -62,7 +62,7 @@ export default function VideoUpscalerPage() {
         fps: preset === "fast" ? 18 : preset === "balanced" ? 24 : 30,
         onProgress: (percent) => setProgress(`Processing: ${percent}%`),
       });
-      downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-${resolution}.webm`);
+      downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-${resolution}.webm`, { kind: "video" });
       toast.success("Video upscaled locally as WebM.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));

@@ -36,7 +36,7 @@ export default function FormatConverterPage() {
     setIsProcessing(true);
     try {
       const result = await processImageLocally(file, { format: targetFormat, quality: 90 });
-      downloadBlob(result.blob, `converted-${result.filename}`);
+      downloadBlob(result.blob, `converted-${result.filename}`, { kind: "conversion" });
       
       toast.success("Image converted locally.");
     } catch (error: unknown) {

@@ -118,7 +118,7 @@ export default function ImageModifierPage() {
 
   const downloadResult = () => {
     if (!resultBlob) return;
-    downloadBlob(resultBlob, resultName);
+    downloadBlob(resultBlob, resultName, { kind: "modification" });
   };
 
   return (

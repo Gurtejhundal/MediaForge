@@ -100,7 +100,7 @@ export default function PngToFaviconPage() {
               ))}
             </div>
 
-            <Button onClick={() => downloadBlob(result.blob, result.filename)} className="w-full">
+            <Button onClick={() => downloadBlob(result.blob, result.filename, { kind: "generation" })} className="w-full">
               <Download className="mr-2 h-4 w-4" />
               Download ZIP
             </Button>

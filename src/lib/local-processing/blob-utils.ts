@@ -1,3 +1,5 @@
+import { recordLocalExport, type LocalExportKind } from "./activity-stats";
+
 export function makeObjectUrl(blob: Blob) {
   return URL.createObjectURL(blob);
 }
@@ -6,7 +8,7 @@ export function revokeObjectUrl(url: string | null | undefined) {
   if (url) URL.revokeObjectURL(url);
 }
 
-export function downloadBlob(blob: Blob, filename: string) {
+export function downloadBlob(blob: Blob, filename: string, options?: { kind?: LocalExportKind }) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -15,6 +17,7 @@ export function downloadBlob(blob: Blob, filename: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+  recordLocalExport({ filename, bytes: blob.size, kind: options?.kind });
 }
 
 export function formatFileSize(bytes: number, decimals = 2) {

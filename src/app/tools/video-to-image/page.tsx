@@ -61,7 +61,7 @@ export default function VideoToImagePage() {
   const downloadFrame = () => {
     if (!outputBlob || !file) return;
     const extension = format === "jpeg" ? "jpg" : format;
-    downloadBlob(outputBlob, `${safeBaseName(file.name)}-frame.${extension}`);
+    downloadBlob(outputBlob, `${safeBaseName(file.name)}-frame.${extension}`, { kind: "extraction" });
   };
 
   return (
