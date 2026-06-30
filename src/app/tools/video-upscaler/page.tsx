@@ -59,7 +59,7 @@ export default function VideoUpscalerPage() {
     try {
       const result = await renderVideoToWebMLocally(file, {
         resolution,
-        fps: preset === "fast" ? 18 : preset === "balanced" ? 24 : 30,
+        fps: preset === "fast" ? 24 : 30,
         onProgress: (percent) => setProgress(`Processing: ${percent}%`),
       });
       downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-${resolution}.webm`, { kind: "video" });
@@ -212,7 +212,7 @@ export default function VideoUpscalerPage() {
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground text-center animate-pulse">
-                      Upscaling frames on this device. This is compute-heavy and runs in real time.
+                      Upscaling frames on this device with fixed-frame timing for smoother WebM motion.
                     </p>
                   </div>
                 )}

@@ -18,6 +18,48 @@ interface Region {
   h: number;
 }
 
+function getRenderedVideoRect(containerRect: DOMRect, videoSize: { width: number; height: number }) {
+  const containerRatio = containerRect.width / containerRect.height;
+  const videoRatio = videoSize.width / videoSize.height;
+  let width = containerRect.width;
+  let height = containerRect.height;
+
+  if (videoRatio > containerRatio) {
+    height = width / videoRatio;
+  } else {
+    width = height * videoRatio;
+  }
+
+  return {
+    x: (containerRect.width - width) / 2,
+    y: (containerRect.height - height) / 2,
+    width,
+    height,
+  };
+}
+
+function mapSelectionToVideo(selection: Region, containerRect: DOMRect, videoSize: { width: number; height: number }) {
+  if (!videoSize.width || !videoSize.height) return null;
+
+  const rendered = getRenderedVideoRect(containerRect, videoSize);
+  const left = Math.max(selection.x, rendered.x);
+  const top = Math.max(selection.y, rendered.y);
+  const right = Math.min(selection.x + selection.w, rendered.x + rendered.width);
+  const bottom = Math.min(selection.y + selection.h, rendered.y + rendered.height);
+
+  if (right <= left || bottom <= top) return null;
+
+  const scaleX = videoSize.width / rendered.width;
+  const scaleY = videoSize.height / rendered.height;
+
+  return {
+    x: Math.round((left - rendered.x) * scaleX),
+    y: Math.round((top - rendered.y) * scaleY),
+    w: Math.round((right - left) * scaleX),
+    h: Math.round((bottom - top) * scaleY),
+  };
+}
+
 export default function WatermarkRemoverPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -35,11 +77,22 @@ export default function WatermarkRemoverPage() {
     revokeObjectUrl(previewUrl);
     setFile(acceptedFile);
     setPreviewUrl(URL.createObjectURL(acceptedFile));
+    setProgress("");
   };
 
   const onVideoLoad = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
     setVideoSize({ width: video.videoWidth, height: video.videoHeight });
+    window.requestAnimationFrame(() => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setSelection({
+        x: Math.round(rect.width * 0.68),
+        y: Math.round(rect.height * 0.08),
+        w: Math.round(rect.width * 0.24),
+        h: Math.round(rect.height * 0.14),
+      });
+    });
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -91,21 +144,20 @@ export default function WatermarkRemoverPage() {
     setIsProcessing(true);
     setProgress("Processing: 0%");
 
-    // Scale coordinates to actual video resolution
     const rect = containerRef.current.getBoundingClientRect();
-    const scaleX = videoSize.width / rect.width;
-    const scaleY = videoSize.height / rect.height;
-
-    const actualX = Math.round(selection.x * scaleX);
-    const actualY = Math.round(selection.y * scaleY);
-    const actualW = Math.round(selection.w * scaleX);
-    const actualH = Math.round(selection.h * scaleY);
+    const mappedSelection = mapSelectionToVideo(selection, rect, videoSize);
+    if (!mappedSelection || mappedSelection.w < 4 || mappedSelection.h < 4) {
+      toast.error("Select an area over the visible video.");
+      setIsProcessing(false);
+      setProgress("");
+      return;
+    }
 
     try {
       const result = await renderVideoToWebMLocally(file, {
         resolution: "original",
-        fps: 24,
-        transform: makeBlurRegionTransform({ x: actualX, y: actualY, w: actualW, h: actualH }),
+        fps: 30,
+        transform: makeBlurRegionTransform(mappedSelection, 32),
         onProgress: (percent) => setProgress(`Processing: ${percent}%`),
       });
       downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-cleaned.webm`, { kind: "modification" });
@@ -141,7 +193,19 @@ export default function WatermarkRemoverPage() {
                   <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setFile(null)}>Remove</Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  revokeObjectUrl(previewUrl);
+                  setFile(null);
+                  setPreviewUrl(null);
+                  setProgress("");
+                  setVideoSize({ width: 0, height: 0 });
+                }}
+              >
+                Remove
+              </Button>
             </div>
 
             <div className="space-y-4">
