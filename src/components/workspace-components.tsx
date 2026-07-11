@@ -1,11 +1,21 @@
-import { AlertCircle, ArrowUpRight, CheckCircle2, Download, Loader2, RadioTower, ShieldCheck, UploadCloud } from "lucide-react";
+import Link from "next/link";
+import {
+  AlertCircle,
+  ArrowUpRight,
+  CheckCircle2,
+  Download,
+  Loader2,
+  RadioTower,
+  ShieldCheck,
+  UploadCloud,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto w-[min(100%-24px,1320px)] px-0 py-6 md:w-[min(100%-48px,1320px)] md:py-10">
+    <div className="mx-auto w-[min(100%-24px,1440px)] py-6 md:w-[min(100%-48px,1440px)] md:py-10">
       {children}
     </div>
   );
@@ -19,16 +29,18 @@ export function StatusPill({
   tone?: "local" | "server" | "warning" | "success";
 }) {
   return (
-    <span className={cn(
-      "inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.14em]",
-      tone === "local" && "border-violet-200 bg-violet-50 text-violet-800",
-      tone === "server" && "border-amber-200 bg-amber-50 text-amber-800",
-      tone === "warning" && "border-yellow-200 bg-yellow-50 text-yellow-900",
-      tone === "success" && "border-teal-200 bg-teal-50 text-teal-800",
-    )}>
-      {tone === "local" && <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />}
-      {tone === "server" && <RadioTower className="mr-1.5 h-3.5 w-3.5" />}
-      {tone === "success" && <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />}
+    <span
+      className={cn(
+        "inline-flex min-h-7 items-center rounded-sm border px-2.5 py-1 font-mono text-[8px] font-semibold uppercase tracking-[0.15em] shadow-[inset_0_1px_0_rgba(255,255,255,.15),0_1px_2px_rgba(0,0,0,.25)]",
+        tone === "local" && "border-[#20221d] bg-[#34362f] text-[#eee8db]",
+        tone === "server" && "border-[#7c2a17] bg-primary text-primary-foreground",
+        tone === "warning" && "border-warning/60 bg-[#3d321d] text-[#f0c675]",
+        tone === "success" && "border-success/60 bg-[#253a28] text-[#b5d1ae]",
+      )}
+    >
+      {tone === "local" && <ShieldCheck className="mr-1.5 size-3.5" />}
+      {tone === "server" && <RadioTower className="mr-1.5 size-3.5" />}
+      {tone === "success" && <CheckCircle2 className="mr-1.5 size-3.5" />}
       {children}
     </span>
   );
@@ -48,25 +60,22 @@ export function ToolCard({
   href: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
-      className="group grid min-h-44 grid-rows-[auto_1fr_auto] rounded-[18px] border border-border bg-white p-4 shadow-[var(--shadow-sm)] transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-[0_18px_48px_rgba(20,20,24,0.09)]"
+      className="mf-faceplate group grid min-h-40 grid-rows-[auto_1fr_auto] p-4 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,.28)]"
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-[#f8f8f5] text-violet-700">
-          {icon}
-        </div>
-        <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-violet-700" />
+        <div className="mf-inset flex size-9 items-center justify-center text-primary">{icon}</div>
+        <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
       </div>
-      <div className="mt-4">
-        <h3 className="text-[17px] font-semibold tracking-tight text-foreground">{title}</h3>
+      <div className="mt-5">
+        <h3 className="text-base font-semibold tracking-[-0.01em] text-foreground">{title}</h3>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
-      <div className="mt-5 flex items-center justify-between border-t border-border pt-3">
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{meta}</p>
-        <span className="h-2 w-2 rounded-full bg-teal-500 shadow-[0_0_0_4px_rgba(20,184,166,0.12)]" />
+      <div className="mt-5 border-t border-border pt-3">
+        <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{meta}</p>
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -80,10 +89,10 @@ export function UploadDropzone({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[20px] border border-dashed border-border-strong bg-[#f8f8f5] p-5">
+    <div className="mf-inset p-5">
       <div className="mb-4 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-white text-violet-700">
-          <UploadCloud className="h-5 w-5" />
+        <div className="mf-key flex size-10 shrink-0 items-center justify-center text-primary">
+          <UploadCloud className="size-5" />
         </div>
         <div>
           <h2 className="font-semibold tracking-tight text-foreground">{title}</h2>
@@ -95,22 +104,24 @@ export function UploadDropzone({
   );
 }
 
-export function SettingsPanel({ title, children }: { title: string; children: ReactNode }) {
+function Panel({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <section className="rounded-[20px] border border-border bg-white p-5 shadow-[var(--shadow-sm)]">
-      <h2 className="mb-4 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
-      {children}
+    <section className={cn("mf-faceplate overflow-hidden", className)}>
+      <div className="flex items-center justify-between border-b border-[#817d70] px-4 py-3">
+        <h2 className="font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{title}</h2>
+        <span className="mf-lamp" />
+      </div>
+      <div className="p-4 md:p-5">{children}</div>
     </section>
   );
 }
 
+export function SettingsPanel({ title, children }: { title: string; children: ReactNode }) {
+  return <Panel title={title}>{children}</Panel>;
+}
+
 export function PreviewPanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-[20px] border border-border bg-white p-5 shadow-[var(--shadow-sm)]">
-      <h2 className="mb-4 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
-      {children}
-    </section>
-  );
+  return <Panel title={title}>{children}</Panel>;
 }
 
 export function OutputCard({
@@ -123,12 +134,12 @@ export function OutputCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[20px] border border-teal-200 bg-teal-50 p-5">
+    <div className="mf-faceplate border-success/60 p-5 shadow-[inset_4px_0_0_var(--success),var(--shadow-panel)]">
       <div className="mb-4 flex items-start gap-3">
-        <CheckCircle2 className="mt-0.5 h-5 w-5 text-teal-700" />
+        <CheckCircle2 className="mt-0.5 size-5 text-success" />
         <div>
-          <h3 className="font-semibold tracking-tight text-teal-950">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-teal-800">{description}</p>
+          <h3 className="font-semibold tracking-tight text-foreground">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
         </div>
       </div>
       {children}
@@ -138,8 +149,8 @@ export function OutputCard({
 
 export function ProcessingProgress({ label = "Processing on this device..." }: { label?: string }) {
   return (
-    <div className="flex items-center rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-800">
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    <div className="flex items-center border border-primary/40 bg-primary/10 p-3 text-sm text-accent-foreground" role="status">
+      <span className="mf-lamp mr-2" data-tone="amber" /><Loader2 className="mr-2 size-4 animate-spin text-primary" />
       {label}
     </div>
   );
@@ -147,8 +158,8 @@ export function ProcessingProgress({ label = "Processing on this device..." }: {
 
 export function ErrorNotice({ message }: { message: string }) {
   return (
-    <div className="flex items-start rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-      <AlertCircle className="mr-2 mt-0.5 h-4 w-4" />
+    <div className="mf-inset flex items-start border-danger/60 bg-danger/10 p-3 text-sm text-danger" role="alert">
+      <AlertCircle className="mr-2 mt-0.5 size-4" />
       {message}
     </div>
   );
@@ -157,7 +168,7 @@ export function ErrorNotice({ message }: { message: string }) {
 export function ExportButton({ children, ...props }: React.ComponentProps<typeof Button>) {
   return (
     <Button {...props}>
-      <Download className="mr-2 h-4 w-4" />
+      <Download className="mr-2 size-4" />
       {children}
     </Button>
   );

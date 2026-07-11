@@ -70,16 +70,17 @@ export default function VideoDownloaderPage() {
   };
 
   return (
-    <ToolLayout 
+    <ToolLayout
       title="Universal Video Downloader" 
       description="Network tool for fetching media from a public URL. This is not a local-only file operation."
+      mode="network"
     >
       <div className="mb-6 flex flex-wrap gap-2">
         <StatusPill tone="server">Network tool</StatusPill>
         <StatusPill tone="warning">Only download media you own or have permission to use</StatusPill>
       </div>
       <div className="max-w-2xl mx-auto mt-4 mb-20">
-         <div className="bg-muted/30 p-8 md:p-12 rounded-3xl border text-center shadow-sm relative overflow-hidden">
+         <div className="relative overflow-hidden border bg-muted/30 p-7 text-center md:p-10">
             
             {/* Background decors */}
             <div className="absolute -top-10 -right-10 opacity-10">

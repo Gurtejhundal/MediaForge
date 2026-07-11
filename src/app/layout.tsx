@@ -1,24 +1,35 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Barlow_Condensed, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument-sans",
+  weight: "variable",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const barlowCondensed = Barlow_Condensed({
+  variable: "--font-barlow-condensed",
+  weight: ["500", "600", "700"],
   subsets: ["latin"],
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-ibm-plex-mono",
+  weight: ["400", "500", "600"],
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "MediaForge | Local media toolkit",
-  description: "Convert, resize, compress, generate QR codes, build favicons, and extract video frames locally in your browser where supported.",
+  title: "MediaForge | Local media workbench",
+  description: "Convert, resize, compress, extract, edit, and organize image, video, audio, PDF, QR, and favicon files locally in your browser where supported.",
 };
 
 export default function RootLayout({
@@ -30,9 +41,9 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${instrumentSans.variable} ${barlowCondensed.variable} ${plexMono.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col relative bg-background">
+      <body className="relative flex min-h-full flex-col antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

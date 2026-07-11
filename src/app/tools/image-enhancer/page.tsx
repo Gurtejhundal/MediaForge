@@ -119,7 +119,7 @@ export default function ImageEnhancerPage() {
             <div className="relative group">
               <div 
                 ref={containerRef}
-                className="relative aspect-auto min-h-[300px] max-h-[600px] w-full rounded-2xl overflow-hidden border bg-muted/20 cursor-col-resize select-none"
+                className="relative aspect-auto min-h-[300px] max-h-[600px] w-full overflow-hidden border bg-muted/20 cursor-col-resize select-none"
                 onMouseMove={handleMouseMove}
                 onTouchMove={handleMouseMove}
               >
@@ -150,7 +150,7 @@ export default function ImageEnhancerPage() {
                     className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_10px_rgba(0,0,0,0.5)] z-10"
                     style={{ left: `${sliderPos}%` }}
                   >
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-xl flex items-center justify-center">
+                    <div className="absolute left-1/2 top-1/2 flex h-10 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center border border-primary-foreground/40 bg-primary text-primary-foreground">
                       <Zap className="h-4 w-4 text-primary animate-pulse" />
                     </div>
                   </div>
@@ -159,8 +159,8 @@ export default function ImageEnhancerPage() {
                 {/* Labels */}
                 {enhancedUrl && (
                   <>
-                    <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded border border-white/20 uppercase tracking-widest">Detailed</div>
-                    <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded border border-white/20 uppercase tracking-widest">Original</div>
+                    <div className="absolute left-4 top-4 border border-white/20 bg-black/60 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-white">Detailed</div>
+                    <div className="absolute right-4 top-4 border border-white/20 bg-black/60 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-white">Original</div>
                   </>
                 )}
 
@@ -188,7 +188,7 @@ export default function ImageEnhancerPage() {
                       key={option.value}
                       type="button"
                       onClick={() => setTarget(option.value)}
-                      className={`rounded-xl border p-4 text-left transition-colors ${
+                      className={`rounded-sm border p-4 text-left transition-colors ${
                         target === option.value
                           ? "border-primary bg-primary/10"
                           : "border-border bg-background hover:bg-muted/40"
@@ -263,22 +263,22 @@ export default function ImageEnhancerPage() {
         )}
       </div>
 
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
+      <div className="mt-10 grid grid-cols-1 border border-border md:grid-cols-3">
+        <div className="space-y-3 p-5 md:border-r md:border-border">
           <div className="p-3 bg-primary/10 rounded-xl w-fit text-primary">
             <ShieldCheck className="h-6 w-6" />
           </div>
           <h4 className="font-bold">Color-Safe Pipeline</h4>
           <p className="text-sm text-muted-foreground">No brightness, saturation, contrast, gamma, or tone mapping filters are applied.</p>
         </div>
-        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
+        <div className="space-y-3 border-t border-border p-5 md:border-r md:border-t-0">
           <div className="p-3 bg-primary/10 rounded-xl w-fit text-primary">
             <Maximize2 className="h-6 w-6" />
           </div>
           <h4 className="font-bold">4K Long-Edge Upscale</h4>
           <p className="text-sm text-muted-foreground">Images are resized toward a 3840px long edge in the browser using high-quality canvas sampling.</p>
         </div>
-        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
+        <div className="space-y-3 border-t border-border p-5 md:border-t-0">
           <div className="p-3 bg-primary/10 rounded-xl w-fit text-primary">
             <Zap className="h-6 w-6" />
           </div>

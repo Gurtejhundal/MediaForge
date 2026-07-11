@@ -16,6 +16,12 @@ interface BeforeAfterInspectorProps {
   resultLabel?: string;
 }
 
+const VIEW_MODES = [
+  { value: "compare", label: "Compare", icon: ChevronsLeftRight },
+  { value: "output", label: "Output", icon: Sparkles },
+  { value: "original", label: "Original", icon: ImageIcon },
+] as const;
+
 export function BeforeAfterInspector({
   originalUrl,
   resultUrl,
@@ -42,36 +48,34 @@ export function BeforeAfterInspector({
   const imageClassName = fitMode === "contain" ? "object-contain" : "object-cover";
 
   return (
-    <section className="rounded-[28px] border border-border bg-white p-4 shadow-[var(--shadow-sm)] md:p-5">
-      <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+    <section className="border border-border bg-card p-3 md:p-4">
+      <div className="mb-4 flex flex-col justify-between gap-4 border-b border-border pb-4 md:flex-row md:items-end">
         <div>
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-700">Extraction preview</p>
-          <h3 className="mt-1 text-xl font-semibold tracking-tight">Aligned before/after inspection</h3>
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Proof viewer / compare</p>
+          <h3 className="mt-1 text-xl font-semibold tracking-[-0.025em] text-foreground">Aligned before-and-after inspection</h3>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {[
-            ["compare", "Compare", ChevronsLeftRight],
-            ["output", "Output", Sparkles],
-            ["original", "Original", ImageIcon],
-          ].map(([mode, label, Icon]) => (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Preview mode">
+          {VIEW_MODES.map(({ value, label, icon: Icon }) => (
             <Button
-              key={mode as string}
+              key={value}
               type="button"
               size="sm"
-              variant={viewMode === mode ? "default" : "outline"}
-              onClick={() => setViewMode(mode as ViewMode)}
-              className="h-8"
+              variant={viewMode === value ? "default" : "outline"}
+              aria-pressed={viewMode === value}
+              onClick={() => setViewMode(value)}
+              className="h-9 rounded-sm px-3"
             >
               <Icon className="mr-1.5 h-3.5 w-3.5" />
-              {label as string}
+              {label}
             </Button>
           ))}
           <Button
             type="button"
             size="sm"
             variant="outline"
+            aria-pressed={fitMode === "cover"}
             onClick={() => setFitMode((current) => (current === "contain" ? "cover" : "contain"))}
-            className="h-8"
+            className="h-9 rounded-sm px-3"
           >
             <Maximize2 className="mr-1.5 h-3.5 w-3.5" />
             {fitMode === "contain" ? "Fit" : "Fill"}
@@ -81,7 +85,7 @@ export function BeforeAfterInspector({
 
       <div
         ref={stageRef}
-        className="group relative isolate aspect-[16/10] max-h-[680px] min-h-[340px] cursor-col-resize touch-none select-none overflow-hidden rounded-[24px] border border-border bg-[linear-gradient(45deg,#f1f1ed_25%,transparent_25%),linear-gradient(-45deg,#f1f1ed_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f1f1ed_75%),linear-gradient(-45deg,transparent_75%,#f1f1ed_75%)] bg-[length:28px_28px] bg-[position:0_0,0_14px,14px_-14px,-14px_0px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+        className="relative isolate aspect-[16/10] max-h-[680px] min-h-[260px] cursor-col-resize touch-none select-none overflow-hidden rounded-md border border-border bg-[linear-gradient(45deg,#e9e5da_25%,transparent_25%),linear-gradient(-45deg,#e9e5da_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e9e5da_75%),linear-gradient(-45deg,transparent_75%,#e9e5da_75%)] bg-[length:28px_28px] bg-[position:0_0,0_14px,14px_-14px,-14px_0px] ring-1 ring-foreground/5 sm:min-h-[340px]"
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           updateSlider(event.clientX);
@@ -102,11 +106,11 @@ export function BeforeAfterInspector({
         {viewMode === "compare" && (
           <>
             <div
-              className="absolute bottom-0 top-0 z-20 w-px bg-white shadow-[0_0_0_1px_rgba(20,20,24,0.18),0_0_22px_rgba(111,44,255,0.35)]"
+              className="absolute bottom-0 top-0 z-20 w-0.5 bg-primary"
               style={{ left: `${sliderPosition}%` }}
             />
             <div
-              className="absolute top-1/2 z-30 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-white text-violet-700 shadow-[0_16px_42px_rgba(20,20,24,0.18)] transition-transform duration-200 group-hover:scale-105"
+              className="absolute top-1/2 z-30 flex h-12 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm border border-primary-foreground/40 bg-primary text-primary-foreground shadow-sm"
               style={{ left: `${sliderPosition}%` }}
               aria-hidden="true"
             >
@@ -115,18 +119,18 @@ export function BeforeAfterInspector({
           </>
         )}
 
-        <div className="pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-border bg-white/92 px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground shadow-[var(--shadow-sm)]">
+        <div className="pointer-events-none absolute left-3 top-3 z-30 max-w-[44%] truncate rounded-sm border border-border bg-card/95 px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground">
           {viewMode === "output" ? resultLabel : originalLabel}
         </div>
-        <div className="pointer-events-none absolute right-4 top-4 z-30 rounded-full border border-teal-200 bg-teal-50/95 px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-800 shadow-[var(--shadow-sm)]">
+        <div className="pointer-events-none absolute right-3 top-3 z-30 max-w-[44%] truncate rounded-sm border border-primary bg-primary px-2.5 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground">
           {viewMode === "original" ? originalLabel : resultLabel}
         </div>
       </div>
 
       {viewMode === "compare" && (
-        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-          <label className="flex items-center gap-3 rounded-2xl border border-border bg-[#f8f8f5] px-4 py-3">
-            <ScanLine className="h-4 w-4 text-violet-700" />
+        <div className="mt-4 grid gap-3 border-t border-border pt-4 md:grid-cols-[1fr_auto] md:items-center">
+          <label className="flex items-center gap-3 rounded-sm border border-border bg-muted/35 px-3 py-3">
+            <ScanLine className="h-4 w-4 shrink-0 text-primary" />
             <span className="sr-only">Comparison split</span>
             <input
               type="range"
@@ -134,12 +138,12 @@ export function BeforeAfterInspector({
               max={100}
               value={sliderPosition}
               onChange={(event) => setSliderPosition(Number(event.target.value))}
-              className="h-2 w-full accent-violet-700"
+              className="h-2 w-full cursor-ew-resize accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/45"
               aria-label="Comparison split"
             />
-            <span className="min-w-12 text-right font-mono text-xs font-semibold text-muted-foreground">{Math.round(sliderPosition)}%</span>
+            <span className="min-w-12 text-right font-mono text-xs font-semibold tabular-nums text-foreground">{Math.round(sliderPosition)}%</span>
           </label>
-          <p className="text-xs leading-5 text-muted-foreground">Both layers use the same frame; only the reveal mask moves.</p>
+          <p className="max-w-56 text-xs leading-5 text-muted-foreground">Both layers share one frame; only the proof line moves.</p>
         </div>
       )}
     </section>

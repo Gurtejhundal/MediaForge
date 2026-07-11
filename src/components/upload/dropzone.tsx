@@ -1,11 +1,19 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useDropzone, FileRejection } from "react-dropzone";
-import { ArrowRight, Cpu, Image as ImageIcon, Link as LinkIcon, Loader2, UploadCloud } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { useDropzone, type FileRejection } from "react-dropzone";
+import {
+  ArrowRight,
+  Cpu,
+  FileImage,
+  Film,
+  Link as LinkIcon,
+  Loader2,
+  UploadCloud,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface DropzoneProps {
@@ -15,11 +23,24 @@ interface DropzoneProps {
   processingMode?: "local" | "server";
 }
 
-export function Dropzone({ onFileAccepted, accept, displayMode = "image", processingMode = "local" }: DropzoneProps) {
-  const [isHovered, setIsHovered] = useState(false);
+export function Dropzone({
+  onFileAccepted,
+  accept,
+  displayMode = "image",
+  processingMode = "local",
+}: DropzoneProps) {
   const [urlInput, setUrlInput] = useState("");
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const displayLabel = displayMode === "image" ? "an image" : "a video";
+  const DisplayIcon = displayMode === "image" ? FileImage : Film;
+  const formatLabels = useMemo(() => {
+    const extensions = Object.values(accept)
+      .flat()
+      .map((extension) => extension.replace(/^\./, "").toUpperCase())
+      .filter(Boolean);
+    const mimeFallbacks = Object.keys(accept).map((mime) => mime.split("/").pop()?.toUpperCase() ?? mime);
+    return Array.from(new Set([...extensions, ...mimeFallbacks])).slice(0, 7);
+  }, [accept]);
 
   const onDrop = useCallback((acceptedFiles: File[], fileRejections: FileRejection[]) => {
     if (acceptedFiles.length > 0) {
@@ -33,7 +54,7 @@ export function Dropzone({ onFileAccepted, accept, displayMode = "image", proces
     if (!urlInput.trim()) return;
 
     try {
-      new URL(urlInput); // basic validation
+      new URL(urlInput);
     } catch {
       toast.error("Please enter a valid URL");
       return;
@@ -54,9 +75,7 @@ export function Dropzone({ onFileAccepted, accept, displayMode = "image", proces
 
       const contentType = res.headers.get("content-type") || "application/octet-stream";
       const blob = await res.blob();
-      
-      // Determine extension based on URL or content type ideally, but default randomly
-      const filename = urlInput.split('/').pop()?.split('?')[0] || `imported-file.${contentType.split('/')[1] || 'bin'}`;
+      const filename = urlInput.split("/").pop()?.split("?")[0] || `imported-file.${contentType.split("/")[1] || "bin"}`;
       const file = new File([blob], filename, { type: contentType });
 
       onFileAccepted(file);
@@ -75,135 +94,93 @@ export function Dropzone({ onFileAccepted, accept, displayMode = "image", proces
   });
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="w-full space-y-4">
       <div
         {...getRootProps()}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          "relative w-full cursor-pointer overflow-hidden rounded-[22px] border border-dashed transition-all duration-200 ease-in-out",
-          "grid gap-6 p-6 md:grid-cols-[1fr_280px] md:p-8",
-          isDragActive && !isDragReject ? "border-violet-400 bg-violet-50" : "border-border-strong bg-[#f8f8f5] hover:border-violet-300 hover:bg-white",
-          isDragReject && "border-destructive bg-destructive/5"
+          "mf-inset relative grid w-full cursor-pointer overflow-hidden border-2 border-dashed p-5 transition-[background-color,border-color,box-shadow] md:grid-cols-[minmax(0,1fr)_280px] md:p-7",
+          isDragActive && !isDragReject
+            ? "border-primary bg-primary/10"
+            : "border-border-strong bg-[#c4beae] hover:border-primary hover:bg-[#d1cbbb]",
+          isDragReject && "border-danger bg-danger/10",
         )}
       >
         <input {...getInputProps()} />
 
-        <div>
-          <div className={cn(
-            "mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border transition-transform duration-300",
-            isDragActive ? "scale-105 border-violet-200 bg-white text-violet-700" : "border-border bg-white text-violet-700",
-            isHovered && !isDragActive && "scale-105"
-          )}>
-            <UploadCloud className="h-6 w-6" />
+        <div className="relative p-1 md:pr-8">
+          <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-primary">Input bay / local file</p>
+          <div className="mf-key mt-5 flex size-12 items-center justify-center text-primary">
+            <UploadCloud className="size-6" />
           </div>
 
-          <h3 className="text-2xl font-semibold tracking-tight">
-            {isDragActive
-              ? isDragReject
-                ? "File type not supported"
-                : `Drop ${displayLabel} here`
-              : `Drop ${displayLabel} here`}
+          <h3 className="mf-display mt-5 text-4xl font-semibold uppercase leading-none tracking-[-0.02em] sm:text-5xl">
+            {isDragReject ? "File type not supported" : isDragActive ? `Drop ${displayLabel} now` : `Drop ${displayLabel} here`}
           </h3>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
+          <p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground">
             {processingMode === "local"
-              ? "Processed locally in your browser. No app-side file limit; your device and browser decide what can run."
-              : "Server-assisted processing. This file may be uploaded for processing."}
+              ? "The selected file stays in this browser session. Device memory, CPU, and browser support set the practical limit."
+              : "This is a server-assisted path. The selected file may leave this browser for processing."}
           </p>
 
-          <div className="mt-6 flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {displayMode === "image" ? (
-              <>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <ImageIcon className="mr-1 h-3 w-3" /> PNG
-                </span>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <ImageIcon className="mr-1 h-3 w-3" /> JPG
-                </span>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <ImageIcon className="mr-1 h-3 w-3" /> WEBP
-                </span>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <ImageIcon className="mr-1 h-3 w-3" /> AVIF
-                </span>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <ImageIcon className="mr-1 h-3 w-3" /> HEIC
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <UploadCloud className="mr-1 h-3 w-3" /> MP4
-                </span>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <UploadCloud className="mr-1 h-3 w-3" /> WEBM
-                </span>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <UploadCloud className="mr-1 h-3 w-3" /> MOV
-                </span>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <UploadCloud className="mr-1 h-3 w-3" /> MKV
-                </span>
-                <span className="flex items-center rounded-full border bg-white px-2.5 py-1 font-mono">
-                  <UploadCloud className="mr-1 h-3 w-3" /> AVI
-                </span>
-              </>
-            )}
+          <div className="mt-6 flex flex-wrap gap-1.5" aria-label="Accepted input formats">
+            {formatLabels.map((format) => (
+              <span key={format} className="mf-rack-label inline-flex items-center px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-[0.12em]">
+                <DisplayIcon className="mr-1.5 size-3" />
+                {format}
+              </span>
+            ))}
           </div>
         </div>
 
-        <div className="rounded-[18px] border border-border bg-white p-4">
-          <p className="mb-4 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">File path</p>
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Selected file</span>
-              <UploadCloud className="h-4 w-4 text-violet-700" />
-            </div>
-            <div className="flex items-center justify-center text-muted-foreground">
-              <ArrowRight className="h-4 w-4" />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Browser memory</span>
-              <Cpu className="h-4 w-4 text-violet-700" />
-            </div>
-            <div className="flex items-center justify-center text-muted-foreground">
-              <ArrowRight className="h-4 w-4" />
-            </div>
-            <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-teal-800">
-              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em]">Blob export</p>
-              <p className="mt-1 text-xs">Download generated in this tab.</p>
-            </div>
-          </div>
-        </div>
+        <aside className="mf-screen mt-6 p-4 md:mt-0">
+          <div className="flex items-center justify-between"><p className="font-mono text-[8px] font-semibold uppercase tracking-[0.2em] text-[#7f8e74]">Signal route</p><span className="mf-lamp" data-tone={processingMode === "local" ? "green" : "amber"} /></div>
+          <ol className="mt-5 space-y-3 text-sm text-[#aab69d]">
+            <li className="flex items-center justify-between gap-3 border-b border-background/20 pb-3">
+              <span>Selected file</span>
+              <UploadCloud className="size-4 text-[#e3a438]" />
+            </li>
+            <li className="flex items-center justify-center text-[#66725f]" aria-hidden="true">
+              <ArrowRight className="size-4 rotate-90" />
+            </li>
+            <li className="flex items-center justify-between gap-3 border-b border-background/20 pb-3">
+              <span>Browser memory</span>
+              <Cpu className="size-4 text-[#e3a438]" />
+            </li>
+            <li className="flex items-center justify-center text-[#66725f]" aria-hidden="true">
+              <ArrowRight className="size-4 rotate-90" />
+            </li>
+            <li className="border border-background/25 p-3">
+              <p className="font-mono text-[8px] font-semibold uppercase tracking-[0.15em] text-[#a9bd96]">
+                {processingMode === "local" ? "Local Blob export" : "Server response"}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[#8e9b83]">Download is prepared for this browser tab.</p>
+            </li>
+          </ol>
+        </aside>
       </div>
 
       {processingMode === "server" && (
-        <div className="flex flex-col items-center rounded-[18px] border bg-white p-5">
-          <h3 className="mb-4 font-semibold flex items-center self-start text-muted-foreground">
-            <LinkIcon className="h-4 w-4 mr-2" /> Or Import from URL
+        <div className="mf-faceplate p-4 md:p-5">
+          <h3 className="mb-4 flex items-center font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <LinkIcon className="mr-2 size-4 text-primary" /> Import from URL
           </h3>
-          <div className="flex w-full gap-3">
-              <Input
-                placeholder={`e.g. https://example.com/media.${displayMode === 'image' ? 'png' : 'mp4'}`}
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                disabled={isFetchingUrl}
-                className="bg-background flex-1"
-                onKeyDown={(e) => {
-                  if(e.key === 'Enter') {
-                    e.preventDefault();
-                    handleUrlImport();
-                  }
-                }}
-              />
-              <Button
-                variant="default"
-                disabled={!urlInput.trim() || isFetchingUrl}
-                onClick={handleUrlImport}
-                className="w-28"
-              >
-                {isFetchingUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch File"}
-              </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Input
+              placeholder={`https://example.com/media.${displayMode === "image" ? "png" : "mp4"}`}
+              value={urlInput}
+              onChange={(event) => setUrlInput(event.target.value)}
+              disabled={isFetchingUrl}
+              className="flex-1 bg-card"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleUrlImport();
+                }
+              }}
+            />
+            <Button disabled={!urlInput.trim() || isFetchingUrl} onClick={handleUrlImport} className="sm:w-32">
+              {isFetchingUrl ? <Loader2 className="size-4 animate-spin" /> : "Fetch file"}
+            </Button>
           </div>
         </div>
       )}

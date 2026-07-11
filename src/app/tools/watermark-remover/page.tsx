@@ -223,12 +223,12 @@ export default function WatermarkRemoverPage() {
                   ref={videoRef}
                   src={previewUrl!}
                   onLoadedMetadata={onVideoLoad}
-                  className="max-w-full max-h-full pointer-events-none select-none"
+                  className="pointer-events-none h-full w-full select-none object-contain"
                 />
                 
                 {/* Selection Box Overlay */}
                 <div 
-                  className="absolute border-2 border-primary bg-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.5)] pointer-events-none transition-[width,height,top,left] duration-75"
+                  className="pointer-events-none absolute border-2 border-primary bg-primary/20 transition-[width,height,top,left] duration-75"
                   style={{
                     left: selection.x,
                     top: selection.y,
@@ -236,7 +236,7 @@ export default function WatermarkRemoverPage() {
                     height: selection.h,
                   }}
                 >
-                   <div className="absolute -top-6 left-0 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded flex items-center">
+                   <div className="absolute -top-6 left-0 flex items-center bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">
                      <Eraser className="h-3 w-3 mr-1" /> Watermark Area
                    </div>
                 </div>
@@ -261,7 +261,7 @@ export default function WatermarkRemoverPage() {
               {!isProcessing ? (
                 <Button 
                   size="lg" 
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/20 h-12"
+                  className="h-12 w-full"
                   onClick={handleRemoveWatermark}
                   disabled={selection.w < 5 || selection.h < 5}
                 >
@@ -272,16 +272,16 @@ export default function WatermarkRemoverPage() {
                 <div className="space-y-4">
                     <div className="flex justify-between items-center text-sm mb-1">
                       <span className="text-muted-foreground flex items-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin text-indigo-500" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
                         {progress.split(':')[0]}
                       </span>
-                      <span className="font-bold text-indigo-500">
+                      <span className="font-bold text-primary">
                         {progress.includes('%') ? progress.split(':')[1].trim() : "0%"}
                       </span>
                     </div>
-                    <div className="h-3 w-full bg-muted rounded-full overflow-hidden border">
+                    <div className="h-3 w-full overflow-hidden border bg-muted">
                       <div 
-                        className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 transition-all duration-500 ease-out shadow-[0_0_15px_rgba(79,70,229,0.5)]"
+                        className="h-full bg-primary transition-all duration-500 ease-out"
                         style={{ width: progress.includes('%') ? progress.split(':')[1].trim() : "0%" }}
                       />
                     </div>
@@ -295,23 +295,23 @@ export default function WatermarkRemoverPage() {
         )}
       </div>
 
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
-          <div className="p-3 bg-indigo-500/10 rounded-xl w-fit text-indigo-500">
+      <div className="mt-10 grid grid-cols-1 border border-border md:grid-cols-3">
+        <div className="space-y-3 p-5 md:border-r md:border-border">
+          <div className="w-fit border border-border bg-muted p-3 text-primary">
             <MousePointer2 className="h-6 w-6" />
           </div>
           <h4 className="font-bold text-foreground">Select precisely</h4>
           <p className="text-sm text-muted-foreground">For best results, select an area slightly larger than the watermark itself.</p>
         </div>
-        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
-          <div className="p-3 bg-purple-500/10 rounded-xl w-fit text-purple-500">
+        <div className="space-y-3 border-t border-border p-5 md:border-r md:border-t-0">
+          <div className="w-fit border border-border bg-muted p-3 text-primary">
             <CheckCircle2 className="h-6 w-6" />
           </div>
           <h4 className="font-bold text-foreground">Local canvas cleanup</h4>
           <p className="text-sm text-muted-foreground">The browser softens the selected area frame by frame without uploading the video.</p>
         </div>
-        <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-3">
-          <div className="p-3 bg-indigo-500/10 rounded-xl w-fit text-indigo-500">
+        <div className="space-y-3 border-t border-border p-5 md:border-t-0">
+          <div className="w-fit border border-border bg-muted p-3 text-primary">
             <Film className="h-6 w-6" />
           </div>
           <h4 className="font-bold text-foreground">Local WebM export</h4>

@@ -94,7 +94,7 @@ export default function VideoUpscalerPage() {
             processingMode="local"
           />
         ) : (
-          <div className="relative flex flex-col p-4 border rounded-xl bg-card overflow-hidden">
+          <div className="relative flex flex-col overflow-hidden border bg-card p-4">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center min-w-0">
                 <Film className="h-5 w-5 mr-3 text-primary" />
@@ -108,7 +108,7 @@ export default function VideoUpscalerPage() {
               </Button>
             </div>
 
-            <div className="rounded-lg overflow-hidden bg-black/10 border aspect-video flex items-center justify-center">
+            <div className="flex aspect-video items-center justify-center overflow-hidden border bg-black/10">
               <video
                 src={previewUrl!}
                 controls
@@ -119,9 +119,9 @@ export default function VideoUpscalerPage() {
         )}
 
         {file && (
-          <div className="bg-muted/30 p-6 rounded-xl border">
+          <div className="border bg-muted/30 p-5 md:p-6">
             <h3 className="mb-6 font-semibold text-lg flex items-center">
-              <MonitorUp className="mr-2 h-5 w-5 text-cyan-500" /> Detail Upscale Settings
+              <MonitorUp className="mr-2 h-5 w-5 text-primary" /> Detail Upscale Settings
             </h3>
 
             <div className="space-y-6">
@@ -133,25 +133,25 @@ export default function VideoUpscalerPage() {
                     <button
                       key={option.value}
                       onClick={() => setResolution(option.value)}
-                      className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer ${
+                      className={`relative flex cursor-pointer flex-col items-center gap-2 rounded-sm border-2 p-4 transition-colors ${
                         resolution === option.value
-                          ? "border-cyan-500 bg-cyan-500/10 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+                          ? "border-primary bg-primary/10"
                           : "border-border/50 bg-background/40 hover:border-border hover:bg-muted/30"
                       }`}
                     >
-                      <div className={`p-2 rounded-lg ${
-                        resolution === option.value ? "bg-cyan-500/20 text-cyan-400" : "bg-muted text-muted-foreground"
+                      <div className={`rounded-sm p-2 ${
+                        resolution === option.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                       }`}>
                         {option.icon}
                       </div>
                       <span className={`text-lg font-bold ${
-                        resolution === option.value ? "text-cyan-400" : "text-foreground"
+                        resolution === option.value ? "text-primary" : "text-foreground"
                       }`}>
                         {option.label}
                       </span>
                       <span className="text-xs text-muted-foreground">{option.detail}</span>
                       {option.value === "2160p" && (
-                        <span className="absolute -top-2 -right-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
+                        <span className="absolute -right-2 -top-2 border border-primary bg-primary px-2 py-0.5 font-mono text-[9px] font-bold text-primary-foreground">
                           BEST
                         </span>
                       )}
@@ -188,9 +188,8 @@ export default function VideoUpscalerPage() {
                   <Button
                     size="lg"
                     onClick={handleUpscale}
-                    className="w-full text-md h-12 relative overflow-hidden group bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border-0"
+                    className="h-12 w-full text-base"
                   >
-                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] animate-[shimmer_2s_infinite] group-hover:block transition-all" />
                     <MonitorUp className="mr-2 h-5 w-5" />
                     Create {resolution} Detail Upscale
                   </Button>
@@ -198,16 +197,16 @@ export default function VideoUpscalerPage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center text-sm mb-1">
                       <span className="text-muted-foreground flex items-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin text-cyan-500" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
                         {progress.split(':')[0]}
                       </span>
-                      <span className="font-bold text-cyan-500">
+                      <span className="font-bold text-primary">
                         {progress.includes('%') ? progress.split(':')[1].trim() : "0%"}
                       </span>
                     </div>
-                    <div className="h-3 w-full bg-muted rounded-full overflow-hidden border">
+                    <div className="h-3 w-full overflow-hidden border bg-muted">
                       <div 
-                        className="h-full bg-gradient-to-r from-cyan-600 to-blue-600 transition-all duration-500 ease-out shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+                        className="h-full bg-primary transition-all duration-500 ease-out"
                         style={{ width: progress.includes('%') ? progress.split(':')[1].trim() : "0%" }}
                       />
                     </div>

@@ -2,7 +2,7 @@
 
 import type { ChangeEvent } from "react";
 import { useState } from "react";
-import { ArrowDownUp, Download, FileArchive, FilePlus2, Hash, Loader2, RotateCw, Stamp, Workflow } from "lucide-react";
+import { ArrowDownUp, Download, FileArchive, FilePlus2, Hash, Loader2, Minimize2, PenLine, RotateCw, ScanLine, Scissors, Stamp, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { ToolLayout } from "@/components/tool-layout";
 import { Button } from "@/components/ui/button";
@@ -18,16 +18,23 @@ type ModeOption = {
   value: PdfMode;
   label: string;
   description: string;
+  group: "Organize" | "Optimize" | "Edit" | "Convert";
 };
 
 const MODES: ModeOption[] = [
-  { value: "merge", label: "Merge", description: "Combine PDFs in file order" },
-  { value: "split", label: "Split", description: "Extract page ranges or split every page" },
-  { value: "rotate", label: "Rotate", description: "Rotate selected pages" },
-  { value: "watermark", label: "Watermark", description: "Stamp text across pages" },
-  { value: "pageNumbers", label: "Page Numbers", description: "Add footer page numbers" },
-  { value: "organize", label: "Organize", description: "Reorder pages by number" },
-  { value: "jpgToPdf", label: "Images to PDF", description: "Create one PDF from images" },
+  { value: "merge", label: "Merge PDF", description: "Combine PDFs in file order", group: "Organize" },
+  { value: "split", label: "Split PDF", description: "Extract ranges or split every page", group: "Organize" },
+  { value: "extractPages", label: "Extract pages", description: "Create a new PDF from selected pages", group: "Organize" },
+  { value: "removePages", label: "Remove pages", description: "Delete selected pages and export the rest", group: "Organize" },
+  { value: "organize", label: "Organize PDF", description: "Reorder pages by number", group: "Organize" },
+  { value: "compress", label: "Compress PDF", description: "Rewrite with object streams where possible", group: "Optimize" },
+  { value: "repair", label: "Repair PDF", description: "Reload and rewrite loadable PDFs", group: "Optimize" },
+  { value: "rotate", label: "Rotate PDF", description: "Rotate selected pages", group: "Edit" },
+  { value: "watermark", label: "Watermark", description: "Stamp text across pages", group: "Edit" },
+  { value: "pageNumbers", label: "Page numbers", description: "Add footer page numbers", group: "Edit" },
+  { value: "crop", label: "Crop PDF", description: "Set crop margins on selected pages", group: "Edit" },
+  { value: "sign", label: "Sign PDF", description: "Add a visible signature line", group: "Edit" },
+  { value: "jpgToPdf", label: "Scan / JPG to PDF", description: "Create one PDF from images", group: "Convert" },
 ];
 
 const POSITIONS: WatermarkPosition[] = ["center", "bottom-right", "top-left", "top-right", "bottom-left"];
@@ -55,6 +62,8 @@ export default function PdfOrganizerPage() {
   const [watermarkText, setWatermarkText] = useState("CONFIDENTIAL");
   const [watermarkPosition, setWatermarkPosition] = useState<WatermarkPosition>("center");
   const [opacity, setOpacity] = useState<number[]>([25]);
+  const [cropMargin, setCropMargin] = useState<number[]>([36]);
+  const [signatureText, setSignatureText] = useState("Gurtej Bir Singh");
 
   const selectedMode = MODES.find((option) => option.value === mode) || MODES[0];
 
@@ -103,6 +112,8 @@ export default function PdfOrganizerPage() {
         watermarkText,
         position: watermarkPosition,
         opacity: opacity[0] / 100,
+        cropMargin: cropMargin[0],
+        signatureText,
       });
       downloadBlob(result.blob, result.filename, { kind: "document" });
       toast.success(`${selectedMode.label} output generated locally`);
@@ -119,19 +130,26 @@ export default function PdfOrganizerPage() {
       description="Merge, split, rotate, watermark, number, reorder, and create PDFs from images locally in this browser."
     >
       <div className="space-y-8">
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {MODES.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleModeChange(option.value)}
-              className={`rounded-xl border p-4 text-left transition-colors ${
-                mode === option.value ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted/40"
-              }`}
-            >
-              <span className="block text-sm font-semibold">{option.label}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">{option.description}</span>
-            </button>
+        <div className="grid gap-4 xl:grid-cols-4">
+          {(["Organize", "Optimize", "Edit", "Convert"] as const).map((group) => (
+            <section key={group} className="border bg-muted/20 p-3">
+              <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{group}</h2>
+              <div className="space-y-2">
+                {MODES.filter((option) => option.group === group).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleModeChange(option.value)}
+                    className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                      mode === option.value ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted/40"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">{option.label}</span>
+                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">{option.description}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
 
@@ -160,7 +178,7 @@ export default function PdfOrganizerPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {(mode === "split" || mode === "rotate") && (
+          {(mode === "split" || mode === "extractPages" || mode === "removePages" || mode === "rotate" || mode === "crop" || mode === "sign") && (
             <section className="rounded-xl border bg-muted/20 p-5">
               <h3 className="mb-4 flex items-center font-semibold"><FileArchive className="mr-2 h-4 w-4" /> Page Selection</h3>
               <Label htmlFor="pages">Pages</Label>
@@ -168,7 +186,7 @@ export default function PdfOrganizerPage() {
                 id="pages"
                 value={pages}
                 onChange={(event) => setPages(event.target.value)}
-                placeholder="Example: 1-3,5,8"
+                placeholder={mode === "removePages" ? "Pages to remove: 2,4-6" : "Example: 1-3,5,8"}
                 disabled={mode === "split" && splitEveryPage}
               />
               {mode === "split" && (
@@ -177,6 +195,18 @@ export default function PdfOrganizerPage() {
                   Split every page into a ZIP
                 </label>
               )}
+            </section>
+          )}
+
+          {(mode === "compress" || mode === "repair") && (
+            <section className="rounded-xl border bg-muted/20 p-5 md:col-span-2">
+              <h3 className="mb-2 flex items-center font-semibold">
+                {mode === "compress" ? <Minimize2 className="mr-2 h-4 w-4" /> : <ScanLine className="mr-2 h-4 w-4" />}
+                {mode === "compress" ? "Compression rewrite" : "Repair rewrite"}
+              </h3>
+              <p className="text-sm leading-6 text-muted-foreground">
+                This local pass rewrites a browser-loadable PDF with object streams. It can shrink structure-heavy PDFs, but scanned/image-heavy PDFs may not become smaller.
+              </p>
             </section>
           )}
 
@@ -239,6 +269,26 @@ export default function PdfOrganizerPage() {
             <section className="rounded-xl border bg-muted/20 p-5 md:col-span-2">
               <h3 className="mb-2 flex items-center font-semibold"><Hash className="mr-2 h-4 w-4" /> Page Numbers</h3>
               <p className="text-sm text-muted-foreground">Adds centered footer page numbers to every page.</p>
+            </section>
+          )}
+
+          {mode === "crop" && (
+            <section className="rounded-xl border bg-muted/20 p-5">
+              <h3 className="mb-4 flex items-center font-semibold"><Scissors className="mr-2 h-4 w-4" /> Crop margin</h3>
+              <div className="mb-3 flex items-center justify-between">
+                <Label>Margin</Label>
+                <span className="rounded bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">{cropMargin[0]} pt</span>
+              </div>
+              <Slider value={cropMargin} onValueChange={(value) => setCropMargin(value as number[])} min={0} max={144} step={1} />
+            </section>
+          )}
+
+          {mode === "sign" && (
+            <section className="rounded-xl border bg-muted/20 p-5">
+              <h3 className="mb-4 flex items-center font-semibold"><PenLine className="mr-2 h-4 w-4" /> Visible signature</h3>
+              <Label htmlFor="signature-text">Signature text</Label>
+              <Input id="signature-text" value={signatureText} onChange={(event) => setSignatureText(event.target.value)} />
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Adds a visible signature line. It is not a cryptographic digital signature.</p>
             </section>
           )}
         </div>

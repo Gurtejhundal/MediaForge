@@ -106,7 +106,7 @@ export default function VideoToImagePage() {
             processingMode="local"
           />
         ) : (
-          <div className="rounded-2xl border bg-card p-4">
+          <div className="border bg-card p-4">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center">
                 <Film className="mr-3 h-5 w-5 text-primary" />
@@ -119,15 +119,15 @@ export default function VideoToImagePage() {
                 Remove
               </Button>
             </div>
-            <video src={previewUrl!} controls className="aspect-video max-h-[520px] w-full rounded-xl border bg-black object-contain" />
+            <video src={previewUrl!} controls className="aspect-video max-h-[520px] w-full border bg-black object-contain" />
           </div>
         )}
 
         {file && (
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-            <section className="rounded-2xl border bg-card p-5">
+            <section className="border bg-card p-5">
               <div className="mb-5 flex items-center gap-3">
-                <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                <div className="border border-border bg-primary/10 p-3 text-primary">
                   <Images className="h-5 w-5" />
                 </div>
                 <div>
@@ -171,16 +171,16 @@ export default function VideoToImagePage() {
                     <span>{progressLabel || "Working locally"}</span>
                     <span>{progress}%</span>
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full border bg-muted">
-                    <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+                  <div className="h-3 overflow-hidden border bg-muted">
+                    <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
                   </div>
                 </div>
               )}
             </section>
 
-            <section className="rounded-2xl border bg-card p-5">
+            <section className="border bg-card p-5">
               <h2 className="mb-4 text-sm font-semibold">Output</h2>
-              <div className="rounded-xl border border-dashed bg-muted/30 p-4">
+              <div className="border border-dashed bg-muted/30 p-4">
                 <p className="text-sm font-medium">{zipBlob ? zipName : "ZIP appears here after extraction"}</p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {frameCount ? `${frameCount} frames packaged locally.` : "No upload route is used for frame extraction."}

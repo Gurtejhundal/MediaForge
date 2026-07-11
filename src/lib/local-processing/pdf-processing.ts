@@ -2,7 +2,20 @@ import JSZip from "jszip";
 import { degrees, PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { safeBaseName } from "./blob-utils";
 
-export type PdfMode = "merge" | "split" | "rotate" | "watermark" | "pageNumbers" | "organize" | "jpgToPdf";
+export type PdfMode =
+  | "merge"
+  | "split"
+  | "extractPages"
+  | "removePages"
+  | "rotate"
+  | "watermark"
+  | "pageNumbers"
+  | "organize"
+  | "jpgToPdf"
+  | "compress"
+  | "repair"
+  | "crop"
+  | "sign";
 export type WatermarkPosition = "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
 export interface PdfProcessOptions {
@@ -14,6 +27,8 @@ export interface PdfProcessOptions {
   watermarkText?: string;
   position?: WatermarkPosition;
   opacity?: number;
+  cropMargin?: number;
+  signatureText?: string;
 }
 
 export interface PdfProcessResult {
@@ -163,6 +178,21 @@ export async function processPdfLocally(files: File[], options: PdfProcessOption
     return { blob: pdfBlob(await outputPdf.save()), filename: `${baseName}-split.pdf` };
   }
 
+  if (options.mode === "extractPages") {
+    const copiedPages = await outputPdf.copyPages(sourcePdf, parsePages(options.pages, totalPages));
+    copiedPages.forEach((page) => outputPdf.addPage(page));
+    return { blob: pdfBlob(await outputPdf.save({ useObjectStreams: true })), filename: `${baseName}-extracted.pdf` };
+  }
+
+  if (options.mode === "removePages") {
+    const removedPages = new Set(parsePages(options.pages, totalPages));
+    const keepPages = sourcePdf.getPageIndices().filter((index) => !removedPages.has(index));
+    if (keepPages.length === 0) throw new Error("Remove pages would leave an empty PDF");
+    const copiedPages = await outputPdf.copyPages(sourcePdf, keepPages);
+    copiedPages.forEach((page) => outputPdf.addPage(page));
+    return { blob: pdfBlob(await outputPdf.save({ useObjectStreams: true })), filename: `${baseName}-pages-removed.pdf` };
+  }
+
   if (options.mode === "organize") {
     const copiedPages = await outputPdf.copyPages(sourcePdf, parseOrder(options.pageOrder, totalPages));
     copiedPages.forEach((page) => outputPdf.addPage(page));
@@ -171,6 +201,13 @@ export async function processPdfLocally(files: File[], options: PdfProcessOption
 
   const copiedPages = await outputPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
   copiedPages.forEach((page) => outputPdf.addPage(page));
+
+  if (options.mode === "compress" || options.mode === "repair") {
+    return {
+      blob: pdfBlob(await outputPdf.save({ useObjectStreams: true })),
+      filename: `${baseName}-${options.mode === "compress" ? "compressed" : "repaired"}.pdf`,
+    };
+  }
 
   if (options.mode === "rotate") {
     const angle = Number.parseInt(options.angle || "90", 10);
@@ -227,6 +264,50 @@ export async function processPdfLocally(files: File[], options: PdfProcessOption
     });
 
     return { blob: pdfBlob(await outputPdf.save()), filename: `${baseName}-numbered.pdf` };
+  }
+
+  if (options.mode === "crop") {
+    const margin = Math.max(0, Math.min(240, options.cropMargin ?? 36));
+    const pageIndices = new Set(parsePages(options.pages, totalPages));
+
+    outputPdf.getPages().forEach((page, index) => {
+      if (!pageIndices.has(index)) return;
+      const { width, height } = page.getSize();
+      if (margin * 2 >= width || margin * 2 >= height) {
+        throw new Error("Crop margin is too large for this page size");
+      }
+      page.setCropBox(margin, margin, width - margin * 2, height - margin * 2);
+    });
+
+    return { blob: pdfBlob(await outputPdf.save({ useObjectStreams: true })), filename: `${baseName}-cropped.pdf` };
+  }
+
+  if (options.mode === "sign") {
+    const text = (options.signatureText || "Signed").trim();
+    const font = await outputPdf.embedFont(StandardFonts.HelveticaBoldOblique);
+    const pageIndices = new Set(parsePages(options.pages, totalPages));
+
+    outputPdf.getPages().forEach((page, index) => {
+      if (!pageIndices.has(index)) return;
+      const { width } = page.getSize();
+      const fontSize = 18;
+      const textWidth = font.widthOfTextAtSize(text, fontSize);
+      page.drawText(text, {
+        x: width - textWidth - 42,
+        y: 42,
+        size: fontSize,
+        font,
+        color: rgb(0.16, 0.12, 0.36),
+      });
+      page.drawLine({
+        start: { x: width - textWidth - 42, y: 36 },
+        end: { x: width - 42, y: 36 },
+        thickness: 1,
+        color: rgb(0.16, 0.12, 0.36),
+      });
+    });
+
+    return { blob: pdfBlob(await outputPdf.save({ useObjectStreams: true })), filename: `${baseName}-signed.pdf` };
   }
 
   throw new Error("Unsupported PDF operation");

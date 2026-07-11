@@ -104,6 +104,7 @@ export default function BgRemoverPage() {
     <ToolLayout
       title="Background Remover"
       description="Remove backgrounds locally in the browser with an on-device segmentation model."
+      mode="model-local"
     >
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
@@ -141,13 +142,13 @@ export default function BgRemoverPage() {
 
         {file && !showComparison && (
           <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-            <section className="rounded-[24px] border border-border bg-white p-5 shadow-[var(--shadow-sm)]">
+            <section className="border border-border bg-card p-5">
               <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border bg-[#f8f8f5] text-violet-700">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-border bg-muted text-primary">
                   <Eraser className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-700">Extraction pass</p>
+                  <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Extraction pass</p>
                   <h3 className="mt-1 text-xl font-semibold tracking-tight">Remove the background locally</h3>
                   <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
                     The browser downloads and caches the segmentation model on first use. Your selected image is processed in this tab and exported as a transparent PNG.
@@ -156,27 +157,27 @@ export default function BgRemoverPage() {
               </div>
 
               {isProcessing && (
-                <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+                <div className="mt-5 border border-primary/40 bg-primary/10 p-4">
                   <div className="flex items-center justify-between gap-4">
-                    <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-800">Local model</p>
-                    <span className="font-mono text-xs font-semibold text-violet-900">{modelProgress}%</span>
+                    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-accent-foreground">Local model</p>
+                    <span className="font-mono text-xs font-semibold text-accent-foreground">{modelProgress}%</span>
                   </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80">
-                    <div className="h-full rounded-full bg-violet-700 transition-all duration-300" style={{ width: `${modelProgress}%` }} />
+                  <div className="mt-3 h-2 overflow-hidden bg-card">
+                    <div className="h-full bg-primary transition-all duration-300" style={{ width: `${modelProgress}%` }} />
                   </div>
-                  <p className="mt-3 text-xs leading-5 text-violet-800">
+                  <p className="mt-3 text-xs leading-5 text-accent-foreground">
                     {progress || "Preparing the local model. Keep this tab open until export is ready."}
                   </p>
                 </div>
               )}
 
-              <div className="mt-5 rounded-2xl border border-border bg-[#f8f8f5] p-4">
+              <div className="mt-5 border border-border bg-muted/35 p-4">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Matte cleanup</p>
                     <p className="mt-1 text-sm text-muted-foreground">Removes semi-transparent background dust after the local model finishes.</p>
                   </div>
-                  <span className="font-mono text-xs font-semibold text-violet-800">PNG alpha pass</span>
+                  <span className="font-mono text-xs font-semibold text-primary">PNG alpha pass</span>
                 </div>
                 <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   {cleanupModes.map((mode) => {
@@ -189,10 +190,10 @@ export default function BgRemoverPage() {
                         aria-pressed={active}
                         disabled={isProcessing}
                         onClick={() => setCleanupStrength(mode.value)}
-                        className={`rounded-2xl border p-3 text-left transition ${
+                        className={`rounded-sm border p-3 text-left transition-colors ${
                           active
-                            ? "border-violet-300 bg-white text-violet-950 shadow-[var(--shadow-sm)]"
-                            : "border-transparent bg-white/60 text-foreground hover:border-border hover:bg-white"
+                            ? "border-primary bg-card text-foreground"
+                            : "border-transparent bg-card/60 text-foreground hover:border-border hover:bg-card"
                         } disabled:cursor-not-allowed disabled:opacity-60`}
                       >
                         <span className="block text-sm font-semibold">{mode.label}</span>
@@ -223,19 +224,19 @@ export default function BgRemoverPage() {
               </Button>
             </section>
 
-            <aside className="rounded-[24px] border border-border bg-[#f8f8f5] p-5">
+            <aside className="border border-border bg-muted/35 p-5">
               <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Pipeline</p>
               <div className="mt-4 space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-2xl border border-border bg-white p-3">
-                  <span className="flex items-center text-muted-foreground"><Layers className="mr-2 h-4 w-4 text-violet-700" /> Source</span>
+                <div className="flex items-center justify-between border-b border-border bg-card p-3 first:border-t first:border-x last:border-x">
+                  <span className="flex items-center text-muted-foreground"><Layers className="mr-2 h-4 w-4 text-primary" /> Source</span>
                   <span className="font-mono font-semibold">Image</span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-border bg-white p-3">
-                  <span className="flex items-center text-muted-foreground"><Cpu className="mr-2 h-4 w-4 text-violet-700" /> Runtime</span>
+                <div className="flex items-center justify-between border-b border-x border-border bg-card p-3">
+                  <span className="flex items-center text-muted-foreground"><Cpu className="mr-2 h-4 w-4 text-primary" /> Runtime</span>
                   <span className="font-mono font-semibold">Browser</span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-border bg-white p-3">
-                  <span className="flex items-center text-muted-foreground"><ShieldCheck className="mr-2 h-4 w-4 text-violet-700" /> Upload</span>
+                <div className="flex items-center justify-between border-b border-x border-border bg-card p-3">
+                  <span className="flex items-center text-muted-foreground"><ShieldCheck className="mr-2 h-4 w-4 text-primary" /> Upload</span>
                   <span className="font-mono font-semibold">None</span>
                 </div>
               </div>
@@ -244,7 +245,7 @@ export default function BgRemoverPage() {
         )}
 
         {showComparison && resultBlob && (
-          <div className="flex flex-col gap-3 rounded-[24px] border border-border bg-white p-4 shadow-[var(--shadow-sm)] sm:flex-row">
+          <div className="flex flex-col gap-3 border border-border bg-card p-4 sm:flex-row">
             <Button
               size="lg"
               onClick={handleDownload}

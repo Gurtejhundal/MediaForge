@@ -1,100 +1,54 @@
 import Link from "next/link";
-import { Layers, RadioTower, ShieldCheck } from "lucide-react";
-
-const groups = [
-  {
-    title: "Image bench",
-    links: [
-      ["Image modifier", "/tools/image-modifier"],
-      ["Format converter", "/tools/format-converter"],
-      ["Resize", "/tools/resize"],
-      ["Compress", "/tools/compress"],
-      ["Favicon builder", "/tools/png-to-favicon"],
-      ["Background remover", "/tools/bg-remover"],
-      ["Image detailer", "/tools/image-enhancer"],
-    ],
-  },
-  {
-    title: "Video bench",
-    links: [
-      ["Frame extractor", "/tools/video-to-image"],
-      ["Video converter", "/tools/video-converter"],
-      ["Video upscaler", "/tools/video-upscaler"],
-      ["Watermark remover", "/tools/watermark-remover"],
-    ],
-  },
-  {
-    title: "Documents",
-    links: [
-      ["PDF organizer", "/tools/pdf-organizer"],
-      ["Universal converter", "/tools/file-converter"],
-      ["QR generator", "/tools/qr-generator"],
-    ],
-  },
-  {
-    title: "Network",
-    links: [
-      ["Video downloader", "/tools/video-downloader"],
-      ["Report a problem", "/report"],
-    ],
-  },
-];
+import { ArrowUpRight, RadioTower, ShieldCheck } from "lucide-react";
+import { toolGroups } from "@/lib/tool-catalog";
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-[#fbfbf8]">
-      <div className="mx-auto w-[min(100%-24px,1320px)] py-8 md:w-[min(100%-48px,1320px)] md:py-10">
-        <div className="grid gap-8 rounded-[24px] border border-border bg-white p-5 shadow-[var(--shadow-sm)] md:p-6 lg:grid-cols-[1.2fr_2fr]">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-700 text-white">
-                <Layers className="h-4 w-4" />
-              </span>
-              <div>
-                <span className="block text-lg font-semibold tracking-tight text-foreground">MediaForge</span>
-                <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Local media operations</span>
+    <footer className="mt-16 border-t border-black bg-[#12130f] text-[#ddd7c9]">
+      <div className="mx-auto w-[min(100%-24px,1440px)] py-10 md:w-[min(100%-48px,1440px)] md:py-14">
+        <div className="mf-chassis overflow-hidden p-3 md:p-4">
+          <div className="grid gap-8 rounded-lg border border-[#4b4d44] bg-[#272922] p-5 md:p-8 lg:grid-cols-[minmax(260px,0.72fr)_2fr]">
+            <div>
+              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.2em] text-[#a4a698]">Rack unit 24 / MediaForge</p>
+              <h2 className="mf-display mt-4 max-w-sm text-5xl font-semibold uppercase leading-[0.88] tracking-[-0.015em] text-[#f0eadd] md:text-6xl">
+                Keep the file. Use the console.
+              </h2>
+              <div className="mt-6 space-y-2">
+                <span className="flex items-center rounded-sm border border-black bg-[#1b1d18] px-3 py-2.5 font-mono text-[9px] uppercase tracking-[0.13em] text-[#c6c9bb] shadow-[inset_0_2px_4px_rgba(0,0,0,.5)]">
+                  <span className="mf-lamp mr-2" data-tone="green" /><ShieldCheck className="mr-2 size-3.5" /> Core tools stay local
+                </span>
+                <span className="flex items-center rounded-sm border border-black bg-[#1b1d18] px-3 py-2.5 font-mono text-[9px] uppercase tracking-[0.13em] text-[#c6c9bb] shadow-[inset_0_2px_4px_rgba(0,0,0,.5)]">
+                  <span className="mf-lamp mr-2" data-tone="amber" /><RadioTower className="mr-2 size-3.5" /> Network routes are marked
+                </span>
               </div>
             </div>
-            <p className="mt-5 max-w-md text-sm leading-7 text-muted-foreground">
-              Core image, video frame, QR, favicon, PDF, and document tools process selected files in the browser where supported.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-800">
-                <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-                Files stay local
-              </span>
-              <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">
-                <RadioTower className="mr-1.5 h-3.5 w-3.5" />
-                Network marked
-              </span>
-            </div>
-          </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {groups.map((group) => (
-              <div key={group.title}>
-                <h3 className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{group.title}</h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {group.links.map(([label, href]) => (
-                    <li key={href}>
-                      <Link href={href} className="hover:text-violet-800">{label}</Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-5">
+              {toolGroups.map((group) => (
+                <section key={group.key} aria-labelledby={`footer-${group.id}`}>
+                  <div className="border-t border-[#55574d] pt-3">
+                    <p className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-[#e3a438]">{group.number}</p>
+                    <h3 id={`footer-${group.id}`} className="mt-1 text-sm font-semibold text-[#eee8db]">{group.label}</h3>
+                  </div>
+                  <ul className="mt-4 space-y-2.5">
+                    {group.tools.map((tool) => (
+                      <li key={tool.href}>
+                        <Link href={tool.href} className="group inline-flex text-xs leading-5 text-[#9fa196] hover:text-[#f2ebdd]">
+                          {tool.title}
+                          <ArrowUpRight className="ml-1 size-3 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col justify-between gap-4 text-xs text-muted-foreground md:flex-row md:items-center">
-          <p>(C) {new Date().getFullYear()} MediaForge. All rights reserved.</p>
-          <p>
-            Built by{" "}
-            <Link href="https://gurtejbirsingh.vercel.app/" className="font-semibold text-foreground hover:text-violet-800">
-              Gurtejbir Singh
-            </Link>
-            . Feedback goes through the network report flow.
-          </p>
+        <div className="mt-6 flex flex-col gap-3 font-mono text-[9px] uppercase tracking-[0.13em] text-[#85877d] sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} MediaForge / Serial MF-LOCAL-01</p>
+          <p>Built by <Link href="https://gurtejbirsingh.vercel.app/" className="text-[#c8c2b5] hover:text-[#e3a438]">Gurtejbir Singh</Link>. Feedback uses a network route.</p>
         </div>
       </div>
     </footer>
