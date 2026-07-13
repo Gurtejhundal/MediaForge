@@ -12,10 +12,13 @@ export type PdfMode =
   | "pageNumbers"
   | "organize"
   | "jpgToPdf"
+  | "scanToPdf"
   | "compress"
   | "repair"
   | "crop"
-  | "sign";
+  | "sign"
+  | "addText"
+  | "flattenForms";
 export type WatermarkPosition = "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
 export interface PdfProcessOptions {
@@ -29,6 +32,7 @@ export interface PdfProcessOptions {
   opacity?: number;
   cropMargin?: number;
   signatureText?: string;
+  editText?: string;
 }
 
 export interface PdfProcessResult {
@@ -116,7 +120,7 @@ function pdfBlob(bytes: Uint8Array) {
 export async function processPdfLocally(files: File[], options: PdfProcessOptions): Promise<PdfProcessResult> {
   if (files.length === 0) throw new Error("Choose files first");
 
-  if (options.mode === "jpgToPdf") {
+  if (options.mode === "jpgToPdf" || options.mode === "scanToPdf") {
     const outputPdf = await PDFDocument.create();
 
     for (const file of files) {
@@ -153,6 +157,15 @@ export async function processPdfLocally(files: File[], options: PdfProcessOption
   const baseName = safeBaseName(sourceFile.name);
   const sourcePdf = await PDFDocument.load(await fileBytes(sourceFile), { ignoreEncryption: true });
   const totalPages = sourcePdf.getPageCount();
+
+  if (options.mode === "flattenForms") {
+    try {
+      sourcePdf.getForm().flatten();
+    } catch {
+      throw new Error("No readable PDF form fields were found");
+    }
+    return { blob: pdfBlob(await sourcePdf.save({ useObjectStreams: true })), filename: `${baseName}-forms-flattened.pdf` };
+  }
 
   if (options.mode === "split" && options.splitEveryPage) {
     const zip = new JSZip();
@@ -308,6 +321,27 @@ export async function processPdfLocally(files: File[], options: PdfProcessOption
     });
 
     return { blob: pdfBlob(await outputPdf.save({ useObjectStreams: true })), filename: `${baseName}-signed.pdf` };
+  }
+
+  if (options.mode === "addText") {
+    const text = (options.editText || "Added with MediaForge").trim();
+    if (!text) throw new Error("Enter text to add to the PDF");
+    const font = await outputPdf.embedFont(StandardFonts.Helvetica);
+    const pageIndices = new Set(parsePages(options.pages, totalPages));
+
+    outputPdf.getPages().forEach((page, index) => {
+      if (!pageIndices.has(index)) return;
+      page.drawText(text, {
+        x: 42,
+        y: 42,
+        size: 14,
+        font,
+        color: rgb(0.14, 0.15, 0.13),
+        maxWidth: Math.max(40, page.getWidth() - 84),
+      });
+    });
+
+    return { blob: pdfBlob(await outputPdf.save({ useObjectStreams: true })), filename: `${baseName}-edited.pdf` };
   }
 
   throw new Error("Unsupported PDF operation");

@@ -40,6 +40,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${instrumentSans.variable} ${barlowCondensed.variable} ${plexMono.variable} h-full`}
     >

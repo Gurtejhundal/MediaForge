@@ -192,9 +192,9 @@ export const toolGroups = [
     icon: FileText,
     tools: [
       {
-        title: "PDF organizer",
-        description: "Merge, split, reorder, optimize, edit, sign, and convert PDFs.",
-        meta: "PDF · ZIP",
+        title: "Document Studio",
+        description: "Organize, OCR, edit, and convert PDF, Word, PowerPoint, Excel, HTML, and images.",
+        meta: "PDF · DOCX · PPTX · XLSX",
         href: "/tools/pdf-organizer",
         icon: FileText,
         processingMode: "local",
