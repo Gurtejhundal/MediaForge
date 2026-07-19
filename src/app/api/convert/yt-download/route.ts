@@ -4,7 +4,17 @@ import ytdl from "@distube/ytdl-core";
 export const dynamic = "force-dynamic";
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Failed to process the requested URL.";
+  const message = error instanceof Error ? error.message : "Failed to process the requested URL.";
+  
+  if (
+    message.includes("confirm you are not a bot") || 
+    message.includes("Sign in to") || 
+    message.includes("LOGIN_REQUIRED")
+  ) {
+    return "YouTube is blocking this download request from Vercel's serverless servers (requesting bot verification). To download YouTube videos, please run MediaForge locally on your own computer, where requests will use your own internet IP and bypass this server block.";
+  }
+  
+  return message;
 }
 
 export async function POST(req: NextRequest) {
