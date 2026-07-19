@@ -19,7 +19,7 @@ function getErrorMessage(error: unknown) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { url } = await req.json();
+    const { url, format: formatType, quality } = await req.json();
 
     if (!url || typeof url !== "string") {
       return NextResponse.json({ error: "Invalid URL provided" }, { status: 400 });
@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
         return new NextResponse(buffer, {
              status: 200,
              headers: {
-                 "Content-Type": contentType,
-                 "Content-Disposition": `attachment; filename="media-file.${contentType.split('/')[1] || 'mp4'}"`
+                  "Content-Type": contentType,
+                  "Content-Disposition": `attachment; filename="media-file.${contentType.split('/')[1] || 'mp4'}"`
              }
         });
     }
@@ -49,13 +49,36 @@ export async function POST(req: NextRequest) {
     const info = await ytdl.getInfo(url);
     const title = info.videoDetails.title.replace(/[^\w\s]/gi, ''); // sanitize filename
     
-    // Select the best format containing both video and audio ideally
-    const format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
+    let selectedFormat;
+    let extension = "mp4";
+    let contentType = "video/mp4";
+
+    if (formatType === "mp3") {
+      selectedFormat = ytdl.chooseFormat(info.formats, { filter: "audioonly", quality: "highestaudio" });
+      extension = "mp3";
+      contentType = "audio/mpeg";
+    } else {
+      // It's mp4 (video)
+      const muxedFormats = ytdl.filterFormats(info.formats, "audioandvideo");
+      if (quality === "360p") {
+        selectedFormat = muxedFormats.find(f => f.qualityLabel === "360p") || 
+                         ytdl.chooseFormat(info.formats, { filter: "audioandvideo", quality: "lowest" });
+      } else if (quality === "720p") {
+        selectedFormat = muxedFormats.find(f => f.qualityLabel === "720p") || 
+                         ytdl.chooseFormat(info.formats, { filter: "audioandvideo", quality: "highest" });
+      } else {
+        selectedFormat = ytdl.chooseFormat(info.formats, { filter: "audioandvideo", quality: "highest" });
+      }
+      
+      extension = "mp4";
+      contentType = selectedFormat?.mimeType || "video/mp4";
+    }
+
+    if (!selectedFormat) {
+      throw new Error("No suitable format found for the selected options.");
+    }
     
-    // We must fetch from the format URL since we can't cleanly stream ytdl directly through Next.js Edge Responses sometimes
-    // Actually, ytdl(url) returns a readable stream which we can wrap in a web ReadableStream!
-    
-    const stream = ytdl(url, { format });
+    const stream = ytdl(url, { format: selectedFormat });
     
     // Convert Node Readable to Web ReadableStream for Next.js response
     const webStream = new ReadableStream({
@@ -72,8 +95,8 @@ export async function POST(req: NextRequest) {
     return new NextResponse(webStream, {
       status: 200,
       headers: {
-        'Content-Type': format.mimeType || 'video/mp4',
-        'Content-Disposition': `attachment; filename="${title}.mp4"`
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${title}.${extension}"`
       }
     });
 

@@ -11,6 +11,8 @@ import { StatusPill } from "@/components/workspace-components";
 export default function VideoDownloaderPage() {
   const [url, setUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [format, setFormat] = useState<"mp4" | "mp3">("mp4");
+  const [quality, setQuality] = useState<"highest" | "720p" | "360p">("highest");
 
   const handleDownload = async () => {
     if (!url.trim()) return;
@@ -30,7 +32,11 @@ export default function VideoDownloaderPage() {
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ 
+          url: url.trim(),
+          format,
+          quality
+        }),
       });
 
       if (!response.ok) {
@@ -41,7 +47,7 @@ export default function VideoDownloaderPage() {
       // 2. Stream the binary response securely to client
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = "media-download.mp4";
+      let filename = `media-download.${format}`;
       
       if (contentDisposition) {
          const matches = /filename="([^"]+)"/.exec(contentDisposition);
@@ -132,6 +138,75 @@ export default function VideoDownloaderPage() {
                       "Download Now"
                     )}
                   </Button>
+               </div>
+
+               {/* Format and Quality Selectors */}
+               <div className="w-full mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border/40 pt-6">
+                  <div className="flex flex-col gap-2 text-left">
+                     <span className="text-sm font-semibold text-muted-foreground">Format</span>
+                     <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={format === "mp4" ? "default" : "outline"}
+                          onClick={() => setFormat("mp4")}
+                          className="flex-1 h-11 rounded-xl"
+                          disabled={isDownloading}
+                        >
+                          MP4 (Video)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={format === "mp3" ? "default" : "outline"}
+                          onClick={() => setFormat("mp3")}
+                          className="flex-1 h-11 rounded-xl"
+                          disabled={isDownloading}
+                        >
+                          MP3 (Audio)
+                        </Button>
+                     </div>
+                  </div>
+
+                  {format === "mp4" ? (
+                     <div className="flex flex-col gap-2 text-left transition-all duration-200">
+                        <span className="text-sm font-semibold text-muted-foreground">Quality</span>
+                        <div className="flex gap-2">
+                           <Button
+                             type="button"
+                             variant={quality === "highest" ? "default" : "outline"}
+                             onClick={() => setQuality("highest")}
+                             className="flex-1 h-11 rounded-xl text-xs sm:text-sm"
+                             disabled={isDownloading}
+                           >
+                             Best Muxed
+                           </Button>
+                           <Button
+                             type="button"
+                             variant={quality === "720p" ? "default" : "outline"}
+                             onClick={() => setQuality("720p")}
+                             className="flex-1 h-11 rounded-xl text-xs sm:text-sm"
+                             disabled={isDownloading}
+                           >
+                             720p
+                           </Button>
+                           <Button
+                             type="button"
+                             variant={quality === "360p" ? "default" : "outline"}
+                             onClick={() => setQuality("360p")}
+                             className="flex-1 h-11 rounded-xl text-xs sm:text-sm"
+                             disabled={isDownloading}
+                           >
+                             360p
+                           </Button>
+                        </div>
+                     </div>
+                  ) : (
+                     <div className="flex flex-col gap-2 text-left opacity-50">
+                        <span className="text-sm font-semibold text-muted-foreground">Quality</span>
+                        <div className="flex items-center h-11 px-4 border border-dashed border-border rounded-xl text-sm text-muted-foreground">
+                           Highest Audio (Automatic)
+                        </div>
+                     </div>
+                  )}
                </div>
                
                <div className="mt-8 flex flex-wrap justify-center gap-4 opacity-50">
