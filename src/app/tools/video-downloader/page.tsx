@@ -44,27 +44,45 @@ export default function VideoDownloaderPage() {
         throw new Error(errorData.error || "Failed to download media");
       }
 
-      // 2. Stream the binary response securely to client
-      const blob = await response.blob();
-      const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = `media-download.${format}`;
-      
-      if (contentDisposition) {
-         const matches = /filename="([^"]+)"/.exec(contentDisposition);
-         if (matches && matches[1]) {
-             filename = matches[1];
-         }
-      }
+      const contentType = response.headers.get("Content-Type") || "";
 
-      // 3. Prompt user save window safely
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(blobUrl);
+      if (contentType.includes("application/json")) {
+        // Cobalt returned the direct download URL as JSON
+        const data = await response.json();
+        if (data.downloadUrl) {
+          const link = document.createElement("a");
+          link.href = data.downloadUrl;
+          // Set filename if returned, fallback to dynamic format
+          link.download = data.filename || `media-download.${format}`;
+          link.target = "_blank"; // Opens in a new tab to trigger download
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        } else {
+          throw new Error(data.error || "Failed to fetch download link.");
+        }
+      } else {
+        // Fallback: ytdl-core returned a binary stream
+        const blob = await response.blob();
+        const contentDisposition = response.headers.get("Content-Disposition");
+        let filename = `media-download.${format}`;
+        
+        if (contentDisposition) {
+           const matches = /filename="([^"]+)"/.exec(contentDisposition);
+           if (matches && matches[1]) {
+               filename = matches[1];
+           }
+        }
+
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(blobUrl);
+      }
 
       toast.success("Download started successfully!");
       setUrl("");
