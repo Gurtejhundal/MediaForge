@@ -7,8 +7,8 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-black bg-[#191a16] text-[#eee9dc] shadow-[0_8px_22px_rgba(0,0,0,.32)]">
       <div className="mx-auto flex h-[72px] w-[min(100%-24px,1440px)] items-center gap-4 md:w-[min(100%-48px,1440px)]">
         <Link href="/" className="group flex min-w-0 items-center gap-3" aria-label="MediaForge home">
-          <span className="relative flex size-11 shrink-0 items-center justify-center rounded-md border border-black bg-[linear-gradient(145deg,#3f4238,#1b1d18)] shadow-[inset_0_1px_0_rgba(255,255,255,.16),0_3px_8px_rgba(0,0,0,.45)] overflow-hidden">
-            <img src="/android-chrome-192x192.png" alt="MediaForge Logo" className="size-full object-cover" />
+          <span className="relative flex size-11 shrink-0">
+            <img src="/android-chrome-192x192.png" alt="MediaForge Logo" className="size-full rounded-lg object-cover shadow-sm" />
             <span className="mf-lamp absolute -right-1 -top-1" data-tone="amber" aria-hidden="true" />
           </span>
           <span className="min-w-0">
