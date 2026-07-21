@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 const FALLBACK_APIS = [
   "https://dog.kittycat.boo",
   "https://rue-cobalt.xenon.zone",
-  "https://cobaltapi.cjs.nz"
+  "https://cobaltapi.cjs.nz",
+  "https://cobaltapi.kittycat.boo"
 ];
 
 function getErrorMessage(error: unknown) {
@@ -41,8 +42,9 @@ async function tryCobaltAPI(url: string, isAudio: boolean, quality: string) {
     const res = await fetch("https://cobalt.directory/api/working?type=api", { signal: AbortSignal.timeout(2000) });
     if (res.ok) {
       const json = await res.json();
-      if (json.data && Array.isArray(json.data.youtube) && json.data.youtube.length > 0) {
-        apis = json.data.youtube.map((api: string) => api.replace(/\/$/, ""));
+      if (json.data && Array.isArray(json.data.youtube)) {
+        const fetched = json.data.youtube.map((api: string) => api.replace(/\/$/, ""));
+        apis = Array.from(new Set([...fetched, ...FALLBACK_APIS]));
       }
     }
   } catch (err) {
