@@ -53,6 +53,10 @@ async function tryCobaltAPI(url: string, isAudio: boolean, quality: string) {
 
   // Shuffle APIs to balance the load
   const shuffledApis = shuffleArray(apis);
+  let hasUnavailable = false;
+  let hasPrivate = false;
+  let hasAgeRestricted = false;
+  let errorMsg = null;
 
   for (const api of shuffledApis) {
     // Try v10 payload format
@@ -79,6 +83,14 @@ async function tryCobaltAPI(url: string, isAudio: boolean, quality: string) {
         return { downloadUrl: data.url, filename: data.filename };
       }
 
+      if (data?.error?.code) {
+        const code = data.error.code;
+        if (code.includes("video.unavailable") || code.includes("content.unavailable")) hasUnavailable = true;
+        if (code.includes("video.private") || code.includes("content.private")) hasPrivate = true;
+        if (code.includes("video.age_restricted") || code.includes("youtube.login") || code.includes("youtube.age")) hasAgeRestricted = true;
+        errorMsg = data.error.code;
+      }
+
       // Fallback: If invalid body error code is returned, try v7 payload
       if (data?.error?.code === "error.api.invalid_body") {
         const payloadV7 = {
@@ -101,10 +113,32 @@ async function tryCobaltAPI(url: string, isAudio: boolean, quality: string) {
         if (responseV7.ok && dataV7.url) {
           return { downloadUrl: dataV7.url, filename: dataV7.filename };
         }
+
+        if (dataV7?.error?.code) {
+          const code = dataV7.error.code;
+          if (code.includes("video.unavailable") || code.includes("content.unavailable")) hasUnavailable = true;
+          if (code.includes("video.private") || code.includes("content.private")) hasPrivate = true;
+          if (code.includes("video.age_restricted") || code.includes("youtube.login") || code.includes("youtube.age")) hasAgeRestricted = true;
+          errorMsg = dataV7.error.code;
+        }
       }
     } catch (err) {
       console.warn(`Cobalt instance ${api} failed to process request:`, err);
     }
+  }
+
+  // Handle specific captured errors instead of generic fallback
+  if (hasUnavailable) {
+    return { error: "The requested video is unavailable or does not exist. Please check the URL for typos and try again." };
+  }
+  if (hasPrivate) {
+    return { error: "This video is private and cannot be downloaded." };
+  }
+  if (hasAgeRestricted) {
+    return { error: "This video requires login or is age-restricted, and no active bypass server was able to fetch it. Please try running MediaForge locally to bypass this block." };
+  }
+  if (errorMsg) {
+    return { error: `Download failed: ${errorMsg}. Check video link or try another format/quality.` };
   }
 
   return null;
@@ -130,7 +164,7 @@ export async function POST(req: NextRequest) {
                   "Content-Type": contentType,
                   "Content-Disposition": `attachment; filename="media-file.${contentType.split('/')[1] || 'mp4'}"`
              }
-        });
+         });
     }
 
     const isAudio = formatType === "mp3";
@@ -138,6 +172,9 @@ export async function POST(req: NextRequest) {
     // 1. Try public Cobalt instances first (works in cloud/Vercel!)
     const cobaltResult = await tryCobaltAPI(url, isAudio, quality);
     if (cobaltResult) {
+      if (cobaltResult.error) {
+        return NextResponse.json({ error: cobaltResult.error }, { status: 400 });
+      }
       return NextResponse.json({
         success: true,
         downloadUrl: cobaltResult.downloadUrl,
