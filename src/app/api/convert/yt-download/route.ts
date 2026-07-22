@@ -4,6 +4,7 @@ import ytdl from "@distube/ytdl-core";
 export const dynamic = "force-dynamic";
 
 const FALLBACK_APIS = [
+  "https://api.cobalt.liubquanti.click",
   "https://dog.kittycat.boo",
   "https://rue-cobalt.xenon.zone",
   "https://cobaltapi.cjs.nz",
@@ -39,12 +40,12 @@ async function tryCobaltAPI(url: string, isAudio: boolean, quality: string) {
   
   // Try fetching live working instances list first
   try {
-    const res = await fetch("https://cobalt.directory/api/working?type=api", { signal: AbortSignal.timeout(2000) });
+    const res = await fetch("https://cobalt.directory/api/working?type=api", { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       const json = await res.json();
       if (json.data && Array.isArray(json.data.youtube)) {
         const fetched = json.data.youtube.map((api: string) => api.replace(/\/$/, ""));
-        apis = Array.from(new Set([...fetched, ...FALLBACK_APIS]));
+        apis = Array.from(new Set([...FALLBACK_APIS, ...fetched]));
       }
     }
   } catch (err) {
