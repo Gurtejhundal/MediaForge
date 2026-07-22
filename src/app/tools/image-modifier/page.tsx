@@ -15,7 +15,7 @@ import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils
 import { processImageLocally, type BrowserImageFormat, type WatermarkPosition } from "@/lib/local-processing/image-processing";
 import { formatBytes } from "@/components/preview/image-preview";
 
-const FORMATS: BrowserImageFormat[] = ["webp", "jpeg", "png", "avif"];
+const FORMATS: BrowserImageFormat[] = ["webp", "jpeg", "png", "avif", "svg"];
 const POSITIONS: WatermarkPosition[] = ["bottom-right", "center", "top-left", "top-right", "bottom-left"];
 
 function getErrorMessage(error: unknown) {

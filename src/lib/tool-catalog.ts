@@ -57,7 +57,7 @@ export const toolGroups = [
       {
         title: "Image modifier",
         description: "Resize, crop, rotate, watermark, caption, compress, and convert.",
-        meta: "PNG · JPG · WEBP · AVIF",
+        meta: "PNG · JPG · WEBP · AVIF · SVG",
         href: "/tools/image-modifier",
         icon: SlidersHorizontal,
         processingMode: "local",

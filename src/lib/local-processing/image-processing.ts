@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 import { safeBaseName } from "./blob-utils";
 
-export type BrowserImageFormat = "png" | "jpeg" | "webp" | "avif";
+export type BrowserImageFormat = "png" | "jpeg" | "webp" | "avif" | "svg";
 export type ImageFitMode = "contain" | "cover" | "stretch";
 export type WatermarkPosition = "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type AlphaCleanupStrength = "soft" | "balanced" | "strong";
@@ -38,11 +38,47 @@ export interface LocalImageResult {
 }
 
 export async function decodeImage(file: File | Blob) {
+  const isSvg = (file instanceof File && (file.type.includes("svg") || file.name.endsWith(".svg"))) || (file.type?.includes("svg"));
+  if (isSvg) {
+    return await loadSvgElement(file);
+  }
   try {
     return await createImageBitmap(file);
   } catch {
     return await loadImageElement(file);
   }
+}
+
+async function loadSvgElement(file: File | Blob) {
+  let text = await file.text();
+  // Ensure SVG has width and height attributes so canvas rendering is deterministic
+  if (!text.includes("width=") || !text.includes("height=")) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "image/svg+xml");
+      const svgEl = doc.querySelector("svg");
+      if (svgEl) {
+        if (!svgEl.hasAttribute("width") || !svgEl.hasAttribute("height")) {
+          const viewBox = svgEl.getAttribute("viewBox");
+          if (viewBox) {
+            const parts = viewBox.trim().split(/[\s,]+/);
+            if (parts.length === 4) {
+              svgEl.setAttribute("width", parts[2]);
+              svgEl.setAttribute("height", parts[3]);
+            }
+          } else {
+            svgEl.setAttribute("width", "800");
+            svgEl.setAttribute("height", "600");
+          }
+          text = new XMLSerializer().serializeToString(doc);
+        }
+      }
+    } catch {
+      // Fallback to original text if parsing fails
+    }
+  }
+  const blob = new Blob([text], { type: "image/svg+xml" });
+  return await loadImageElement(blob);
 }
 
 async function loadImageElement(file: File | Blob) {
@@ -96,10 +132,19 @@ function resolveDrawSize(sourceWidth: number, sourceHeight: number, targetWidth?
 }
 
 function getMime(format: BrowserImageFormat) {
+  if (format === "svg") return "image/svg+xml";
   return `image/${format}`;
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement, format: BrowserImageFormat, quality?: number) {
+  if (format === "svg") {
+    const dataUrl = canvas.toDataURL("image/png");
+    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}">
+  <image href="${dataUrl}" width="${canvas.width}" height="${canvas.height}"/>
+</svg>`;
+    return Promise.resolve(new Blob([svgContent], { type: "image/svg+xml" }));
+  }
+
   const mime = getMime(format);
 
   return new Promise<Blob>((resolve, reject) => {

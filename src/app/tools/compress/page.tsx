@@ -64,7 +64,7 @@ export default function CompressPage() {
         {!file ? (
           <Dropzone 
             onFileAccepted={handleFileAccepted} 
-            accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] }}
+            accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"], "image/svg+xml": [".svg"] }}
           />
         ) : (
           <ImagePreview 

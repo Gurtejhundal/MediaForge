@@ -28,7 +28,7 @@ function getTargetFormats(ext: string): string[] {
   const category = getFileCategory(ext);
   
   if (category === "image") {
-    return ["png", "jpeg", "webp", "avif"];
+    return ["png", "jpeg", "webp", "avif", "svg"];
   }
   if (ext === "json") {
     return ["csv", "xml", "yaml", "txt", "pdf"];

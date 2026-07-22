@@ -68,7 +68,7 @@ export default function PngToFaviconPage() {
         {!file ? (
           <Dropzone
             onFileAccepted={handleFileAccepted}
-            accept={{ "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"], "image/webp": [".webp"] }}
+            accept={{ "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"], "image/webp": [".webp"], "image/svg+xml": [".svg"] }}
           />
         ) : (
           <ImagePreview file={file} previewUrl={previewUrl!} onRemove={clearFile} />

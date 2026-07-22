@@ -120,6 +120,7 @@ export default function BgRemoverPage() {
               "image/jpeg": [".jpg", ".jpeg"],
               "image/png": [".png"],
               "image/webp": [".webp"],
+              "image/svg+xml": [".svg"],
             }}
             processingMode="local"
           />

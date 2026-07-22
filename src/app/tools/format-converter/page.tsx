@@ -59,7 +59,7 @@ export default function FormatConverterPage() {
         {!file ? (
           <Dropzone 
             onFileAccepted={handleFileAccepted} 
-            accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"], "image/avif": [".avif"], "image/heic": [".heic"], "image/heif": [".heif"] }}
+            accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"], "image/avif": [".avif"], "image/heic": [".heic"], "image/heif": [".heif"], "image/svg+xml": [".svg"] }}
           />
         ) : (
           <ImagePreview 
@@ -76,7 +76,7 @@ export default function FormatConverterPage() {
                <div>
                   <Label className="mb-3 block text-sm text-muted-foreground">Target Format</Label>
                   <div className="flex flex-wrap gap-3">
-                     {(["png", "jpeg", "webp", "avif"] as const).map(fmt => (
+                     {(["png", "jpeg", "webp", "avif", "svg"] as const).map(fmt => (
                        <Button 
                          key={fmt}
                          variant={targetFormat === fmt ? "default" : "outline"}
