@@ -1,4 +1,4 @@
-# MediaForge
+# MediaForge!
 
 MediaForge is a light-mode, local-first media utility for browser-based media, video, image, PDF, and document operations.
 
