@@ -4,6 +4,8 @@
 
 Work is on `codex/reliability-release`, an isolated Git worktree at `/home/gurtejbirsinghh/Documents/Codex/2026-11-07/act-as-a-senior-engineer-product/work/mediaforge`. The original MediaForge checkout and its seven pre-existing modified files were left untouched. Those changes were confirmed to be line-ending-only with `git diff --ignore-space-at-eol`. No source media, user profile, environment secrets or production data was copied into tracked release files. Desktop tests use disposable profiles, including when launching the packaged executable.
 
+The findings and limits below record local preparation before source publication. See [subsequent hosted verification](hosted-verification.md) for the later four-platform CI results.
+
 The app is a local media workbench for creators, students and developers. Its existing hardware-console identity was retained. See the [route/engine/data map](architecture.md), [setup and configuration](development.md), [release procedure](releasing.md) and [real capture provenance](readme/README.md).
 
 ## Concise audit record
@@ -57,7 +59,7 @@ Severity describes the observed consequence, not an assertion of exploitation. *
 - Actual captures: [desktop](readme/workbench-desktop.png), [mobile](readme/workbench-mobile.png), [QR workspace](readme/qr-workspace.png), [populated mobile QR](readme/qr-mobile.png), [sampled QR workflow GIF](readme/qr-workflow.gif). No image-generated mockups were used.
 - The initially failed browser/native runs were used to find and correct build-server asset drift, selector ambiguity, origin handling and missing packaged dependencies. Only final passing runs are release evidence; a passing development build alone was not treated as release evidence.
 
-## Explicit limits and blockers
+## Local preparation limits and blockers (historical snapshot)
 
 - The only available native host is Linux x64. Windows/macOS installation, signing/notarization and native launches are **not verified**. Real phones, Safari/WebKit, Firefox, assistive hardware and low-memory devices were not available. Responsive Chromium emulation is not device certification.
 - No public release, source push, production deploy or external feedback message was sent. GitHub's existing releases collection was empty. The repository's configured homepage returned 404 and was not repaired by inventing a new deployment URL. No CI pass on GitHub is claimed.
@@ -65,3 +67,7 @@ Severity describes the observed consequence, not an assertion of exploitation. *
 - Dependency audit has one underlying background-removal/Zod advisory reported as two high package entries, under an exact-version exception expiring 7 December 2026. See [the rationale](dependencies.md). It is not an upstream fix.
 - Large Canvas/Office operations still depend on CPU/RAM and may run work on the main thread. WebM exports are muted and use real-time frame timing. Office layouts, Unicode font coverage, OCR fidelity, codec support and unsupported encoders remain documented limits. Input drafts are memory-only by design; counters are not file backups.
 - Security source review was partial: all API routes and local-processing engines plus selected UI/configuration were independently reviewed. No full semantic audit of third-party minified bundles or all dependencies is claimed. Original source confirmed SSRF, active-content relay and unbounded remote buffering. A formal Codex Security scan was started but its checkpoint tool rejected managed storage because the `.codex` ancestor was group-writable without a sticky bit. No permissions were changed, no canonical security report was generated, and no token measurement was available. This mixed engineering audit is not that unavailable formal report.
+
+## Subsequent source integration and hosted checks
+
+The owner subsequently authorized source upload and merging to `main`. [Hosted verification](hosted-verification.md) records the passing web and four-platform native CI runs, the runner fixes, candidate artifacts and remaining distribution limits. The local results and publication statements above describe the earlier preparation snapshot.

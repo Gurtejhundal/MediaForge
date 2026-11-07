@@ -58,5 +58,6 @@
   },
   "securityReport": "Formal managed report unavailable: checkpoint storage permission rejection; partial source audit retained in audit.md",
   "limitations": "Synthetic smoke/regression fixtures, not exhaustive input/codec/device/security certification.",
-  "scope": "Local release-candidate verification before source publication; check GitHub history and Actions for subsequent publication and hosted CI status."
+  "scope": "Local release-candidate verification before source publication; check GitHub history and Actions for subsequent publication and hosted CI status.",
+  "hostedVerification": "hosted-verification.md"
 }

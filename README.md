@@ -60,14 +60,14 @@ Open **http://127.0.0.1:3000**. For a production preview, run `npm run build` th
 
 ## Desktop release status
 
-**0.2.0 is a local release candidate. No public installer release has been published.**
+**0.2.0 is a release candidate. No public installer release has been published.** Unsigned CI candidates are available from the [verified desktop workflow](https://github.com/Gurtejhundal/MediaForge/actions/runs/42342905934) for its 14-day artifact retention period.
 
 | Target | Candidate format | Verification |
 | --- | --- | --- |
-| Linux x64 | AppImage, deb | Unpacked, deb-extracted and AppImage-extracted payloads passed native launch/export/restart checks; see [limits](docs/audit.md). |
-| Windows x64 | Per-user installer | Build workflow configured; native execution pending. |
-| macOS Apple Silicon | dmg, zip | Build workflow configured; native execution pending. |
-| macOS Intel | dmg, zip | Build workflow configured; native execution pending. |
+| Linux x64 | AppImage, deb | Native CI passed; local unpacked and extracted AppImage/deb payloads also passed. See [verification limits](docs/hosted-verification.md). |
+| Windows x64 | Per-user installer | Native CI launch/export/restart and candidate build passed; unsigned. |
+| macOS Apple Silicon | dmg, zip | Native CI launch/export/restart and candidate build passed; unsigned. |
+| macOS Intel | dmg, zip | Native CI launch/export/restart and candidate build passed; unsigned. |
 
 Build locally with `npm run desktop:dist`. The [release procedure](docs/releasing.md) explains checksums, installation, native verification, signing and publication. There is no auto-update service. Public publication is pending the owner's license/distribution decision; no project license has been chosen on their behalf.
 

@@ -1,6 +1,6 @@
 # Release procedure
 
-Version 0.2.0 is a release candidate, not an existing public download. No tag, push, GitHub release, deployment, or publication was performed by the local release preparation.
+Version 0.2.0 is a release candidate, not a public installer release. The [hosted verification record](hosted-verification.md) covers subsequent source upload, native CI candidates and the preview created by the existing Git integration. No version tag or public installer release was created.
 
 ## Local candidates
 
@@ -44,6 +44,6 @@ Do not trigger a release merely by pushing an arbitrary tag. Do not reuse artifa
 
 - The owner has not chosen a project license. No license was added. Review the background-removal package's AGPL/commercial terms and dependency notices before public distribution.
 - No signing credentials were supplied. Windows signing and macOS Developer ID/notarization are not configured. macOS/Windows candidate builds are explicitly unsigned; release notes must disclose their status. Do not promise removal of OS warnings.
-- Linux native smoke testing does not establish Windows/macOS support. Await native CI runs and review evidence before publishing those downloads.
+- Native CI passed on all four configured targets. Review its artifacts and installation limits, then verify actual installer execution and signing status before publishing downloads.
 - The background-removal Zod advisory is still visible under an expiring, exact-version [exception](dependency-exception.json). It is not fixed by overriding a dependency external to its bundle.
 - The GitHub repository’s configured homepage (`https://converter-ashen-five.vercel.app/`) returned HTTP 404 during read-only verification on 7 November 2026. No production deployment was changed. Validate the actual target's API configuration, route responses, local-file privacy, model availability and saved browser activity separately before promotion.
