@@ -1,0 +1,2 @@
+# Keep the multiline CSV regression fixture identical on Windows and Unix.
+tests/fixtures/*.csv text eol=lf
