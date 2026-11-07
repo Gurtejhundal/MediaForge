@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
@@ -16,6 +18,7 @@ import { StatusPill } from "@/components/workspace-components";
 export default function ResizePage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [width, setWidth] = useState<string>("");
   const [height, setHeight] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -51,8 +54,8 @@ export default function ResizePage() {
     try {
       const result = await processImageLocally(file, {
         format: "png",
-        width: width ? Number.parseInt(width, 10) : undefined,
-        height: height ? Number.parseInt(height, 10) : undefined,
+        width: width ? Number(width) : undefined,
+        height: height ? Number(height) : undefined,
       });
       downloadBlob(result.blob, `resized-${result.filename}`, { kind: "modification" });
       

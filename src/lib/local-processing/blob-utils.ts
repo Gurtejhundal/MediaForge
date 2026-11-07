@@ -16,15 +16,16 @@ export function downloadBlob(blob: Blob, filename: string, options?: { kind?: Lo
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  // Let the browser consume the URL before releasing it (including slow devices).
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
   recordLocalExport({ filename, bytes: blob.size, kind: options?.kind });
 }
 
 export function formatFileSize(bytes: number, decimals = 2) {
-  if (bytes === 0) return "0 Bytes";
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 Bytes";
   const base = 1024;
   const units = ["Bytes", "KB", "MB", "GB"];
-  const index = Math.floor(Math.log(bytes) / Math.log(base));
+  const index = Math.min(units.length - 1, Math.max(0, Math.floor(Math.log(bytes) / Math.log(base))));
   return `${Number.parseFloat((bytes / Math.pow(base, index)).toFixed(decimals))} ${units[index]}`;
 }
 

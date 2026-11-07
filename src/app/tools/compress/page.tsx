@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
@@ -16,6 +18,7 @@ import { StatusPill } from "@/components/workspace-components";
 export default function CompressPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [quality, setQuality] = useState<number[]>([70]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastOutputSize, setLastOutputSize] = useState<number | null>(null);

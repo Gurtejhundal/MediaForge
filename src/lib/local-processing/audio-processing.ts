@@ -44,8 +44,11 @@ async function decodeAudio(file: File) {
 }
 
 function sliceBuffer(context: BaseAudioContext, buffer: AudioBuffer, startSeconds: number, endSeconds: number) {
-  const start = Math.max(0, Math.min(buffer.duration, startSeconds));
-  const end = Math.max(start, Math.min(buffer.duration, endSeconds || buffer.duration));
+  if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || startSeconds < 0 || startSeconds >= endSeconds || endSeconds > buffer.duration + 0.001) {
+    throw new Error("Choose a start before the end, within the audio duration.");
+  }
+  const start = startSeconds;
+  const end = Math.min(endSeconds, buffer.duration);
   const startFrame = Math.floor(start * buffer.sampleRate);
   const endFrame = Math.max(startFrame + 1, Math.floor(end * buffer.sampleRate));
   const output = context.createBuffer(buffer.numberOfChannels, endFrame - startFrame, buffer.sampleRate);
@@ -218,6 +221,7 @@ export async function processAudioLocally(files: File[], options: AudioProcessOp
       const decoded = [buffer];
       const contextsToClose: AudioContext[] = [];
 
+      try {
       for (const file of files.slice(1)) {
         const next = await decodeAudio(file);
         decoded.push(next.buffer);
@@ -225,7 +229,9 @@ export async function processAudioLocally(files: File[], options: AudioProcessOp
       }
 
       outputBuffer = await mergeBuffers(context, decoded);
-      await Promise.all(contextsToClose.map((nextContext) => nextContext.close()));
+      } finally {
+        await Promise.all(contextsToClose.map((nextContext) => nextContext.close()));
+      }
       filename = "merged-audio.wav";
     } else if (options.mode === "normalize") {
       outputBuffer = normalizeBuffer(context, buffer);

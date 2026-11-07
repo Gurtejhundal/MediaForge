@@ -1,0 +1,6 @@
+{
+  "advisory": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+  "versions": { "@imgly/background-removal": "1.7.0", "zod": "3.25.76" },
+  "expires": "2026-12-07T00:00:00Z",
+  "reason": "The background-removal package bundles Zod 3. Its schema consumes a fixed developer-authored configuration in src/app/tools/bg-remover/page.tsx, not arbitrary user-controlled constrained collections. Processing runs in the user's browser, with no Zod-based server input boundary. A major-version override of the declared dependency would not repair the Zod implementation bundled into the package. Keep the advisory visible and reevaluate when upstream ships a fix; public installers also await the separate license decision."
+}

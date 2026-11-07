@@ -48,7 +48,7 @@ export function Footer() {
 
         <div className="mt-6 flex flex-col gap-3 font-mono text-[9px] uppercase tracking-[0.13em] text-[#85877d] sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} MediaForge / Serial MF-LOCAL-01</p>
-          <p>Built by <Link href="https://gurtejbirsingh.vercel.app/" className="text-[#c8c2b5] hover:text-[#e3a438]">Gurtejbir Singh</Link>. Feedback uses a network route.</p>
+          <p>Built by <Link href="https://gurtejbirsingh.vercel.app/" className="text-[#c8c2b5] underline underline-offset-4 hover:text-[#e3a438]">Gurtejbir Singh</Link>. Feedback uses a network route.</p>
         </div>
       </div>
     </footer>

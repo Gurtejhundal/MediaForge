@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import { Archive, Download, Film, Images, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +19,7 @@ const FORMAT_OPTIONS: FrameExportFormat[] = ["png", "jpeg", "webp"];
 export default function VideoToImagePage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [fps, setFps] = useState<number>(24);
   const [format, setFormat] = useState<FrameExportFormat>("png");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -141,7 +144,7 @@ export default function VideoToImagePage() {
               <Label className="mb-3 block">Frames per second</Label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {FPS_OPTIONS.map((option) => (
-                  <Button key={option} variant={fps === option ? "default" : "outline"} onClick={() => setFps(option)}>
+                  <Button key={option} aria-pressed={fps === option} variant={fps === option ? "default" : "outline"} onClick={() => setFps(option)}>
                     {option} FPS
                   </Button>
                 ))}
@@ -152,7 +155,7 @@ export default function VideoToImagePage() {
                 {FORMAT_OPTIONS.map((nextFormat) => (
                   <Button
                     key={nextFormat}
-                    variant={format === nextFormat ? "default" : "outline"}
+                    aria-pressed={format === nextFormat} variant={format === nextFormat ? "default" : "outline"}
                     onClick={() => setFormat(nextFormat)}
                   >
                     {nextFormat === "jpeg" ? "JPG" : nextFormat.toUpperCase()}

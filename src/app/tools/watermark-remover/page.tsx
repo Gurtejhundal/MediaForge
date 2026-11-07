@@ -1,9 +1,12 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Eraser, Film, MousePointer2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -63,6 +66,7 @@ function mapSelectionToVideo(selection: Region, containerRect: DOMRect, videoSiz
 export default function WatermarkRemoverPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState("");
   const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
@@ -83,20 +87,19 @@ export default function WatermarkRemoverPage() {
   const onVideoLoad = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
     setVideoSize({ width: video.videoWidth, height: video.videoHeight });
-    window.requestAnimationFrame(() => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setSelection({
-        x: Math.round(rect.width * 0.68),
-        y: Math.round(rect.height * 0.08),
-        w: Math.round(rect.width * 0.24),
-        h: Math.round(rect.height * 0.14),
-      });
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setSelection({
+      x: Math.round(rect.width * 0.68),
+      y: Math.round(rect.height * 0.08),
+      w: Math.round(rect.width * 0.24),
+      h: Math.round(rect.height * 0.14),
     });
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!containerRef.current) return;
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!containerRef.current || isProcessing) return;
+    e.preventDefault();
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -106,7 +109,7 @@ export default function WatermarkRemoverPage() {
     setSelection({ x, y, w: 0, h: 0 });
   };
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!isDragging || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const currentX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
@@ -120,23 +123,26 @@ export default function WatermarkRemoverPage() {
     setSelection({ x, y, w, h });
   }, [isDragging, dragStart]);
 
-  const handleMouseUp = useCallback(() => {
+  const handlePointerUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
     } else {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     }
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handlePointerMove, handlePointerUp]);
 
   const handleRemoveWatermark = async () => {
     if (!file || !containerRef.current || !videoRef.current) return;
@@ -211,13 +217,13 @@ export default function WatermarkRemoverPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
                 <MousePointer2 className="h-4 w-4 text-primary" />
-                Drag your mouse over the watermark area in the video below to select it.
+                Drag with a mouse or touch to select a region, or set preview-pixel coordinates below.
               </div>
 
               <div 
                 ref={containerRef}
-                className="relative rounded-xl border bg-black overflow-hidden cursor-crosshair group aspect-video flex items-center justify-center"
-                onMouseDown={handleMouseDown}
+                className="relative touch-none rounded-xl border bg-black overflow-hidden cursor-crosshair group aspect-video flex items-center justify-center"
+                onPointerDown={handlePointerDown}
               >
                 <video
                   ref={videoRef}
@@ -244,6 +250,21 @@ export default function WatermarkRemoverPage() {
                 {/* Grid Overlay for precision (visible on hover) */}
                 <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-20 transition-opacity bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:20px_20px]" />
               </div>
+
+              <fieldset className="grid grid-cols-2 gap-3 rounded-md border p-4 sm:grid-cols-4">
+                <legend className="px-2 text-xs font-semibold">Selection / preview pixels</legend>
+                {([['x', 'X'], ['y', 'Y'], ['w', 'Width'], ['h', 'Height']] as const).map(([key, label]) => (
+                  <div key={key}>
+                    <Label htmlFor={`region-${key}`}>{label}</Label>
+                    <Input id={`region-${key}`} type="number" min={0} value={Math.round(selection[key])} disabled={isProcessing || !videoSize.width} onChange={(event) => {
+                      const rect = containerRef.current?.getBoundingClientRect();
+                      const max = key === 'x' || key === 'w' ? rect?.width : rect?.height;
+                      const value = Math.max(0, Math.min(max || 0, Number(event.target.value) || 0));
+                      setSelection((current) => ({ ...current, [key]: value }));
+                    }} />
+                  </div>
+                ))}
+              </fieldset>
 
               <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
                  <div className="space-y-1">

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import "./ui-variants.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -64,12 +64,12 @@
   --card-foreground: #20221d;
   --popover: #eee9dc;
   --popover-foreground: #20221d;
-  --primary: #c94b26;
+  --primary: #9c3519;
   --primary-foreground: #fff9ef;
   --secondary: #bdb7a7;
   --secondary-foreground: #252720;
   --muted: #c6c0b0;
-  --muted-foreground: #5a5d54;
+  --muted-foreground: #43463e;
   --accent: #eadfca;
   --accent-foreground: #4b281d;
   --destructive: #a83b32;
@@ -142,9 +142,24 @@
   }
 
   :focus-visible {
-    outline: none;
+    outline: 2px solid var(--focus);
+    outline-offset: 4px;
   }
 }
+
+.mf-skip-link {
+  position: fixed;
+  top: 8px;
+  left: 12px;
+  z-index: 100;
+  transform: translateY(-150%);
+  padding: 12px 18px;
+  background: var(--surface-raised);
+  color: var(--foreground);
+  border: 2px solid var(--primary);
+}
+
+.mf-skip-link:focus { transform: translateY(0); }
 
 .font-mono {
   font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Consolas, monospace;

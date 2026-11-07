@@ -5,7 +5,9 @@ export type FrameExportFormat = "png" | "jpeg" | "webp";
 
 function seekVideo(video: HTMLVideoElement, time: number) {
   return new Promise<void>((resolve, reject) => {
+    if (Math.abs(video.currentTime - time) < 0.004 && video.readyState >= 2) { resolve(); return; }
     const timeout = window.setTimeout(() => {
+      cleanup();
       reject(new Error("Video seek timed out"));
     }, 12000);
 
@@ -131,8 +133,10 @@ export async function extractVideoFramesToZip(file: File, options: FrameZipOptio
       throw new Error("Video metadata is not ready yet.");
     }
 
-    const duration = video.duration || 0;
+    const duration = video.duration;
+    if (!Number.isFinite(duration) || duration <= 0) throw new Error("This video has no finite duration.");
     const totalFrames = Math.max(1, Math.ceil(duration * fps));
+    if (!Number.isFinite(fps) || totalFrames > 1800) throw new Error("Frame ZIP export is limited to 1,800 frames. Choose a lower sample rate or a shorter clip.");
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;

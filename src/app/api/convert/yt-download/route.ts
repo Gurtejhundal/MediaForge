@@ -1,247 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
-import ytdl from "@distube/ytdl-core";
+import { errorResponse, fetchPublic, publicUrl, readJson, RequestError } from "@/lib/network";
 
 export const dynamic = "force-dynamic";
+const MEDIA_TYPES = /^(?:video\/(?:mp4|webm|quicktime)|audio\/(?:mpeg|mp4|webm|ogg|wav|x-wav))$/;
+const EXTENSIONS: Record<string, string> = { "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/webm": "webm", "audio/ogg": "ogg", "audio/wav": "wav", "audio/x-wav": "wav" };
 
-const FALLBACK_APIS = [
-  "https://api.cobalt.liubquanti.click",
-  "https://dog.kittycat.boo",
-  "https://rue-cobalt.xenon.zone",
-  "https://cobaltapi.cjs.nz",
-  "https://cobaltapi.kittycat.boo"
-];
+let activeDownloads = 0;
 
-function getErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : "Failed to process the requested URL.";
-  
-  if (
-    message.includes("confirm you are not a bot") || 
-    message.includes("Sign in to") || 
-    message.includes("LOGIN_REQUIRED")
-  ) {
-    return "YouTube is blocking this download request from Vercel's serverless servers (requesting bot verification). To download YouTube videos, please run MediaForge locally on your own computer, where requests will use your own internet IP and bypass this server block.";
-  }
-  
-  return message;
-}
-
-// Shuffles an array to randomize load balancing
-function shuffleArray<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-async function tryCobaltAPI(url: string, isAudio: boolean, quality: string) {
-  let apis = [...FALLBACK_APIS];
-  
-  // Try fetching live working instances list first
+export async function POST(request: Request) {
+  if (activeDownloads >= 2) return Response.json({ error: "The download bench is busy. Try again shortly." }, { status: 429, headers: { "Retry-After": "20" } });
+  activeDownloads += 1;
   try {
-    const res = await fetch("https://cobalt.directory/api/working?type=api", { signal: AbortSignal.timeout(3000) });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.data && Array.isArray(json.data.youtube)) {
-        const fetched = json.data.youtube.map((api: string) => api.replace(/\/$/, ""));
-        apis = Array.from(new Set([...FALLBACK_APIS, ...fetched]));
-      }
+    const body = await readJson(request);
+    const url = publicUrl(body.url);
+    const direct = /\.(mp4|webm|mov|mp3|m4a|ogg|wav)$/i.test(url.pathname);
+    let downloadUrl = url.href;
+    if (!direct) {
+      const provider = process.env.MEDIAFORGE_DOWNLOADER_URL;
+      if (!provider) throw new RequestError("This server supports direct media links. Platform links require the owner to configure a trusted download provider.", 503);
+      if (!["mp4", "mp3"].includes(String(body.format))) throw new RequestError("Choose MP4 video or MP3 audio.");
+      const result = await fetchPublic(provider, { maxBytes: 64 * 1024, timeoutMs: 15_000, json: { url: url.href, downloadMode: body.format === "mp3" ? "audio" : "auto", audioFormat: "mp3", videoQuality: body.quality === "360p" ? "360" : body.quality === "720p" ? "720" : "1080" } });
+      const payload = JSON.parse(result.bytes.toString("utf8"));
+      downloadUrl = publicUrl(payload.url).href;
     }
-  } catch (err) {
-    console.warn("Could not fetch working Cobalt list, using fallback instances:", err);
-  }
-
-  // Shuffle APIs to balance the load
-  const shuffledApis = shuffleArray(apis);
-  let hasUnavailable = false;
-  let hasPrivate = false;
-  let hasAgeRestricted = false;
-  let errorMsg = null;
-
-  for (const api of shuffledApis) {
-    // Try v10 payload format
-    const payloadV10 = {
-      url,
-      videoQuality: quality === "highest" ? "1080" : quality === "720p" ? "720" : "360",
-      downloadMode: isAudio ? "audio" : "auto",
-      audioFormat: "mp3"
-    };
-
-    try {
-      const response = await fetch(api, {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payloadV10),
-        signal: AbortSignal.timeout(6000)
-      });
-
-      const data = await response.json();
-      if (response.ok && data.url) {
-        return { downloadUrl: data.url, filename: data.filename };
-      }
-
-      if (data?.error?.code) {
-        const code = data.error.code;
-        if (code.includes("video.unavailable") || code.includes("content.unavailable")) hasUnavailable = true;
-        if (code.includes("video.private") || code.includes("content.private")) hasPrivate = true;
-        if (code.includes("video.age_restricted") || code.includes("youtube.login") || code.includes("youtube.age")) hasAgeRestricted = true;
-        errorMsg = data.error.code;
-      }
-
-      // Fallback: If invalid body error code is returned, try v7 payload
-      if (data?.error?.code === "error.api.invalid_body") {
-        const payloadV7 = {
-          url,
-          videoQuality: quality === "highest" ? "720" : quality === "720p" ? "720" : "360",
-          isAudioOnly: isAudio
-        };
-
-        const responseV7 = await fetch(api, {
-          method: "POST",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payloadV7),
-          signal: AbortSignal.timeout(6000)
-        });
-
-        const dataV7 = await responseV7.json();
-        if (responseV7.ok && dataV7.url) {
-          return { downloadUrl: dataV7.url, filename: dataV7.filename };
-        }
-
-        if (dataV7?.error?.code) {
-          const code = dataV7.error.code;
-          if (code.includes("video.unavailable") || code.includes("content.unavailable")) hasUnavailable = true;
-          if (code.includes("video.private") || code.includes("content.private")) hasPrivate = true;
-          if (code.includes("video.age_restricted") || code.includes("youtube.login") || code.includes("youtube.age")) hasAgeRestricted = true;
-          errorMsg = dataV7.error.code;
-        }
-      }
-    } catch (err) {
-      console.warn(`Cobalt instance ${api} failed to process request:`, err);
-    }
-  }
-
-  // Handle specific captured errors instead of generic fallback
-  if (hasUnavailable) {
-    return { error: "The requested video is unavailable or does not exist. Please check the URL for typos and try again." };
-  }
-  if (hasPrivate) {
-    return { error: "This video is private and cannot be downloaded." };
-  }
-  if (hasAgeRestricted) {
-    return { error: "This video requires login or is age-restricted, and no active bypass server was able to fetch it. Please try running MediaForge locally to bypass this block." };
-  }
-  if (errorMsg) {
-    return { error: `Download failed: ${errorMsg}. Check video link or try another format/quality.` };
-  }
-
-  return null;
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const { url, format: formatType, quality } = await req.json();
-
-    if (!url || typeof url !== "string") {
-      return NextResponse.json({ error: "Invalid URL provided" }, { status: 400 });
-    }
-
-    // Handle Native direct links instantly fallback
-    if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Could not fetch remote media");
-        const contentType = response.headers.get("content-type") || "video/mp4";
-        const buffer = await response.arrayBuffer();
-        return new NextResponse(buffer, {
-             status: 200,
-             headers: {
-                  "Content-Type": contentType,
-                  "Content-Disposition": `attachment; filename="media-file.${contentType.split('/')[1] || 'mp4'}"`
-             }
-         });
-    }
-
-    const isAudio = formatType === "mp3";
-
-    // 1. Try public Cobalt instances first (works in cloud/Vercel!)
-    const cobaltResult = await tryCobaltAPI(url, isAudio, quality);
-    if (cobaltResult) {
-      if (cobaltResult.error) {
-        return NextResponse.json({ error: cobaltResult.error }, { status: 400 });
-      }
-      return NextResponse.json({
-        success: true,
-        downloadUrl: cobaltResult.downloadUrl,
-        filename: cobaltResult.filename
-      });
-    }
-
-    // 2. Fallback: If Cobalt fails, use local ytdl-core streaming (works locally)
-    if (!ytdl.validateURL(url)) {
-        return NextResponse.json({ error: "Unsupported URL or Cobalt instances failed to process this download. Check link and try again." }, { status: 400 });
-    }
-
-    const info = await ytdl.getInfo(url);
-    const title = info.videoDetails.title.replace(/[^\w\s]/gi, ''); // sanitize filename
-    
-    let selectedFormat;
-    let extension = "mp4";
-    let contentType = "video/mp4";
-
-    if (isAudio) {
-      selectedFormat = ytdl.chooseFormat(info.formats, { filter: "audioonly", quality: "highestaudio" });
-      extension = "mp3";
-      contentType = "audio/mpeg";
-    } else {
-      const muxedFormats = ytdl.filterFormats(info.formats, "audioandvideo");
-      if (quality === "360p") {
-        selectedFormat = muxedFormats.find(f => f.qualityLabel === "360p") || 
-                         ytdl.chooseFormat(info.formats, { filter: "audioandvideo", quality: "lowest" });
-      } else if (quality === "720p") {
-        selectedFormat = muxedFormats.find(f => f.qualityLabel === "720p") || 
-                         ytdl.chooseFormat(info.formats, { filter: "audioandvideo", quality: "highest" });
-      } else {
-        selectedFormat = ytdl.chooseFormat(info.formats, { filter: "audioandvideo", quality: "highest" });
-      }
-      extension = "mp4";
-      contentType = selectedFormat?.mimeType || "video/mp4";
-    }
-
-    if (!selectedFormat) {
-      throw new Error("No suitable format found for the selected options.");
-    }
-    
-    // We cannot stream direct binary download if on Vercel because of bot verification, but local dev works!
-    const stream = ytdl(url, { format: selectedFormat });
-    const webStream = new ReadableStream({
-       start(controller) {
-          stream.on('data', (chunk) => controller.enqueue(new Uint8Array(chunk)));
-          stream.on('end', () => controller.close());
-          stream.on('error', (err) => controller.error(err));
-       },
-       cancel() {
-          stream.destroy();
-       }
-    });
-
-    // Return the response headers containing Content-Disposition to prompt browser download
-    return new NextResponse(webStream, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${title}.${extension}"`
-      }
-    });
-
-  } catch (error: unknown) {
-    console.error("Link Downloader Error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
-  }
+    const media = await fetchPublic(downloadUrl, { allowedTypes: MEDIA_TYPES });
+    return new Response(new Uint8Array(media.bytes), { headers: {
+      "Content-Type": media.contentType,
+      "Content-Disposition": `attachment; filename="media-download.${EXTENSIONS[media.contentType]}"`,
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-store",
+    } });
+  } catch (error) { return errorResponse(error); }
+  finally { activeDownloads -= 1; }
 }

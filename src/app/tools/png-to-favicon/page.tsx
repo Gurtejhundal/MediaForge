@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup, useObjectUrlMapCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import Image from "next/image";
 import { Download, Loader2, Package } from "lucide-react";
@@ -15,6 +17,7 @@ import { generateFaviconPackageLocally } from "@/lib/local-processing/image-proc
 export default function PngToFaviconPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<{
     previews: Record<string, string>;
@@ -22,6 +25,8 @@ export default function PngToFaviconPage() {
     filename: string;
     dimensions: { width: number; height: number };
   } | null>(null);
+
+  useObjectUrlMapCleanup(result?.previews);
 
   const handleFileAccepted = (acceptedFile: File) => {
     revokeObjectUrl(previewUrl);

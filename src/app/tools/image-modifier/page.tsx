@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { Download, Droplets, ImageIcon, Loader2, RotateCw, Scissors, Stamp, Type, Wand2 } from "lucide-react";
@@ -25,7 +27,9 @@ function getErrorMessage(error: unknown) {
 export default function ImageModifierPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(resultUrl);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultName, setResultName] = useState("modified-image.webp");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -80,19 +84,23 @@ export default function ImageModifierPage() {
       return;
     }
 
+    if ([cropLeft, cropTop, cropWidth, cropHeight].some(Boolean) && ![cropLeft, cropTop, cropWidth, cropHeight].every(Boolean)) {
+      toast.error("Complete all four crop fields, or leave them all blank.");
+      return;
+    }
     setIsProcessing(true);
     try {
       const result = await processImageLocally(file, {
         format,
         quality: quality[0],
-        width: resizeWidth ? Number.parseInt(resizeWidth, 10) : undefined,
-        height: resizeHeight ? Number.parseInt(resizeHeight, 10) : undefined,
+        width: resizeWidth ? Number(resizeWidth) : undefined,
+        height: resizeHeight ? Number(resizeHeight) : undefined,
         rotate: Number.parseInt(rotate, 10),
         crop: cropLeft && cropTop && cropWidth && cropHeight ? {
-          left: Number.parseInt(cropLeft, 10),
-          top: Number.parseInt(cropTop, 10),
-          width: Number.parseInt(cropWidth, 10),
-          height: Number.parseInt(cropHeight, 10),
+          left: Number(cropLeft),
+          top: Number(cropTop),
+          width: Number(cropWidth),
+          height: Number(cropHeight),
         } : undefined,
         watermark: watermarkText.trim() ? {
           text: watermarkText.trim(),
@@ -197,7 +205,7 @@ export default function ImageModifierPage() {
                 <Label className="mb-2 flex items-center"><RotateCw className="mr-2 h-4 w-4" /> Rotate</Label>
                 <div className="grid grid-cols-4 gap-2">
                   {["0", "90", "180", "270"].map((angle) => (
-                    <Button key={angle} variant={rotate === angle ? "default" : "outline"} onClick={() => setRotate(angle)}>
+                    <Button key={angle} aria-pressed={rotate === angle} variant={rotate === angle ? "default" : "outline"} onClick={() => setRotate(angle)}>
                       {angle}
                     </Button>
                   ))}
@@ -210,7 +218,7 @@ export default function ImageModifierPage() {
               <Label className="mb-2 block">Format</Label>
               <div className="mb-5 grid grid-cols-4 gap-2">
                 {FORMATS.map((nextFormat) => (
-                  <Button key={nextFormat} variant={format === nextFormat ? "default" : "outline"} onClick={() => setFormat(nextFormat)}>
+                  <Button key={nextFormat} aria-pressed={format === nextFormat} variant={format === nextFormat ? "default" : "outline"} onClick={() => setFormat(nextFormat)}>
                     {nextFormat === "jpeg" ? "JPG" : nextFormat.toUpperCase()}
                   </Button>
                 ))}
@@ -231,7 +239,7 @@ export default function ImageModifierPage() {
               <Label className="mb-2 mt-4 block">Position</Label>
               <div className="grid grid-cols-2 gap-2">
                 {POSITIONS.map((position) => (
-                  <Button key={position} variant={watermarkPosition === position ? "default" : "outline"} onClick={() => setWatermarkPosition(position)} className="capitalize">
+                  <Button key={position} aria-pressed={watermarkPosition === position} variant={watermarkPosition === position ? "default" : "outline"} onClick={() => setWatermarkPosition(position)} className="capitalize">
                     {position.replace("-", " ")}
                   </Button>
                 ))}

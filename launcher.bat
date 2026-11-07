@@ -1,32 +1,22 @@
 @echo off
+setlocal
 title MediaForge Launcher
-echo ========================================================
-echo                  MEDIAFORGE LAUNCHER
-echo ========================================================
-echo.
-
-:: Ensure we are working in the directory where the batch file is located
 cd /d "%~dp0"
-
-:: Check if node_modules exists, if not, install dependencies
-IF NOT EXIST "node_modules\" (
-    echo [*] 'node_modules' not found. Installing dependencies for the first time...
-    call npm install
-    echo [*] Dependencies installed successfully.
-    echo.
-) ELSE (
-    echo [*] Dependencies already installed.
+where node >nul 2>nul
+if errorlevel 1 (
+  echo Install Node 24.12 or newer in the 24.x line, then run this launcher again.
+  pause
+  exit /b 1
 )
-
-echo [*] Launching your browser to http://localhost:3000 in a few seconds...
-:: Launch browser in background asynchronously after a slight delay
-start "" cmd /c "timeout /t 4 /nobreak >nul & start http://localhost:3000"
-
-echo [*] Starting Next.js Development Server...
-echo ========================================================
-echo.
-
-:: Start the dev server
-npm run dev
-
-pause
+if not exist "node_modules\" (
+  call npm ci
+  if errorlevel 1 (
+    echo Installation failed. Read the error above. No server was started.
+    pause
+    exit /b 1
+  )
+)
+echo Open http://127.0.0.1:3000 after the server reports Ready.
+echo Press Ctrl+C to stop MediaForge.
+call npm run dev
+if errorlevel 1 pause

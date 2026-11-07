@@ -1,0 +1,41 @@
+appId: io.github.gurtejhundal.mediaforge
+productName: MediaForge
+copyright: Copyright © 2026 Gurtej Hundal
+directories:
+  app: desktop-app
+  output: release
+files:
+  - '*.cjs'
+  - icon.png
+  - package.json
+  - '!node_modules/**/*'
+extraResources:
+  - from: desktop-app
+    to: .
+    filter: ["web/**/*"]
+asar: true
+artifactName: 'MediaForge-${version}-${os}-${arch}.${ext}'
+publish: null
+linux:
+  executableName: mediaforge
+  syncDesktopName: true
+  target: [AppImage, deb]
+  category: AudioVideo
+  icon: public/android-chrome-512x512.png
+  desktop:
+    entry:
+      StartupWMClass: MediaForge
+      Comment: A local media workbench for images, video, audio and documents.
+win:
+  target: [nsis]
+  icon: public/android-chrome-512x512.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+mac:
+  target: [dmg, zip]
+  category: public.app-category.productivity
+  icon: public/android-chrome-512x512.png
+  hardenedRuntime: true

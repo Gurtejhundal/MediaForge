@@ -1,0 +1,11 @@
+name: Suggest an improvement
+description: Explain the task you want to finish.
+title: '[Idea] '
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What are you trying to do?
+      description: Describe your workflow, the limitation, and what a useful result would look like.
+    validations:
+      required: true

@@ -323,7 +323,7 @@ export default function PdfOrganizerPage() {
           {mode === "rotate" ? (
             <section className="mf-faceplate p-5">
               <h3 className="mb-4 flex items-center font-bold"><RotateCw className="mr-2 size-4 text-primary" /> Rotation</h3>
-              <div className="grid grid-cols-3 gap-2">{["90", "180", "270"].map((nextAngle) => <Button key={nextAngle} variant={angle === nextAngle ? "default" : "outline"} onClick={() => setAngle(nextAngle)}>{nextAngle}°</Button>)}</div>
+              <div className="grid grid-cols-3 gap-2">{["90", "180", "270"].map((nextAngle) => <Button key={nextAngle} aria-pressed={angle === nextAngle} variant={angle === nextAngle ? "default" : "outline"} onClick={() => setAngle(nextAngle)}>{nextAngle}°</Button>)}</div>
             </section>
           ) : null}
 
@@ -332,7 +332,7 @@ export default function PdfOrganizerPage() {
               <h3 className="mb-4 flex items-center font-bold"><Stamp className="mr-2 size-4 text-primary" /> Watermark</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <div><Label htmlFor="watermark-text">Text</Label><Input id="watermark-text" value={watermarkText} onChange={(event) => setWatermarkText(event.target.value)} /></div>
-                <div><Label className="mb-2 block">Position</Label><div className="grid grid-cols-2 gap-2">{POSITIONS.map((position) => <Button key={position} variant={watermarkPosition === position ? "default" : "outline"} onClick={() => setWatermarkPosition(position)} className="capitalize">{position.replace("-", " ")}</Button>)}</div></div>
+                <div><Label className="mb-2 block">Position</Label><div className="grid grid-cols-2 gap-2">{POSITIONS.map((position) => <Button key={position} aria-pressed={watermarkPosition === position} variant={watermarkPosition === position ? "default" : "outline"} onClick={() => setWatermarkPosition(position)} className="capitalize">{position.replace("-", " ")}</Button>)}</div></div>
               </div>
               <div className="mt-5"><div className="mb-3 flex items-center justify-between"><Label>Opacity</Label><span className="font-mono text-xs font-bold text-primary">{opacity[0]}%</span></div><Slider value={opacity} onValueChange={(value) => setOpacity(value as number[])} min={5} max={100} step={1} /></div>
             </section>

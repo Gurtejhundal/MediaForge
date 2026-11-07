@@ -49,3 +49,12 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Verified build/test output
+/release/
+/desktop-app/
+/test-results/
+/playwright-report/
+/*-player-script.js
+!/.env.example
+/work/

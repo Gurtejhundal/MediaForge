@@ -94,7 +94,7 @@ function useWorkbenchMeters() {
   useEffect(() => {
     let active = true;
     const refreshResources = async () => {
-      const nextStats = await readBrowserResourceStats();
+      const nextStats = await readBrowserResourceStats().catch(() => ({ ...emptyResourceStats, storageUsedLabel: "Unavailable" }));
       if (active) setResourceStats(nextStats);
     };
     const initialTimer = window.setTimeout(() => {
@@ -173,7 +173,7 @@ function SessionPanel() {
         <div className="mt-6 rounded-sm border border-[#3c4738] bg-[#0e120d] p-3 shadow-[inset_0_2px_5px_rgba(0,0,0,.55)]">
           <p className="font-mono text-[8px] uppercase tracking-[0.16em] text-[#77816d]">Last local export</p>
           <p className="mt-2 truncate text-xs text-[#b3bea4]">{activityStats.lastFilename || "No export recorded yet"}</p>
-          <p className="mt-2 font-mono text-[8px] text-[#6e7866]">RAM: {resourceStats.deviceMemoryLabel}</p>
+          <p className="mt-2 font-mono text-[8px] text-[#929d87]">RAM: {resourceStats.deviceMemoryLabel}</p>
         </div>
       </div>
     </aside>

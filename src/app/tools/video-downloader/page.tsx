@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, DownloadCloud, Film, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBlob } from "@/lib/local-processing/blob-utils";
 import { StatusPill } from "@/components/workspace-components";
 
 export default function VideoDownloaderPage() {
@@ -18,7 +19,8 @@ export default function VideoDownloaderPage() {
     if (!url.trim()) return;
 
     try {
-      new URL(url); // quick validate
+      const parsed = new URL(url);
+      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
     } catch {
       toast.error("Please enter a valid URL");
       return;
@@ -32,7 +34,7 @@ export default function VideoDownloaderPage() {
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           url: url.trim(),
           format,
           quality
@@ -46,43 +48,10 @@ export default function VideoDownloaderPage() {
 
       const contentType = response.headers.get("Content-Type") || "";
 
-      if (contentType.includes("application/json")) {
-        // Cobalt returned the direct download URL as JSON
-        const data = await response.json();
-        if (data.downloadUrl) {
-          const link = document.createElement("a");
-          link.href = data.downloadUrl;
-          // Set filename if returned, fallback to dynamic format
-          link.download = data.filename || `media-download.${format}`;
-          link.target = "_blank"; // Opens in a new tab to trigger download
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-        } else {
-          throw new Error(data.error || "Failed to fetch download link.");
-        }
-      } else {
-        // Fallback: ytdl-core returned a binary stream
-        const blob = await response.blob();
-        const contentDisposition = response.headers.get("Content-Disposition");
-        let filename = `media-download.${format}`;
-        
-        if (contentDisposition) {
-           const matches = /filename="([^"]+)"/.exec(contentDisposition);
-           if (matches && matches[1]) {
-               filename = matches[1];
-           }
-        }
-
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(blobUrl);
-      }
+      if (!contentType.startsWith("video/") && !contentType.startsWith("audio/")) throw new Error("The server did not return media.");
+      const blob = await response.blob();
+      const filename = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") || "")?.[1] || "media-download";
+      downloadBlob(blob, filename, { kind: "extraction" });
 
       toast.success("Download started successfully!");
       setUrl("");
@@ -95,8 +64,8 @@ export default function VideoDownloaderPage() {
 
   return (
     <ToolLayout
-      title="Universal Video Downloader" 
-      description="Network tool for fetching media from a public URL. This is not a local-only file operation."
+      title="Media downloader"
+      description="Download public media up to 50 MB. Direct links keep their original format. Platform links need a configured provider."
       mode="network"
     >
       <div className="mb-6 flex flex-wrap gap-2">
@@ -105,7 +74,7 @@ export default function VideoDownloaderPage() {
       </div>
       <div className="max-w-2xl mx-auto mt-4 mb-20">
          <div className="relative overflow-hidden border bg-muted/30 p-7 text-center md:p-10">
-            
+
             {/* Background decors */}
             <div className="absolute -top-10 -right-10 opacity-10">
                <Film className="w-48 h-48" />
@@ -126,8 +95,9 @@ export default function VideoDownloaderPage() {
                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <LinkIcon className="h-5 w-5 text-muted-foreground" />
                      </div>
-                     <Input 
-                       placeholder="https://youtube.com/watch?v=..." 
+                     <Input
+                       aria-label="Media URL"
+                       placeholder="https://example.com/video.mp4"
                        value={url}
                        onChange={(e) => setUrl(e.target.value)}
                        disabled={isDownloading}
@@ -140,10 +110,10 @@ export default function VideoDownloaderPage() {
                        }}
                      />
                   </div>
-                  
-                  <Button 
-                    size="lg" 
-                    className="h-14 px-8 rounded-xl shrink-0" 
+
+                  <Button
+                    size="lg"
+                    className="h-14 px-8 rounded-xl shrink-0"
                     disabled={!url.trim() || isDownloading}
                     onClick={handleDownload}
                   >
@@ -161,7 +131,7 @@ export default function VideoDownloaderPage() {
                {/* Format and Quality Selectors */}
                <div className="w-full mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border/40 pt-6">
                   <div className="flex flex-col gap-2 text-left">
-                     <span className="text-sm font-semibold text-muted-foreground">Format</span>
+                     <span className="text-sm font-semibold text-muted-foreground">Provider format</span>
                      <div className="flex gap-2">
                         <Button
                           type="button"
@@ -186,7 +156,7 @@ export default function VideoDownloaderPage() {
 
                   {format === "mp4" ? (
                      <div className="flex flex-col gap-2 text-left transition-all duration-200">
-                        <span className="text-sm font-semibold text-muted-foreground">Quality</span>
+                        <span className="text-sm font-semibold text-muted-foreground">Provider quality</span>
                         <div className="flex gap-2">
                            <Button
                              type="button"
@@ -219,16 +189,16 @@ export default function VideoDownloaderPage() {
                      </div>
                   ) : (
                      <div className="flex flex-col gap-2 text-left opacity-50">
-                        <span className="text-sm font-semibold text-muted-foreground">Quality</span>
+                        <span className="text-sm font-semibold text-muted-foreground">Provider quality</span>
                         <div className="flex items-center h-11 px-4 border border-dashed border-border rounded-xl text-sm text-muted-foreground">
-                           Highest Audio (Automatic)
+                           MP3 requested from provider
                         </div>
                      </div>
                   )}
                </div>
-               
+
                <div className="mt-8 flex flex-wrap justify-center gap-4 opacity-50">
-                  <div className="flex items-center text-sm"><Film className="h-4 w-4 mr-1" /> YouTube</div>
+                  <div className="flex items-center text-sm"><Film className="h-4 w-4 mr-1" /> Platform links (provider required)</div>
                   <div className="flex items-center text-sm"><LinkIcon className="h-4 w-4 mr-1" /> Direct MP4</div>
                </div>
             </div>

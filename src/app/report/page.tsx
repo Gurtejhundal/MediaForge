@@ -101,7 +101,7 @@ export default function ReportPage() {
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(result.error || "Report could not be submitted.");
+        throw new Error(result.error || result.message || "Report could not be submitted.");
       }
 
       setSubmitState({
@@ -118,7 +118,7 @@ export default function ReportPage() {
   }
 
   return (
-    <main className="mx-auto w-[min(100%-24px,1120px)] flex-1 py-8 md:w-[min(100%-48px,1120px)] md:py-12">
+    <div className="mx-auto w-[min(100%-24px,1120px)] flex-1 py-8 md:w-[min(100%-48px,1120px)] md:py-12">
       <section className="mb-8 border-y border-border bg-card px-4 py-6 md:px-6 md:py-8">
         <div className="mb-5 flex flex-wrap gap-2">
           <StatusPill tone="server">Network feedback</StatusPill>
@@ -254,11 +254,11 @@ export default function ReportPage() {
             <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Delivery setup</p>
             <h2 className="mt-2 text-sm font-semibold text-foreground">For reliable delivery</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Set <span className="break-all font-mono text-foreground">MEDIAFORGE_REPORT_WEBHOOK_URL</span> in deployment settings. Discord, Slack, and generic JSON webhooks are supported.
+              If sending fails, your message stays here. Open a GitHub issue to share it directly; review the draft before posting.
             </p>
           </section>
         </aside>
       </div>
-    </main>
+    </div>
   );
 }

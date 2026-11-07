@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
@@ -57,6 +59,7 @@ function getTargetFormats(ext: string): string[] {
 export default function FileConverterPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [targetFormat, setTargetFormat] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -163,7 +166,7 @@ export default function FileConverterPage() {
                     {availableFormats.map((format) => (
                       <Button
                         key={format}
-                        variant={targetFormat === format ? "default" : "outline"}
+                        aria-pressed={targetFormat === format} variant={targetFormat === format ? "default" : "outline"}
                         onClick={() => setTargetFormat(format)}
                         className="capitalize min-w-[70px] h-10"
                       >

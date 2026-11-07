@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
@@ -16,6 +18,7 @@ type ResolutionMode = Extract<VideoResolutionMode, "original" | "1080p" | "720p"
 export default function VideoConverterPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [resolution, setResolution] = useState<ResolutionMode>("original");
   const [muteAudio, setMuteAudio] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -128,7 +131,7 @@ export default function VideoConverterPage() {
                   {(["original", "1080p", "720p", "480p"] as const).map((res) => (
                     <Button
                       key={res}
-                      variant={resolution === res ? "default" : "outline"}
+                      aria-pressed={resolution === res} variant={resolution === res ? "default" : "outline"}
                       onClick={() => setResolution(res)}
                       className="capitalize min-w-[90px] h-10"
                     >
