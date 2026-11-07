@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useRef, useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
@@ -32,7 +34,9 @@ function getErrorMessage(error: unknown) {
 export default function ImageEnhancerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(originalUrl);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(enhancedUrl);
   const [enhancedBlob, setEnhancedBlob] = useState<Blob | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [strength, setStrength] = useState<Strength>("medium");

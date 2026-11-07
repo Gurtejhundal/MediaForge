@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
@@ -33,6 +35,7 @@ function getErrorMessage(error: unknown) {
 export default function VideoUpscalerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [resolution, setResolution] = useState<Resolution>("2160p");
   const [preset, setPreset] = useState<Preset>("balanced");
   const [isProcessing, setIsProcessing] = useState(false);

@@ -40,53 +40,28 @@ export interface PdfProcessResult {
   filename: string;
 }
 
-function parsePages(input: string | undefined, totalPages: number) {
-  if (!input?.trim()) {
-    return Array.from({ length: totalPages }, (_, index) => index);
-  }
-
+export function parsePages(input: string | undefined, totalPages: number) {
+  if (!input?.trim()) return Array.from({ length: totalPages }, (_, index) => index);
   const selected = new Set<number>();
-  const parts = input.split(",").map((part) => part.trim()).filter(Boolean);
-
-  for (const part of parts) {
-    if (part.includes("-")) {
-      const [startRaw, endRaw] = part.split("-");
-      const start = Number.parseInt(startRaw, 10);
-      const end = Number.parseInt(endRaw, 10);
-
-      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 1 || end < start) {
-        throw new Error("Invalid page range");
-      }
-
-      for (let page = start; page <= end; page += 1) {
-        if (page <= totalPages) selected.add(page - 1);
-      }
-    } else {
-      const page = Number.parseInt(part, 10);
-      if (!Number.isFinite(page) || page < 1 || page > totalPages) {
-        throw new Error("Invalid page number");
-      }
-      selected.add(page - 1);
+  for (const part of input.split(",").map((value) => value.trim())) {
+    if (!/^\d+(?:\s*-\s*\d+)?$/.test(part)) throw new Error("Use whole page numbers or ranges, for example 1,3-5.");
+    const [start, end = start] = part.split("-").map(Number);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 1 || end < start || end > totalPages) {
+      throw new Error(`Page range must be between 1 and ${totalPages}.`);
     }
+    for (let page = start; page <= end; page += 1) selected.add(page - 1);
   }
-
   return [...selected];
 }
 
-function parseOrder(input: string | undefined, totalPages: number) {
-  if (!input?.trim()) {
-    return Array.from({ length: totalPages }, (_, index) => index);
+export function parseOrder(input: string | undefined, totalPages: number) {
+  if (!input?.trim()) return Array.from({ length: totalPages }, (_, index) => index);
+  const values = input.split(",").map((part) => part.trim());
+  if (values.some((part) => !/^\d+$/.test(part))) throw new Error("Page order must contain whole page numbers separated by commas.");
+  const order = values.map(Number);
+  if (order.length !== totalPages || new Set(order).size !== totalPages || order.some((page) => page < 1 || page > totalPages)) {
+    throw new Error("Page order must include every page exactly once. Use Extract pages to create a subset.");
   }
-
-  const order = input
-    .split(",")
-    .map((part) => Number.parseInt(part.trim(), 10))
-    .filter((page) => Number.isFinite(page));
-
-  if (order.length === 0 || order.some((page) => page < 1 || page > totalPages)) {
-    throw new Error("Invalid page order");
-  }
-
   return order.map((page) => page - 1);
 }
 
@@ -145,7 +120,7 @@ export async function processPdfLocally(files: File[], options: PdfProcessOption
     const outputPdf = await PDFDocument.create();
 
     for (const file of files) {
-      const sourcePdf = await PDFDocument.load(await fileBytes(file), { ignoreEncryption: true });
+      const sourcePdf = await PDFDocument.load(await fileBytes(file));
       const copiedPages = await outputPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
       copiedPages.forEach((page) => outputPdf.addPage(page));
     }
@@ -155,7 +130,7 @@ export async function processPdfLocally(files: File[], options: PdfProcessOption
 
   const sourceFile = files[0];
   const baseName = safeBaseName(sourceFile.name);
-  const sourcePdf = await PDFDocument.load(await fileBytes(sourceFile), { ignoreEncryption: true });
+  const sourcePdf = await PDFDocument.load(await fileBytes(sourceFile));
   const totalPages = sourcePdf.getPageCount();
 
   if (options.mode === "flattenForms") {

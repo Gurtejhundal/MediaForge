@@ -1,0 +1,28 @@
+name: Something broke
+description: Report a reproducible bug.
+title: '[Bug] '
+body:
+  - type: input
+    id: tool
+    attributes:
+      label: Tool and version
+      placeholder: Image resizer, 0.2.0
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps and expected result
+      description: Include file type, approximate size, input settings, and what happened. Do not attach private media.
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and browser
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Error message or non-sensitive screenshot

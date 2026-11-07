@@ -1,0 +1,49 @@
+name: Prepare a GitHub release draft
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag, for example v0.2.0 (must point to this commit)
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  clearance:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify release identity and license decision
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          node -e 'const fs=require("fs");const p=require("./package.json");if(process.env.RELEASE_TAG!==`v${p.version}`)throw Error("Tag must match package version");if(!fs.existsSync(`docs/releases/${p.version}.md`))throw Error("Versioned release notes are missing");if(!fs.existsSync("LICENSE"))throw Error("Choose the project license and resolve third-party distribution terms before publishing");'
+          test "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$GITHUB_SHA"
+  candidates:
+    needs: clearance
+    uses: ./.github/workflows/desktop.yml
+    permissions:
+      contents: read
+  draft:
+    needs: candidates
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: MediaForge-*
+          path: release
+          merge-multiple: true
+      - name: Verify every checksum
+        working-directory: release
+        run: |
+          for checksum in SHA256SUMS-*.txt; do sha256sum --check "$checksum"; done
+      - name: Create a draft for owner review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: gh release create "$RELEASE_TAG" release/MediaForge-* release/SHA256SUMS-*.txt --verify-tag --draft --title "MediaForge $RELEASE_TAG" --notes-file "docs/releases/${RELEASE_TAG#v}.md"

@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
@@ -15,6 +17,7 @@ import { StatusPill } from "@/components/workspace-components";
 export default function FormatConverterPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
   const [targetFormat, setTargetFormat] = useState<BrowserImageFormat>("webp");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -79,7 +82,7 @@ export default function FormatConverterPage() {
                      {(["png", "jpeg", "webp", "avif", "svg"] as const).map(fmt => (
                        <Button 
                          key={fmt}
-                         variant={targetFormat === fmt ? "default" : "outline"}
+                         aria-pressed={targetFormat === fmt} variant={targetFormat === fmt ? "default" : "outline"}
                          onClick={() => setTargetFormat(fmt)}
                          className="capitalize w-24"
                        >

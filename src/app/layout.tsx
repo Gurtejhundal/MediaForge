@@ -51,8 +51,9 @@ export default function RootLayout({
           forcedTheme="light"
           disableTransitionOnChange
         >
+          <a href="#main-content" className="mf-skip-link">Skip to workbench</a>
           <Navbar />
-          <main className="flex-1 flex flex-col relative">
+          <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col relative">
             {children}
           </main>
           <Footer />

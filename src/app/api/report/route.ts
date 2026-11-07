@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJson, errorResponse } from "@/lib/network";
 
 const REPORT_TYPES = new Set(["bug", "feature", "tool-request", "privacy", "other"]);
 const MAX_MESSAGE_LENGTH = 4000;
@@ -53,6 +54,7 @@ async function sendWebhook(webhookUrl: string, report: ReturnType<typeof buildRe
   const body = url.includes("discord.com/api/webhooks")
     ? {
         content: summary.slice(0, 1900),
+        allowed_mentions: { parse: [] },
       }
     : url.includes("hooks.slack.com")
       ? {
@@ -64,6 +66,7 @@ async function sendWebhook(webhookUrl: string, report: ReturnType<typeof buildRe
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!response.ok) {
@@ -84,7 +87,7 @@ function buildReport(body: ReportRequest, request: NextRequest) {
     email: cleanText(body.email, MAX_SHORT_LENGTH),
     pageUrl: cleanText(body.pageUrl, 500),
     browser: cleanText(body.browser, 500),
-    userAgent: request.headers.get("user-agent") || "",
+    userAgent: (request.headers.get("user-agent") || "").slice(0, 500),
   };
 }
 
@@ -92,9 +95,9 @@ export async function POST(request: NextRequest) {
   let body: ReportRequest;
 
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON payload." }, { status: 400 });
+    body = await readJson(request);
+  } catch (error) {
+    return errorResponse(error);
   }
 
   // Honeypot field. Real users never see this input.
@@ -108,7 +111,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Report message must be at least 10 characters." }, { status: 400 });
   }
 
-  console.info("mediaforge_report", JSON.stringify(report));
+  // Feedback text and contact details are sent only to the configured destination.
+  console.info("mediaforge_report", JSON.stringify({ id: report.id, type: report.type }));
 
   const webhookUrl = process.env.MEDIAFORGE_REPORT_WEBHOOK_URL;
 
@@ -117,23 +121,23 @@ export async function POST(request: NextRequest) {
       {
         ok: true,
         delivered: false,
-        message: "Report logged on the server. Configure MEDIAFORGE_REPORT_WEBHOOK_URL for external delivery.",
+        message: "Feedback delivery is not configured. Your message has not been sent. Use Open GitHub issue to share it.",
       },
-      { status: 202 },
+      { status: 503 },
     );
   }
 
   try {
     await sendWebhook(webhookUrl, report);
-  } catch (error) {
-    console.error("mediaforge_report_webhook_failed", error);
+  } catch {
+    console.error("mediaforge_report_webhook_failed", { id: report.id });
     return NextResponse.json(
       {
         ok: true,
         delivered: false,
-        message: "Report logged on the server, but webhook delivery failed.",
+        message: "Feedback delivery could not be confirmed. Your message is still available. Retry or use Open GitHub issue.",
       },
-      { status: 202 },
+      { status: 503 },
     );
   }
 

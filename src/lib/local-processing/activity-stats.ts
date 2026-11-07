@@ -42,23 +42,32 @@ const emptyStats: LocalActivityStats = {
   lastUpdatedAt: null,
 };
 
-function canUseBrowserStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
-
 function parseStats(value: string | null): LocalActivityStats {
-  if (!value) return emptyStats;
-
+  const stats = { ...emptyStats };
+  if (!value) return stats;
   try {
-    return { ...emptyStats, ...JSON.parse(value) } as LocalActivityStats;
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return stats;
+    for (const key of Object.keys(emptyStats) as (keyof LocalActivityStats)[]) {
+      const item = (parsed as Record<string, unknown>)[key];
+      if (key === "lastFilename" || key === "lastUpdatedAt") {
+        stats[key] = typeof item === "string" ? item.slice(0, 512) : null;
+      } else if (typeof item === "number" && Number.isSafeInteger(item) && item >= 0) {
+        stats[key] = item;
+      }
+    }
   } catch {
-    return emptyStats;
+    // Activity counters are optional; corrupted storage must never block exports.
   }
+  return stats;
 }
 
 export function readLocalActivityStats(): LocalActivityStats {
-  if (!canUseBrowserStorage()) return emptyStats;
-  return parseStats(window.localStorage.getItem(STORAGE_KEY));
+  try {
+    return parseStats(typeof window === "undefined" ? null : window.localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return { ...emptyStats };
+  }
 }
 
 function inferExportKind(filename: string): LocalExportKind {
@@ -75,7 +84,7 @@ function inferExportKind(filename: string): LocalExportKind {
 }
 
 export function recordLocalExport(event: LocalExportEvent) {
-  if (!canUseBrowserStorage()) return;
+  if (typeof window === "undefined") return;
 
   const kind = event.kind || inferExportKind(event.filename);
   const current = readLocalActivityStats();
@@ -88,12 +97,16 @@ export function recordLocalExport(event: LocalExportEvent) {
     extractedFiles: current.extractedFiles + (kind === "extraction" ? 1 : 0),
     documentExports: current.documentExports + (kind === "document" ? 1 : 0),
     videoExports: current.videoExports + (kind === "video" ? 1 : 0),
-    bytesExported: current.bytesExported + Math.max(0, event.bytes),
+    bytesExported: current.bytesExported + (Number.isSafeInteger(event.bytes) && event.bytes >= 0 ? event.bytes : 0),
     lastFilename: event.filename,
     lastUpdatedAt: new Date().toISOString(),
   };
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Private mode, blocked storage, and full quotas do not affect the download.
+  }
   window.dispatchEvent(new CustomEvent(ACTIVITY_EVENT, { detail: next }));
 }
 

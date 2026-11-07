@@ -96,7 +96,7 @@ export function Dropzone({
   return (
     <div className="w-full space-y-4">
       <div
-        {...getRootProps()}
+        {...getRootProps({ role: "button", "aria-label": `Choose or drop ${displayLabel}` })}
         className={cn(
           "mf-inset relative grid w-full cursor-pointer overflow-hidden border-2 border-dashed p-5 transition-[background-color,border-color,box-shadow] md:grid-cols-[minmax(0,1fr)_280px] md:p-7",
           isDragActive && !isDragReject
@@ -105,10 +105,10 @@ export function Dropzone({
           isDragReject && "border-danger bg-danger/10",
         )}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps({ "aria-label": `Choose ${displayLabel}` })} hidden />
 
         <div className="relative p-1 md:pr-8">
-          <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-primary">Input bay / local file</p>
+          <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#813016]">Input bay / local file</p>
           <div className="mf-key mt-5 flex size-12 items-center justify-center text-primary">
             <UploadCloud className="size-6" />
           </div>

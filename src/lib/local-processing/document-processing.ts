@@ -1,3 +1,4 @@
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { safeBaseName } from "./blob-utils";
 import { processImageLocally, type BrowserImageFormat } from "./image-processing";
@@ -23,31 +24,49 @@ function escapeXml(value: unknown) {
     .replace(/'/g, "&apos;");
 }
 
-function csvToJson(csv: string): StructuredRecord[] {
-  const lines = csv.split(/\r?\n/).filter((line) => line.trim() !== "");
-  if (lines.length === 0) return [];
-  const headers = lines[0].split(",").map((header) => header.trim().replace(/^["']|["']$/g, ""));
-
-  return lines.slice(1).map((line) => {
-    const values = line.split(",").map((value) => value.trim().replace(/^["']|["']$/g, ""));
-    return headers.reduce<StructuredRecord>((record, header, index) => {
-      record[header] = values[index] || "";
-      return record;
-    }, {});
+export function csvToJson(csv: string): StructuredRecord[] {
+  const rows: string[][] = [];
+  let row: string[] = [], cell = "", quoted = false, closed = false, touched = false;
+  const input = csv.replace(/^\uFEFF/, "");
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index];
+    if (quoted) {
+      if (char === '"' && input[index + 1] === '"') { cell += '"'; index += 1; }
+      else if (char === '"') { quoted = false; closed = true; }
+      else cell += char;
+    } else if (char === "," || char === "\n" || char === "\r") {
+      if (char === ",") touched = true;
+      row.push(cell); cell = ""; closed = false;
+      if (char !== ",") {
+        if (touched || row.length > 1) rows.push(row);
+        row = []; touched = false;
+        if (char === "\r" && input[index + 1] === "\n") index += 1;
+      }
+    } else if (char === '"' && cell === "" && !closed) { quoted = true; touched = true; }
+    else {
+      if (closed || char === '"') throw new Error("Invalid CSV quoting.");
+      cell += char; touched = true;
+    }
+  }
+  if (quoted) throw new Error("CSV contains an unclosed quoted field.");
+  row.push(cell);
+  if (touched || row.length > 1) rows.push(row);
+  const headers = rows.shift() || [];
+  if (headers.some((header) => !header) || new Set(headers).size !== headers.length) {
+    throw new Error("CSV headers must be non-empty and unique to preserve every column.");
+  }
+  return rows.map((values) => {
+    if (values.length !== headers.length) throw new Error("CSV row has a different number of columns than its header.");
+    return Object.fromEntries(headers.map((header, index) => [header, values[index]]));
   });
 }
 
-function jsonToCsv(value: unknown) {
+export function jsonToCsv(value: unknown) {
   const rows = Array.isArray(value) ? value : [value];
   const normalized = rows.map((row): Record<string, unknown> => (isRecord(row) ? row : { value: row }));
-  const headers = Object.keys(normalized[0] || {});
-  const lines = [headers.join(",")];
-
-  for (const row of normalized) {
-    lines.push(headers.map((header) => `"${String(row[header] ?? "").replace(/"/g, '""')}"`).join(","));
-  }
-
-  return lines.join("\n");
+  const headers = Array.from(new Set(normalized.flatMap((row) => Object.keys(row))));
+  const quote = (item: unknown) => `"${(typeof item === "object" && item !== null ? JSON.stringify(item) : String(item ?? "")).replace(/"/g, '""')}"`;
+  return [headers.map(quote).join(","), ...normalized.map((row) => headers.map((header) => quote(row[header])).join(","))].join("\r\n");
 }
 
 function jsonToXml(value: unknown, rootName = "root") {
@@ -58,7 +77,8 @@ function jsonToXml(value: unknown, rootName = "root") {
 
     if (isRecord(node)) {
       return Object.entries(node).map(([key, item]) => {
-        const cleanKey = key.replace(/[^a-zA-Z0-9_]/g, "_") || "item";
+        if (!/^[a-zA-Z_][a-zA-Z0-9_.-]*$/.test(key)) throw new Error(`XML cannot preserve the field name "${key}". Use JSON for arbitrary field names.`);
+        const cleanKey = key;
         if (isRecord(item) || Array.isArray(item)) {
           return `${indent}<${cleanKey}>\n${nodeToXml(item, `${indent}  `)}\n${indent}</${cleanKey}>`;
         }
@@ -73,56 +93,34 @@ function jsonToXml(value: unknown, rootName = "root") {
 }
 
 function xmlToJson(xml: string): StructuredRecord {
-  const result: StructuredRecord = {};
-  const tagRegex = /<([^!?/\s][^>\s]*)[^>]*>([^<]*)<\/\1>/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = tagRegex.exec(xml)) !== null) {
-    const key = match[1];
-    const value = match[2].trim();
-
-    if (key && value) {
-      result[key] = value;
+  const documentValue = new DOMParser().parseFromString(xml, "application/xml");
+  if (documentValue.querySelector("parsererror") || documentValue.doctype) throw new Error("Invalid XML or unsupported document type.");
+  function read(element: Element): StructuredValue {
+    const children = Array.from(element.children);
+    if (!children.length && !element.attributes.length) return element.textContent || "";
+    if (children.length && Array.from(element.childNodes).some((node) => node.nodeType === 3 && node.textContent?.trim())) {
+      throw new Error("Mixed-content XML is not supported; convert text-only elements to avoid losing data.");
     }
+    const entries: Array<[string, StructuredValue]> = Array.from(element.attributes).map((attribute) => [`@${attribute.name}`, attribute.value]);
+    const groups = new Map<string, StructuredValue[]>();
+    for (const child of children) groups.set(child.tagName, [...(groups.get(child.tagName) || []), read(child)]);
+    for (const [key, values] of groups) entries.push([key, values.length === 1 ? values[0] : values]);
+    if (!children.length) entries.push(["#text", element.textContent || ""]);
+    return Object.fromEntries(entries);
   }
-
-  return result;
+  return { [documentValue.documentElement.tagName]: read(documentValue.documentElement) };
 }
 
-function yamlToJson(yaml: string): StructuredRecord {
-  const result: StructuredRecord = {};
-
-  for (const line of yaml.split(/\r?\n/)) {
-    const clean = line.trim();
-    if (!clean || clean.startsWith("#")) continue;
-    const separator = clean.indexOf(":");
-    if (separator <= 0) continue;
-    result[clean.slice(0, separator).trim()] = clean.slice(separator + 1).trim();
-  }
-
-  return result;
+function yamlToJson(yaml: string): unknown {
+  return parseYaml(yaml, { maxAliasCount: 50, uniqueKeys: true });
 }
 
-function jsonToYaml(value: unknown, indent = ""): string {
-  if (Array.isArray(value)) {
-    return value.map((item) => {
-      if (Array.isArray(item) || isRecord(item)) return `${indent}-\n${jsonToYaml(item, `${indent}  `)}`;
-      return `${indent}- ${String(item ?? "")}\n`;
-    }).join("");
-  }
-
-  if (isRecord(value)) {
-    return Object.entries(value).map(([key, item]) => {
-      if (Array.isArray(item) || isRecord(item)) return `${indent}${key}:\n${jsonToYaml(item, `${indent}  `)}`;
-      return `${indent}${key}: ${String(item ?? "")}\n`;
-    }).join("");
-  }
-
-  return `${indent}${String(value ?? "")}\n`;
+function jsonToYaml(value: unknown) {
+  return stringifyYaml(value);
 }
 
 function mdToHtml(md: string) {
-  let html = md
+  let html = escapeXml(md)
     .replace(/^### (.*$)/gim, "<h3>$1</h3>")
     .replace(/^## (.*$)/gim, "<h2>$1</h2>")
     .replace(/^# (.*$)/gim, "<h1>$1</h1>")
@@ -206,8 +204,8 @@ export async function convertFileLocally(file: File, targetFormat: string): Prom
   const baseName = safeBaseName(file.name);
 
   if (file.type.startsWith("image/")) {
-    if (!["png", "jpeg", "webp", "avif"].includes(targetFormat)) {
-      throw new Error("This browser-local converter supports PNG, JPEG, WEBP, and AVIF image output only.");
+    if (!["png", "jpeg", "webp", "avif", "svg"].includes(targetFormat)) {
+      throw new Error("This browser-local converter supports PNG, JPEG, WEBP, AVIF, and raster-backed SVG output only.");
     }
 
     const result = await processImageLocally(file, {
@@ -223,7 +221,7 @@ export async function convertFileLocally(file: File, targetFormat: string): Prom
     ? parseStructuredInput(ext, text)
     : null;
 
-  if (structured !== null) {
+  if (["json", "csv", "xml", "yaml", "yml"].includes(ext)) {
     if (targetFormat === "pdf") {
       return { blob: await textToPdfBlob(JSON.stringify(structured, null, 2)), filename: `${baseName}.pdf` };
     }

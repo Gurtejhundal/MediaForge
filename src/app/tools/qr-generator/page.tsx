@@ -1,5 +1,7 @@
 "use client";
 
+import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
+
 import { useState } from "react";
 import { Download, Loader2, QrCode } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +22,8 @@ export default function QrGeneratorPage() {
   const [errorCorrection, setErrorCorrection] = useState<QrErrorCorrection>("H");
   const [format, setFormat] = useState<QrFormat>("png");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useObjectUrlCleanup(previewUrl);
+  const [outputFormat, setOutputFormat] = useState<QrFormat>("png");
   const [outputBlob, setOutputBlob] = useState<Blob | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -40,6 +44,7 @@ export default function QrGeneratorPage() {
       revokeObjectUrl(previewUrl);
       setPreviewUrl(nextUrl);
       setOutputBlob(blob);
+      setOutputFormat(format);
       toast.success("QR code generated locally.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to generate QR code");
@@ -54,7 +59,7 @@ export default function QrGeneratorPage() {
       return;
     }
 
-    downloadBlob(outputBlob, `qr-code.${format === "jpeg" ? "jpg" : format}`, { kind: "generation" });
+    downloadBlob(outputBlob, `qr-code.${outputFormat === "jpeg" ? "jpg" : outputFormat}`, { kind: "generation" });
   };
 
   return (
@@ -70,8 +75,9 @@ export default function QrGeneratorPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
           <SettingsPanel title="Content">
-            <Label className="mb-2 block">Text or URL</Label>
+            <Label htmlFor="qr-content" className="mb-2 block">Text or URL</Label>
             <Textarea
+              id="qr-content"
               placeholder="https://example.com"
               value={text}
               onChange={(event) => setText(event.target.value)}
@@ -83,11 +89,11 @@ export default function QrGeneratorPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label className="mb-2 block text-xs">Foreground</Label>
-                <input className="h-10 w-full rounded-md border border-input bg-white" type="color" value={darkColor} onChange={(event) => setDarkColor(event.target.value)} />
+                <input className="h-10 w-full rounded-md border border-input bg-white" aria-label="Foreground color" type="color" value={darkColor} onChange={(event) => setDarkColor(event.target.value)} />
               </div>
               <div>
                 <Label className="mb-2 block text-xs">Background</Label>
-                <input className="h-10 w-full rounded-md border border-input bg-white" type="color" value={lightColor} onChange={(event) => setLightColor(event.target.value)} />
+                <input className="h-10 w-full rounded-md border border-input bg-white" aria-label="Background color" type="color" value={lightColor} onChange={(event) => setLightColor(event.target.value)} />
               </div>
             </div>
 
@@ -102,14 +108,14 @@ export default function QrGeneratorPage() {
                 <Label>Margin</Label>
                 <span className="font-mono text-xs text-muted-foreground">{margin[0]} modules</span>
               </div>
-              <Slider value={margin} onValueChange={(value) => setMargin(value as number[])} min={0} max={10} step={1} />
+              <Slider aria-label="QR margin" value={margin} onValueChange={(value) => setMargin(value as number[])} min={0} max={10} step={1} />
             </div>
 
             <div className="mt-5">
               <Label className="mb-3 block">Error correction</Label>
               <div className="grid grid-cols-4 gap-2">
                 {(["L", "M", "Q", "H"] as const).map((level) => (
-                  <Button key={level} variant={errorCorrection === level ? "default" : "outline"} onClick={() => setErrorCorrection(level)}>
+                  <Button key={level} aria-pressed={errorCorrection === level} variant={errorCorrection === level ? "default" : "outline"} onClick={() => setErrorCorrection(level)}>
                     {level}
                   </Button>
                 ))}
@@ -120,7 +126,7 @@ export default function QrGeneratorPage() {
               <Label className="mb-3 block">Export format</Label>
               <div className="grid grid-cols-3 gap-2">
                 {(["png", "jpeg", "svg"] as const).map((nextFormat) => (
-                  <Button key={nextFormat} variant={format === nextFormat ? "default" : "outline"} onClick={() => setFormat(nextFormat)}>
+                  <Button key={nextFormat} aria-pressed={format === nextFormat} variant={format === nextFormat ? "default" : "outline"} onClick={() => setFormat(nextFormat)}>
                     {nextFormat === "jpeg" ? "JPG" : nextFormat.toUpperCase()}
                   </Button>
                 ))}
@@ -133,11 +139,7 @@ export default function QrGeneratorPage() {
           <SettingsPanel title="Preview">
             <div className="flex min-h-[320px] items-center justify-center rounded-xl border bg-white p-5">
               {previewUrl ? (
-                format === "svg" ? (
-                  <object data={previewUrl} type="image/svg+xml" aria-label="Generated QR code" className="h-72 w-72" />
-                ) : (
-                  <img src={previewUrl} alt="Generated QR code" className="h-72 w-72 object-contain" />
-                )
+                <img src={previewUrl} alt="Generated QR code" className="h-auto max-h-72 w-full max-w-72 object-contain" />
               ) : (
                 <div className="text-center text-muted-foreground">
                   <QrCode className="mx-auto mb-3 h-12 w-12 opacity-45" />

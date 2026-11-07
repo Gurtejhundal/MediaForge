@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-07",
+  "timezone": "Asia/Kolkata",
+  "version": "0.2.0",
+  "branch": "codex/reliability-release",
+  "cleanInstall": "passed: actual npm ci, Node 24.21.0 / npm 11.19.0",
+  "lint": "passed with zero warnings",
+  "typecheck": "passed",
+  "unitTests": {
+    "passed": 18,
+    "failed": 0
+  },
+  "browserTests": {
+    "passed": 53,
+    "failed": 0,
+    "browser": "system Google Chrome via Playwright",
+    "widths": [
+      320,
+      390,
+      1440
+    ]
+  },
+  "nativeTests": {
+    "platform": "Linux x64",
+    "chromiumSandbox": true,
+    "payloads": [
+      "unpacked executable",
+      "deb-extracted executable",
+      "AppImage-extracted AppRun"
+    ],
+    "result": "passed: launch, PNG export, privilege settings, HTTP 403 without token, restart persistence, server shutdown"
+  },
+  "installationLimits": [
+    "No privileged system deb installation",
+    "AppImage tested via extraction; FUSE mounting not tested",
+    "Windows/macOS native CI not run"
+  ],
+  "manualChecks": {
+    "backgroundRemoval": "model downloaded via GET; local result completed",
+    "ocr": "three-page readable PDF export, 15080 bytes",
+    "directMedia": "MDN CC0 MP4 helper returned video/mp4 and 1128375 bytes",
+    "directMediaUi": "passed: actual browser download media-download.mp4, MP4 signature and no download failure",
+    "notFound": "branded recovery route returned HTTP 404"
+  },
+  "dependencies": {
+    "highEntries": 2,
+    "criticalEntries": 0,
+    "underlyingAdvisory": "GHSA-mrhx-c7xc-m3w5",
+    "exceptionExpires": "2026-12-07",
+    "upstreamFixed": false
+  },
+  "publication": {
+    "sourcePushed": false,
+    "releasePublished": false,
+    "productionChanged": false,
+    "licenseSelected": false,
+    "existingHomepageStatus": 404
+  },
+  "securityReport": "Formal managed report unavailable: checkpoint storage permission rejection; partial source audit retained in audit.md",
+  "limitations": "Synthetic smoke/regression fixtures, not exhaustive input/codec/device/security certification.",
+  "scope": "Local release-candidate verification before source publication; check GitHub history and Actions for subsequent publication and hosted CI status.",
+  "hostedVerification": "hosted-verification.md"
+}

@@ -5,6 +5,12 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  { files: ["**/*.cjs"], rules: { "@typescript-eslint/no-require-imports": "off" } },
+  {
+    files: ["src/**/*.tsx"],
+    // Local Blob previews must not be sent through a server image optimizer.
+    rules: { "@next/next/no-img-element": "off" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -12,6 +18,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "scratch/**",
+    "release/**",
+    "desktop-app/**",
+    "test-results/**",
+    "playwright-report/**",
     "next-env.d.ts",
   ]),
 ]);

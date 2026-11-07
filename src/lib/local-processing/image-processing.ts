@@ -101,8 +101,11 @@ async function loadImageElement(file: File | Blob) {
 
 function createCanvas(width: number, height: number) {
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(width));
-  canvas.height = Math.max(1, Math.round(height));
+  if (![width, height].every((value) => Number.isFinite(value) && value >= 1 && value <= 16384) || width * height > 32_000_000) {
+    throw new Error("Choose positive dimensions up to 16,384 px per side and 32 megapixels total.");
+  }
+  canvas.width = Math.round(width);
+  canvas.height = Math.round(height);
   return canvas;
 }
 
@@ -160,7 +163,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, format: BrowserImageFormat, qua
       }
 
       resolve(blob);
-    }, mime, quality ? quality / 100 : undefined);
+    }, mime, quality !== undefined ? quality / 100 : undefined);
   });
 }
 
@@ -319,7 +322,14 @@ function drawCaption(ctx: CanvasRenderingContext2D, text: string | undefined, ca
 }
 
 export async function processImageLocally(file: File, options: ImageProcessOptions): Promise<LocalImageResult> {
+  for (const dimension of [options.width, options.height]) {
+    if (dimension !== undefined && (!Number.isInteger(dimension) || dimension < 1 || dimension > 16384)) throw new Error("Dimensions must be whole numbers between 1 and 16,384.");
+  }
+  if (options.crop && (!Object.values(options.crop).every(Number.isFinite) || options.crop.left < 0 || options.crop.top < 0 || options.crop.width <= 0 || options.crop.height <= 0)) {
+    throw new Error("Crop values must be finite, with a positive width and height.");
+  }
   const source = await decodeImage(file);
+  try {
   const originalWidth = source.width;
   const originalHeight = source.height;
   const crop = options.crop;
@@ -328,6 +338,7 @@ export async function processImageLocally(file: File, options: ImageProcessOptio
   const sourceWidth = crop ? Math.min(crop.width, originalWidth - sourceX) : originalWidth;
   const sourceHeight = crop ? Math.min(crop.height, originalHeight - sourceY) : originalHeight;
 
+  if (sourceWidth <= 0 || sourceHeight <= 0) throw new Error("The crop must overlap the image.");
   const draw = resolveDrawSize(sourceWidth, sourceHeight, options.width, options.height, options.fit);
   const rotated = Math.abs(options.rotate || 0) % 180 === 90;
   const canvas = createCanvas(rotated ? draw.canvasHeight : draw.canvasWidth, rotated ? draw.canvasWidth : draw.canvasHeight);
@@ -363,6 +374,7 @@ export async function processImageLocally(file: File, options: ImageProcessOptio
     originalWidth,
     originalHeight,
   };
+  } finally { releaseDecodedImage(source); }
 }
 
 function applyDetailKernel(ctx: CanvasRenderingContext2D, width: number, height: number, amount: number) {
@@ -407,6 +419,7 @@ export async function detailUpscaleImageLocally(file: File, options: {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(image, 0, 0, width, height);
+  releaseDecodedImage(image);
 
   const amount = options.strength === "high" ? 0.42 : options.strength === "medium" ? 0.26 : 0.14;
   applyDetailKernel(ctx, width, height, amount);
@@ -422,17 +435,20 @@ export async function detailUpscaleImageLocally(file: File, options: {
 
 export async function getImageDimensions(file: File) {
   const image = await decodeImage(file);
-  return { width: image.width, height: image.height };
+  const dimensions = { width: image.width, height: image.height };
+  releaseDecodedImage(image);
+  return dimensions;
 }
 
-async function makePngBlobFromImage(source: CanvasImageSource, size: number) {
+async function makePngBlobFromImage(source: Awaited<ReturnType<typeof decodeImage>>, size: number) {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is not available in this browser");
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.clearRect(0, 0, size, size);
-  ctx.drawImage(source, 0, 0, size, size);
+  const draw = resolveDrawSize(source.width, source.height, size, size, "contain");
+  ctx.drawImage(source, draw.drawX, draw.drawY, draw.drawWidth, draw.drawHeight);
   return await canvasToBlob(canvas, "png");
 }
 
@@ -467,6 +483,7 @@ async function makeIcoBlob(pngBlobs: Blob[]) {
 
 export async function generateFaviconPackageLocally(file: File) {
   const image = await decodeImage(file);
+  const dimensions = { width: image.width, height: image.height };
   const sizes = [16, 32, 48, 64, 96, 180, 192, 512];
   const pngs = new Map<number, Blob>();
 
@@ -474,6 +491,7 @@ export async function generateFaviconPackageLocally(file: File) {
     pngs.set(size, await makePngBlobFromImage(image, size));
   }
 
+  releaseDecodedImage(image);
   const ico = await makeIcoBlob([pngs.get(16)!, pngs.get(32)!, pngs.get(48)!]);
   const zip = new JSZip();
   const folderName = `${safeBaseName(file.name)}-favicon-pack`;
@@ -508,6 +526,6 @@ export async function generateFaviconPackageLocally(file: File) {
     blob: zipBlob,
     filename: `${folderName}.zip`,
     previews,
-    dimensions: { width: image.width, height: image.height },
+    dimensions,
   };
 }

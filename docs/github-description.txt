@@ -1,0 +1,1 @@
+A local media workbench for images, video, audio, PDFs, structured data, QR codes and favicons. Browser processing with separately marked network tools; desktop packaging in preparation.

@@ -115,6 +115,10 @@ export async function renderVideoToWebMLocally(file: File, options: LocalVideoOp
   }
 
   const { video, url } = await loadVideo(file);
+  if (!Number.isFinite(video.duration) || video.duration <= 0 || !video.videoWidth || !video.videoHeight) {
+    URL.revokeObjectURL(url);
+    throw new Error("This video has no finite duration or decodable dimensions.");
+  }
   const output = fitWithin(video.videoWidth, video.videoHeight, options.resolution);
   const canvas = document.createElement("canvas");
   canvas.width = output.width;
@@ -175,6 +179,10 @@ export async function renderVideoToWebMLocally(file: File, options: LocalVideoOp
       filename: `${safeBaseName(file.name)}-${options.resolution === "original" ? "local" : options.resolution}.webm`,
     };
   } finally {
+    if (recorder.state !== "inactive") recorder.stop();
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
     stream.getTracks().forEach((track) => track.stop());
     URL.revokeObjectURL(url);
   }
