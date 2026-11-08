@@ -19,7 +19,7 @@ The external library is Apache-2.0; model weights retain separate licenses. No l
 - A missing engine or CUDA device is an error, never a successful removal.
 - Returned images are decoded and re-encoded before atomic publication; malformed/missing engine outputs cannot be saved as a successful result.
 
-Twenty local diagnostic, batch, preflight and file-safety tests pass with simulated hardware/engine outputs. **These tests do not exercise Windows, the real model, GPU performance, or SynthID removal.** Actual local preflight returns `unavailable`: this development computer has AMD graphics, no NVIDIA CUDA device and no installed PyTorch/removal engine. A driver's visible GPU or a successful CUDA preflight does not establish model fit.
+Twenty local diagnostic, batch, preflight and file-safety tests pass with simulated hardware/engine outputs on both Windows and Linux in [native CI](https://github.com/Gurtejhundal/MediaForge/actions/runs/42476485220). File handling is exercised on each OS. **These tests do not exercise the real CUDA engine, model, GPU performance, or SynthID removal.** Actual local preflight returns `unavailable`: this development computer has AMD graphics, no NVIDIA CUDA device and no installed PyTorch/removal engine. A driver's visible GPU or a successful CUDA preflight does not establish model fit.
 
 Run the lightweight adapter tests in an environment with Pillow:
 

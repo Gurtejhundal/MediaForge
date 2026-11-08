@@ -69,7 +69,7 @@ Run the lightweight tests in an environment with Pillow; no PyTorch/model downlo
 python3 -m unittest discover -s services/invisible-watermarks -p 'test_*.py' -v
 ```
 
-20 tests pass on Linux using simulated hardware and engine outputs. They verify file handling, bounded sequential batches, interruption/error reports, duplicate names, no overwrite (including a dangling output symlink), driver-query failure handling and CUDA-vs-ROCm checks. They do not verify Windows execution, RTX 3050 memory fit, real regeneration or watermark removal.
+20 tests pass on each of Windows and Linux in [native CI](https://github.com/Gurtejhundal/MediaForge/actions/runs/42476485220), using simulated hardware and engine outputs. They verify actual file handling on each OS, bounded sequential batches, interruption/error reports, duplicate names, no overwrite (including a dangling output symlink), driver-query failure handling and CUDA-vs-ROCm checks. They do not verify actual Windows CUDA-engine execution, RTX 3050 memory fit, real regeneration or watermark removal. Windows fixture paths are normalized before comparison, and the inventory reads the platform from Python rather than running an extra OS command.
 
 | Feature or component | Expected behavior | Finding | Severity | Fix | Verification |
 | --- | --- | --- | --- | --- | --- |
