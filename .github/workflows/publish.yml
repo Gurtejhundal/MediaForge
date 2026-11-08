@@ -1,49 +1,125 @@
-name: Prepare a GitHub release draft
+name: Publish a verified release
 on:
+  push:
+    branches: [main]
+    paths: ['.github/release-requests/*.json']
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag, for example v0.2.0 (must point to this commit)
+        description: Version to release, for example v0.2.0
         required: true
         type: string
+      publish:
+        description: Publish after all checks, otherwise keep a draft
+        required: true
+        default: false
+        type: boolean
 permissions:
   contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   clearance:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+      publish: ${{ steps.identity.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Verify release identity and license decision
+      - id: identity
+        name: Validate the exact version, license and owner release request
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          REQUESTED_TAG: ${{ inputs.tag }}
+          REQUESTED_PUBLICATION: ${{ inputs.publish }}
         run: |
-          node -e 'const fs=require("fs");const p=require("./package.json");if(process.env.RELEASE_TAG!==`v${p.version}`)throw Error("Tag must match package version");if(!fs.existsSync(`docs/releases/${p.version}.md`))throw Error("Versioned release notes are missing");if(!fs.existsSync("LICENSE"))throw Error("Choose the project license and resolve third-party distribution terms before publishing");'
-          test "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$GITHUB_SHA"
+          node <<'JS'
+          const fs = require('node:fs');
+          const p = require('./package.json');
+          if (!/^\d+\.\d+\.\d+$/.test(p.version)) throw Error('A plain semantic version is required');
+          let tag = process.env.REQUESTED_TAG, publish = process.env.REQUESTED_PUBLICATION === 'true';
+          if (process.env.GITHUB_EVENT_NAME === 'push') {
+            const r = JSON.parse(fs.readFileSync(`.github/release-requests/v${p.version}.json`, 'utf8'));
+            tag = r.tag; publish = r.publish === true;
+            if (r.sourceBranch !== 'main' || process.env.GITHUB_REF !== 'refs/heads/main') throw Error('Owner requests run only on main');
+          }
+          if (tag !== `v${p.version}`) throw Error('Tag must match package version');
+          if (p.license !== 'AGPL-3.0-only' || fs.statSync('LICENSE').size < 30000) throw Error('Approved license is missing');
+          for (const f of [`docs/releases/${p.version}.md`, 'THIRD_PARTY_NOTICES.md']) if (!fs.existsSync(f)) throw Error(`Missing ${f}`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\npublish=${publish}\n`);
+          JS
+      - name: Reject an existing tag pointing at different source
+        env:
+          RELEASE_TAG: ${{ steps.identity.outputs.tag }}
+        run: |
+          if git rev-parse --verify "$RELEASE_TAG^{commit}" >/dev/null 2>&1; then
+            test "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$GITHUB_SHA"
+          fi
   candidates:
     needs: clearance
     uses: ./.github/workflows/desktop.yml
     permissions:
       contents: read
-  draft:
-    needs: candidates
+  release:
+    needs: [clearance, candidates]
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.clearance.outputs.tag }}
+      PUBLISH_RELEASE: ${{ needs.clearance.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v4
         with:
           pattern: MediaForge-*
           path: release
           merge-multiple: true
-      - name: Verify every checksum
-        working-directory: release
+      - name: Verify all seven native artifacts, including every checksum
+        run: node scripts/verify-release.cjs release
+      - name: Package matching source and the bundled AGPL library's original source maps
         run: |
-          for checksum in SHA256SUMS-*.txt; do sha256sum --check "$checksum"; done
-      - name: Create a draft for owner review
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: gh release create "$RELEASE_TAG" release/MediaForge-* release/SHA256SUMS-*.txt --verify-tag --draft --title "MediaForge $RELEASE_TAG" --notes-file "docs/releases/${RELEASE_TAG#v}.md"
+          git archive --format=zip --prefix="MediaForge-${RELEASE_TAG#v}/" --output="release/MediaForge-${RELEASE_TAG#v}-source.zip" "$GITHUB_SHA"
+          python3 <<'PY'
+          import os, pathlib, zipfile, hashlib
+          root = pathlib.Path('node_modules/@imgly/background-removal')
+          version = os.environ['RELEASE_TAG'][1:]
+          archive = pathlib.Path(f'release/MediaForge-{version}-source.zip')
+          with zipfile.ZipFile(archive, 'a', compression=zipfile.ZIP_DEFLATED) as z:
+              for f in sorted(root.rglob('*')):
+                  if f.is_file(): z.write(f, f'MediaForge-{version}/vendor/background-removal-1.7.0/{f.relative_to(root)}')
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None
+              assert f'MediaForge-{version}/LICENSE' in z.namelist()
+              assert not any(n.endswith('/.env.local') for n in z.namelist())
+          with open('release/SHA256SUMS.txt', 'a') as f:
+              f.write(hashlib.sha256(archive.read_bytes()).hexdigest() + '  ' + archive.name + '\n')
+          PY
+      - name: Create or resume a draft for this exact commit
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft,targetCommitish > release-state.json 2>/dev/null; then
+            node -e 'const r=require("./release-state.json");if(!r.isDraft || r.targetCommitish!==process.env.GITHUB_SHA)throw Error("Only an unpublished draft of this exact commit can be resumed")'
+            gh release upload "$RELEASE_TAG" release/MediaForge-* release/SHA256SUMS*.txt LICENSE THIRD_PARTY_NOTICES.md --clobber
+          else
+            gh release create "$RELEASE_TAG" release/MediaForge-* release/SHA256SUMS*.txt LICENSE THIRD_PARTY_NOTICES.md --target "$GITHUB_SHA" --draft --title "MediaForge ${RELEASE_TAG#v}" --notes-file "docs/releases/${RELEASE_TAG#v}.md"
+          fi
+      - name: Download the draft assets again and verify the uploaded bytes
+        run: |
+          gh release download "$RELEASE_TAG" --dir roundtrip --pattern 'MediaForge-*' --pattern 'SHA256SUMS*.txt'
+          cd roundtrip
+          for checksum in SHA256SUMS*.txt; do sha256sum --check "$checksum"; done
+      - name: Publish only when explicitly requested
+        if: env.PUBLISH_RELEASE == 'true'
+        run: |
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+          gh release view "$RELEASE_TAG" --json url,isDraft,tagName

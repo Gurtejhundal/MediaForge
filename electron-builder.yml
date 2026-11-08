@@ -8,6 +8,9 @@ files:
   - '*.cjs'
   - icon.png
   - package.json
+  - LICENSE
+  - THIRD_PARTY_NOTICES.md
+  - THIRD_PARTY_LICENSES.txt
   - '!node_modules/**/*'
 extraResources:
   - from: desktop-app

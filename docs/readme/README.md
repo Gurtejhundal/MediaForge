@@ -5,3 +5,5 @@ Screenshots and `qr-workflow.gif` are actual Playwright captures of the producti
 `upi-qr.png` is a byte-for-byte copy of the existing Traqu README QR, reused with explicit owner approval on 7 November 2026. SHA-256: `15c7b045cc25a1b8eee2e4e4806aeecdf17052e0a85daf65a8811660e2abc848`. No payment address or payment link was invented.
 
 To refresh captures, build the app, start the production preview on `127.0.0.1:4317`, and run `node scripts/capture-readme.cjs`. This uses a local installed Chrome when `PLAYWRIGHT_CHROME_CHANNEL=1`, otherwise Playwright Chromium. The intermediate PNG frames are under `work/readme-frames/` and are not committed. Use the documented ffmpeg palette generation command in that script to create the small GIF. Recheck captures after any visual/layout change.
+
+The Windows, Apple and Linux card icons are reused from the owner’s Traqu README at `frontend/public/os/`; the browser globe is a simple local SVG. The download layout follows Traqu while retaining MediaForge’s wording and workbench identity.

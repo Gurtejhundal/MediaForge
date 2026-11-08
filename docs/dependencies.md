@@ -12,10 +12,10 @@ MediaForge passes a small fixed configuration (model/device/output/progress call
 
 [Machine-readable exception](dependency-exception.json) is restricted to the exact package versions and advisory, expires **7 December 2026**, and fails closed if versions change. Production npm audit currently reports the underlying advisory and its dependent package as two high entries. Reevaluate on an upstream fix. This exception is not a clean-audit claim or a license clearance.
 
-## License status
+## License and source distribution
 
-No project license existed at the baseline. The owner has not selected one, so no project license has been invented or added.
+On 8 November 2026 the owner selected **AGPL-3.0-only** and authorized the public 0.2.0 release. The project [LICENSE](../LICENSE), [third-party notices](../THIRD_PARTY_NOTICES.md), package metadata and application source/license links now record that choice.
 
-The installed `@imgly/background-removal/LICENSE.md` contains GNU AGPL v3, and the package offers separate commercial licensing information in its own documentation. Its bundled model/runtime dependencies have separate notices. Before public installer distribution, the owner needs to settle project licensing and how the background-removal dependency is distributed. This release candidate keeps publication blocked rather than selecting terms or claiming compliance on the owner's behalf.
+The IMG.LY package retains its original AGPL license, bundled ThirdPartyLicenses.json and complete source-map contents. Desktop preparation preserves installed production-package notices and all three font notices. The matching release source archive includes the application, lockfile/build scripts and an unmodified copy of IMG.LY 1.7.0 with its original-source maps. Electron/Chromium notices remain in official runtime distributions. No commercial IMG.LY license or code-signing certificate is claimed.
 
-Electron, Chromium, Next, React, fonts and other packages also carry their own notices. Packaged files retain included dependency notices; a distribution review still needs to confirm all obligations for the chosen release model. An npm advisory result is not a license check.
+This license decision resolves the earlier owner-decision blocker. It does not fix the upstream advisory or certify legal obligations for future modifications, new dependencies, model redistribution or proprietary distribution. See [release procedure](releasing.md) for the exact verification boundary.

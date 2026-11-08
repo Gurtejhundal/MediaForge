@@ -66,7 +66,7 @@
     "minimatch": "11.0.5"
   },
   "description": "A local media workbench for images, video, audio, documents, QR codes and favicons.",
-  "homepage": "https://github.com/Gurtejhundal/MediaForge",
+  "homepage": "https://mediaforge-tau.vercel.app",
   "repository": {
     "type": "git",
     "url": "https://github.com/Gurtejhundal/MediaForge.git"
@@ -79,5 +79,6 @@
     "node": ">=24.12.0 <25"
   },
   "type": "module",
-  "desktopName": "MediaForge"
+  "desktopName": "MediaForge",
+  "license": "AGPL-3.0-only"
 }

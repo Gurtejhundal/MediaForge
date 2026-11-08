@@ -12,6 +12,15 @@ test('desktop boots, isolates privileges, exports, denies unauthenticated HTTP, 
   try {
     desktop = await launch();
     assert.equal(await desktop.evaluate(({ app }) => app.getName()), 'MediaForge');
+    const legal = await desktop.evaluate(({ app }) => {
+      const fs = process.getBuiltinModule('fs');
+      const path = process.getBuiltinModule('path');
+      const root = app.getAppPath();
+      const license = fs.readFileSync(path.join(root, 'LICENSE'), 'utf8');
+      const notices = fs.readFileSync(path.join(root, 'THIRD_PARTY_LICENSES.txt'), 'utf8');
+      return { agpl: license.includes('GNU AFFERO GENERAL PUBLIC LICENSE'), imgly: notices.includes('@imgly/background-removal@1.7.0'), fonts: ['instrumentsans','barlowcondensed','ibmplexmono'].every(name => notices.includes(`Font notice: ${name}-OFL.txt`)) };
+    });
+    assert.deepEqual(legal, { agpl: true, imgly: true, fonts: true }, 'Packaged application must retain its license and dependency/font notices.');
     const page = await desktop.firstWindow();
     await page.waitForSelector('h1');
     const url = new URL(page.url());

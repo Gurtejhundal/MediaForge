@@ -14,3 +14,7 @@ Unsigned candidates are retained for 14 days in the desktop workflow's artifacts
 A Vercel preview built by the existing Git integration reports the tested commit and returns HTTP 200 with MediaForge 0.2.0 from `/api/health`. This is a limited route check, not a complete hosted-browser or production certification.
 
 The original local audit and verification JSON record preparation before source publication; this page records the later hosted checks. The source archive and local Linux packages supplied with that earlier snapshot retain their original commit/checksums.
+
+## Public 0.2.0 release follow-up (8 November 2026)
+
+The owner selected AGPL-3.0-only and approved publishing unsigned installers. The new release workflow rebuilds all four targets from the release commit, preserves dependency/font notices, and verifies uploaded bytes before publication. The permanent public app is https://mediaforge-tau.vercel.app/; it returns the app without Vercel sign-in. The earlier team-specific alias remains protected. See the [current release page](https://github.com/Gurtejhundal/MediaForge/releases) for the versioned source and the fresh release run.

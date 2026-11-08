@@ -47,7 +47,14 @@ export function Footer() {
         </div>
 
         <div className="mt-6 flex flex-col gap-3 font-mono text-[9px] uppercase tracking-[0.13em] text-[#85877d] sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} MediaForge / Serial MF-LOCAL-01</p>
+          <div className="space-y-2">
+            <p>© {new Date().getFullYear()} MediaForge / Serial MF-LOCAL-01</p>
+            <p className="flex flex-wrap gap-x-3 gap-y-1">
+              <Link href="https://github.com/Gurtejhundal/MediaForge/tree/v0.2.0" target="_blank" rel="noopener noreferrer" className="text-[#c8c2b5] underline underline-offset-4 hover:text-[#e3a438]">Source code</Link>
+              <Link href="https://github.com/Gurtejhundal/MediaForge/blob/v0.2.0/LICENSE" target="_blank" rel="noopener noreferrer" className="text-[#c8c2b5] underline underline-offset-4 hover:text-[#e3a438]">AGPL-3.0</Link>
+              <span>No warranty</span>
+            </p>
+          </div>
           <p>Built by <Link href="https://gurtejbirsingh.vercel.app/" className="text-[#c8c2b5] underline underline-offset-4 hover:text-[#e3a438]">Gurtejbir Singh</Link>. Feedback uses a network route.</p>
         </div>
       </div>

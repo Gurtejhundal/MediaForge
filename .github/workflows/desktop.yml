@@ -12,6 +12,7 @@ concurrency:
 jobs:
   desktop:
     name: ${{ matrix.name }}
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
