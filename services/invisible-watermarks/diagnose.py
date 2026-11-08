@@ -3,14 +3,16 @@ import csv
 from importlib import metadata
 import io
 import json
-import platform
 import shutil
 import subprocess
+import sys
 
 
 def diagnose() -> dict:
-    report = {'status': 'not_checked', 'platform': platform.system(),
-              'python': platform.python_version(), 'gpus': [],
+    # platform.system() can invoke an additional Windows command. Inventory has
+    # exactly one bounded subprocess: the explicitly requested NVIDIA query.
+    report = {'status': 'not_checked', 'platform': {'win32': 'Windows', 'linux': 'Linux', 'darwin': 'Darwin'}.get(sys.platform, sys.platform),
+              'python': '.'.join(str(part) for part in sys.version_info[:3]), 'gpus': [],
               'model_fit': 'unverified', 'synthid_after': 'unverified',
               'notice': 'Driver inventory only. Run engine.py --check in the isolated engine environment before a trial.'}
     try:

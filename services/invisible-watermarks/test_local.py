@@ -20,6 +20,7 @@ class DiagnosticTests(unittest.TestCase):
         self.assertEqual(report['model_fit'], 'unverified')
         self.assertEqual(process.call_args.kwargs['timeout'], 5)
         self.assertNotIn('shell', process.call_args.kwargs)
+        process.assert_called_once()
 
     def test_missing_driver_never_starts_a_process(self):
         with patch.object(diagnose.shutil, 'which', return_value=None), patch.object(diagnose.subprocess, 'run') as process:
@@ -41,7 +42,7 @@ class BatchTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
-        self.root = Path(self.folder.name)
+        self.root = Path(self.folder.name).resolve()
         self.sources = []
         for name in ['one', 'two', 'three']:
             parent = self.root / name
