@@ -2,7 +2,8 @@
 
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { ImageBatchMode } from "@/components/image-batch-mode";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
 import { ImagePreview } from "@/components/preview/image-preview";
@@ -22,19 +23,28 @@ export default function ResizePage() {
   const [width, setWidth] = useState<string>("");
   const [height, setHeight] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isReadingDimensions, setIsReadingDimensions] = useState(false);
+  const inputGeneration = useRef(0);
 
   const handleFileAccepted = (acceptedFile: File) => {
+    const generation = ++inputGeneration.current;
     revokeObjectUrl(previewUrl);
     const url = URL.createObjectURL(acceptedFile);
     setFile(acceptedFile);
     setPreviewUrl(url);
+    setWidth(""); setHeight(""); setIsReadingDimensions(true);
     getImageDimensions(acceptedFile).then((dimensions) => {
+      if (generation !== inputGeneration.current) return;
       setWidth(dimensions.width.toString());
       setHeight(dimensions.height.toString());
-    }).catch(() => undefined);
+    }).catch(() => {
+      if (generation === inputGeneration.current) toast.error("Could not read the image dimensions. Enter output dimensions manually.");
+    }).finally(() => { if (generation === inputGeneration.current) setIsReadingDimensions(false); });
   };
 
   const clearFile = () => {
+    ++inputGeneration.current;
+    setIsReadingDimensions(false);
     revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
@@ -72,6 +82,7 @@ export default function ResizePage() {
       title="Image Resizer" 
       description="Resize images locally with Canvas. No upload required."
     >
+      <ImageBatchMode mode="resize">
       <div className="mb-6 flex flex-wrap gap-2">
         <StatusPill>Local processing</StatusPill>
         <StatusPill>No upload</StatusPill>
@@ -96,7 +107,7 @@ export default function ResizePage() {
             <div className="grid grid-cols-2 gap-4 pb-4">
                <div>
                   <Label htmlFor="width">Width (px)</Label>
-                  <Input 
+                  <Input disabled={isReadingDimensions || isProcessing}
                     id="width" 
                     type="number" 
                     placeholder="e.g. 800" 
@@ -107,7 +118,7 @@ export default function ResizePage() {
                </div>
                <div>
                   <Label htmlFor="height">Height (px)</Label>
-                  <Input 
+                  <Input disabled={isReadingDimensions || isProcessing}
                     id="height" 
                     type="number" 
                     placeholder="e.g. 600" 
@@ -117,12 +128,13 @@ export default function ResizePage() {
                   />
                </div>
             </div>
+            {isReadingDimensions && <p role="status" className="mb-4 text-sm text-muted-foreground">Reading image dimensions…</p>}
 
             <div className="pt-2">
               <Button 
                 size="lg" 
                 onClick={handleResize} 
-                disabled={isProcessing}
+                    disabled={isProcessing || isReadingDimensions}
                 className="w-full"
               >
                 {isProcessing ? (
@@ -141,6 +153,7 @@ export default function ResizePage() {
           </div>
         )}
       </div>
+      </ImageBatchMode>
     </ToolLayout>
   );
 }

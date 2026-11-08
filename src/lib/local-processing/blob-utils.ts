@@ -1,4 +1,5 @@
 import { recordLocalExport, type LocalExportKind } from "./activity-stats";
+import { isAndroidApp, saveAndroidBlob } from "../android-export";
 
 export function makeObjectUrl(blob: Blob) {
   return URL.createObjectURL(blob);
@@ -9,6 +10,19 @@ export function revokeObjectUrl(url: string | null | undefined) {
 }
 
 export function downloadBlob(blob: Blob, filename: string, options?: { kind?: LocalExportKind }) {
+  if (isAndroidApp()) {
+    void import("sonner").then(async ({ toast }) => {
+      const notice = toast.loading("Preparing Android Save dialog…");
+      try {
+        const saved = await saveAndroidBlob(blob, filename);
+        if (saved) {
+          recordLocalExport({ filename, bytes: blob.size, kind: options?.kind });
+          toast.success(`Saved ${filename}`, { id: notice });
+        } else toast.info("Save cancelled. Your result is still available in this tool.", { id: notice });
+      } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save this file.", { id: notice }); }
+    });
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

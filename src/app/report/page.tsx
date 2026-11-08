@@ -1,5 +1,6 @@
 "use client";
 
+import { isAndroidApp } from "@/lib/android-export";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, Bug, CheckCircle2, ExternalLink, Lightbulb, MessageSquareText, Send, ShieldCheck } from "lucide-react";
@@ -81,6 +82,11 @@ export default function ReportPage() {
       return;
     }
 
+    if (isAndroidApp()) {
+      setSubmitState({ status: "error", message: "Use Open GitHub issue below to review and send this report in your browser. Direct feedback is unavailable in the Android app." });
+      return;
+    }
+
     setSubmitState({ status: "submitting" });
 
     try {
@@ -129,7 +135,7 @@ export default function ReportPage() {
           Report a problem or request a tool
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground md:text-lg">
-          Tell me what broke, what confused you, or what tool you want next. This form sends text feedback only; your media files are not uploaded.
+          {isAndroidApp() ? "Describe the problem below, then use Open GitHub issue to review and send it in your browser. Direct feedback is unavailable in the Android app. Your media files are not attached." : "Tell me what broke, what confused you, or what tool you want next. This form sends text feedback only; your media files are not uploaded."}
         </p>
       </section>
 

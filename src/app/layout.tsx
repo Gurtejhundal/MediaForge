@@ -30,6 +30,8 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "MediaForge | Local media workbench",
   description: "Convert, resize, compress, extract, edit, and organize image, video, audio, PDF, QR, and favicon files locally in your browser where supported.",
+  manifest: "/site.webmanifest",
+  applicationName: "MediaForge",
 };
 
 export default function RootLayout({
@@ -53,6 +55,12 @@ export default function RootLayout({
         >
           <a href="#main-content" className="mf-skip-link">Skip to workbench</a>
           <Navbar />
+          {process.env.NEXT_PUBLIC_MEDIAFORGE_ANDROID === "1" && (
+            <aside className="border-b border-border bg-card px-4 py-3 text-center text-xs leading-5 text-muted-foreground" aria-label="Android preview information">
+              Android preview · Save opens your phone’s file picker · Exports up to 256 MB · Keep your originals
+              <a href="/licenses/THIRD_PARTY_LICENSES.txt" className="ml-2 text-primary underline underline-offset-4">Open-source notices</a>
+            </aside>
+          )}
           <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col relative">
             {children}
           </main>

@@ -16,3 +16,7 @@ Desktop preparation generates `THIRD_PARTY_LICENSES.txt` from the installed prod
 Background-removal and OCR model/runtime downloads are external first-use resources, not model files bundled in these installers. They retain their upstream terms. Optional owner-configured network providers have their own terms.
 
 Keep the corresponding source and all notices with redistributed versions; publish the source of modified hosted versions as required by the license. Signing certificates, a commercial IMG.LY license and automatic updates are not included.
+
+## Android runtime
+
+The Android shell uses AndroidX Activity 1.10.1 and AndroidX WebKit 1.14.0, with their Gradle-resolved AndroidX/Kotlin runtime dependencies. These retain Apache 2.0 terms; the full license is preserved in `docs/android-runtime-LICENSE.txt` and appended to the in-app notices. Sources are available from [AndroidX](https://android.googlesource.com/platform/frameworks/support/) and [Kotlin](https://github.com/JetBrains/kotlin); exact direct versions are pinned in `android/app/build.gradle` and transitive versions are shown by `./gradlew :app:dependencies --configuration previewRuntimeClasspath`. Gradle's wrapper retains its upstream copyright headers and its distribution checksum is pinned.

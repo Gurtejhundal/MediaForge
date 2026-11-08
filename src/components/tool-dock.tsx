@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useId, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { getToolByHref, toolGroups, tools, type ToolProcessingMode } from "@/lib/tool-catalog";
@@ -16,6 +17,10 @@ function processingLabel(mode: ToolProcessingMode) {
 
 export function ToolDock({ className }: ToolDockProps) {
   const pathname = usePathname();
+  const canonicalPath = pathname.replace(/\/+$/, "") || "/";
+  const [expandedPath, setExpandedPath] = useState<string | null>(null);
+  const expanded = expandedPath === pathname;
+  const navigationId = useId();
   const currentTool = getToolByHref(pathname);
 
   return (
@@ -32,13 +37,18 @@ export function ToolDock({ className }: ToolDockProps) {
             {currentTool ? <span className="mf-rack-label shrink-0 px-1.5 py-0.5 font-mono text-[7px] uppercase tracking-[.1em]">{processingLabel(currentTool.processingMode)}</span> : null}
           </div>
         </div>
+        <button type="button" aria-expanded={expanded} aria-controls={navigationId}
+          onClick={() => setExpandedPath(expanded ? null : pathname)}
+          className="mf-key mt-3 min-h-11 w-full px-3 py-2 text-sm font-semibold lg:hidden">
+          {expanded ? "Close tool list" : "Choose another tool"}
+        </button>
       </div>
 
-      <nav aria-label="Media tools" className="mf-scroll-rail max-w-full overflow-x-auto p-3 lg:overflow-visible lg:p-4">
+      <nav id={navigationId} aria-label="Media tools" className={cn("mf-scroll-rail max-w-full overflow-x-auto p-3 lg:block lg:overflow-visible lg:p-4", !expanded && "hidden")}>
         <div className="flex min-w-max gap-3 lg:min-w-0 lg:flex-col lg:gap-5">
           {toolGroups.map((group) => {
             const GroupIcon = group.icon;
-            const groupIsActive = group.tools.some((tool) => tool.href === pathname);
+            const groupIsActive = group.tools.some((tool) => tool.href === canonicalPath);
             const headingId = `tool-dock-${group.id}`;
 
             return (
@@ -59,7 +69,7 @@ export function ToolDock({ className }: ToolDockProps) {
                 <ul className="mt-3 space-y-1.5">
                   {group.tools.map((tool) => {
                     const Icon = tool.icon;
-                    const isActive = pathname === tool.href;
+                    const isActive = canonicalPath === tool.href;
                     return (
                       <li key={tool.href}>
                         <Link

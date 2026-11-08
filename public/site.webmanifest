@@ -1,6 +1,9 @@
 {
-  "name": "Application",
-  "short_name": "App",
+  "name": "MediaForge",
+  "short_name": "MediaForge",
+  "description": "A local media workbench for the small file jobs that interrupt your day.",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -13,7 +16,7 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#191a16",
+  "background_color": "#eee8db",
   "display": "standalone"
 }

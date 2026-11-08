@@ -1,5 +1,6 @@
 "use client";
 
+import { isAndroidApp } from "@/lib/android-export";
 import { useState } from "react";
 import { ToolLayout } from "@/components/tool-layout";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,16 @@ export default function VideoDownloaderPage() {
       setIsDownloading(false);
     }
   };
+
+  if (isAndroidApp()) return (
+    <ToolLayout title="Media downloader" description="This network tool needs the web app’s server." mode="network">
+      <div className="mx-auto max-w-xl space-y-4 border border-border bg-card p-6">
+        <h2 className="text-xl font-semibold">Use the web workbench for URL downloads</h2>
+        <p>The Android app processes files you choose on your phone. URL downloads use a server and are available separately in the web app.</p>
+        <a className="inline-block font-semibold text-primary underline underline-offset-4" href="https://mediaforge-tau.vercel.app/tools/video-downloader/" target="_blank" rel="noopener noreferrer">Open media downloader in your browser ↗</a>
+      </div>
+    </ToolLayout>
+  );
 
   return (
     <ToolLayout

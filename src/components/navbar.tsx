@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight, MessageSquareText, ShieldCheck } from "lucide-react";
 import { toolGroups } from "@/lib/tool-catalog";
 
@@ -7,10 +8,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-black bg-[#191a16] text-[#eee9dc] shadow-[0_8px_22px_rgba(0,0,0,.32)]">
       <div className="mx-auto flex h-[72px] w-[min(100%-24px,1440px)] items-center gap-4 md:w-[min(100%-48px,1440px)]">
         <Link href="/" className="group flex min-w-0 items-center gap-3" aria-label="MediaForge home">
-          <span className="relative flex size-11 shrink-0 items-center justify-center rounded-md border border-black bg-[linear-gradient(145deg,#3f4238,#1b1d18)] shadow-[inset_0_1px_0_rgba(255,255,255,.16),0_3px_8px_rgba(0,0,0,.45)]">
-            <span className="mf-display text-xl font-bold leading-none tracking-[-0.04em] text-[#eee9dc]">MF</span>
-            <span className="mf-lamp absolute -right-1 -top-1" data-tone="amber" aria-hidden="true" />
-          </span>
+          <Image src="/android-chrome-192x192.png" alt="" width={44} height={44} unoptimized className="size-11 shrink-0 object-contain drop-shadow-[0_3px_5px_rgba(0,0,0,.4)]" />
           <span className="min-w-0">
             <span className="mf-display block truncate text-2xl font-semibold uppercase leading-none tracking-[0.015em] text-[#f3eddf]">
               MediaForge
@@ -42,7 +40,7 @@ export function Navbar() {
           <Link
             href="/report"
             aria-label="Report a problem"
-            className="mf-key mf-key-primary inline-flex h-9 items-center px-3 text-xs font-bold"
+            className="mf-key mf-key-primary inline-flex min-h-11 items-center px-3 text-xs font-bold"
           >
             <MessageSquareText className="mr-2 size-3.5" />
             <span className="hidden sm:inline">Report</span>

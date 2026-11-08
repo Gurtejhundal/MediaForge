@@ -1,0 +1,6 @@
+{
+  "tag": "android-v0.2.0",
+  "publish": true,
+  "sourceBranch": "main",
+  "authorization": "Owner requested an Android APK after approving AGPL-3.0 and public 0.2.0 releases on 2026-11-08. Publish only after offline installed-app verification."
+}

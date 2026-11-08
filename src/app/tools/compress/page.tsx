@@ -3,6 +3,7 @@
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState } from "react";
+import { ImageBatchMode } from "@/components/image-batch-mode";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
 import { ImagePreview } from "@/components/preview/image-preview";
@@ -59,6 +60,7 @@ export default function CompressPage() {
       title="Image Compressor" 
       description="Compress images locally with browser-native WebP export."
     >
+      <ImageBatchMode mode="compress">
       <div className="mb-6 flex flex-wrap gap-2">
         <StatusPill>Local processing</StatusPill>
         <StatusPill>No upload</StatusPill>
@@ -140,6 +142,7 @@ export default function CompressPage() {
           </div>
         )}
       </div>
+      </ImageBatchMode>
     </ToolLayout>
   );
 }

@@ -3,6 +3,7 @@
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState } from "react";
+import { ImageBatchMode } from "@/components/image-batch-mode";
 import { ToolLayout } from "@/components/tool-layout";
 import { Dropzone } from "@/components/upload/dropzone";
 import { ImagePreview } from "@/components/preview/image-preview";
@@ -54,6 +55,7 @@ export default function FormatConverterPage() {
       title="Format Converter" 
       description="Convert images in the browser. No upload required."
     >
+      <ImageBatchMode mode="convert">
       <div className="mb-6 flex flex-wrap gap-2">
         <StatusPill>Local processing</StatusPill>
         <StatusPill>No upload</StatusPill>
@@ -116,6 +118,7 @@ export default function FormatConverterPage() {
           </div>
         )}
       </div>
+      </ImageBatchMode>
     </ToolLayout>
   );
 }

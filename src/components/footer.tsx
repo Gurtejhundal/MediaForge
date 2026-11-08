@@ -3,6 +3,7 @@ import { ArrowUpRight, RadioTower, ShieldCheck } from "lucide-react";
 import { toolGroups } from "@/lib/tool-catalog";
 
 export function Footer() {
+  const sourceTag = process.env.NEXT_PUBLIC_MEDIAFORGE_ANDROID_SOURCE || "main";
   return (
     <footer className="mt-16 border-t border-black bg-[#12130f] text-[#ddd7c9]">
       <div className="mx-auto w-[min(100%-24px,1440px)] py-10 md:w-[min(100%-48px,1440px)] md:py-14">
@@ -50,8 +51,8 @@ export function Footer() {
           <div className="space-y-2">
             <p>© {new Date().getFullYear()} MediaForge / Serial MF-LOCAL-01</p>
             <p className="flex flex-wrap gap-x-3 gap-y-1">
-              <Link href="https://github.com/Gurtejhundal/MediaForge/tree/v0.2.0" target="_blank" rel="noopener noreferrer" className="text-[#c8c2b5] underline underline-offset-4 hover:text-[#e3a438]">Source code</Link>
-              <Link href="https://github.com/Gurtejhundal/MediaForge/blob/v0.2.0/LICENSE" target="_blank" rel="noopener noreferrer" className="text-[#c8c2b5] underline underline-offset-4 hover:text-[#e3a438]">AGPL-3.0</Link>
+              <Link href={`https://github.com/Gurtejhundal/MediaForge/tree/${sourceTag}`} target="_blank" rel="noopener noreferrer" className="text-[#c8c2b5] underline underline-offset-4 hover:text-[#e3a438]">Source code</Link>
+              <Link href={`https://github.com/Gurtejhundal/MediaForge/blob/${sourceTag}/LICENSE`} target="_blank" rel="noopener noreferrer" className="text-[#c8c2b5] underline underline-offset-4 hover:text-[#e3a438]">AGPL-3.0</Link>
               <span>No warranty</span>
             </p>
           </div>

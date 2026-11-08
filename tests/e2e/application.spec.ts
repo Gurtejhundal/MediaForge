@@ -5,11 +5,11 @@ import { PDFDocument } from 'pdf-lib';
 import JSZip from 'jszip';
 
 const fixture = (name: string) => path.resolve('tests/fixtures', name==='form.pdf'?'form.pdf':`sample.${name}`);
-const routes = ['/', '/report', ...['audio-studio','bg-remover','compress','file-converter','format-converter','image-enhancer','image-modifier','pdf-organizer','png-to-favicon','qr-generator','resize','video-converter','video-downloader','video-to-audio','video-to-image','video-upscaler','watermark-remover'].map(name=>`/tools/${name}`)];
+const routes = ['/', '/report', ...['audio-studio','bg-remover','compress','file-converter','format-converter','image-enhancer','image-cleanup','image-modifier','pdf-organizer','png-to-favicon','qr-generator','resize','video-converter','video-downloader','video-to-audio','video-to-image','video-upscaler','watermark-remover'].map(name=>`/tools/${name}`)];
 async function bytes(download: Download) { expect(await download.failure()).toBeNull(); return readFile((await download.path())!); }
 async function downloadAfter(page: Page, action: () => Promise<unknown>) { const pending=page.waitForEvent('download'); await action(); return pending; }
 
-test('all 19 pages render at desktop and mobile widths, without runtime errors or horizontal overflow', async ({page}) => {
+test('all 20 pages render at desktop and mobile widths, without runtime errors or horizontal overflow', async ({page}) => {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message)); page.on('response',r=>{if(r.status()>=500)errors.push(`${r.status()} ${r.url()}`);}); page.on('requestfailed',r=>{if(r.url().includes('/_next/static/') && r.failure()?.errorText !== 'net::ERR_ABORTED')errors.push(`Asset failed: ${r.url()}`);});
   for(const width of [1440,390,320]) {
     await page.setViewportSize({width,height:900});
@@ -27,6 +27,19 @@ test('keyboard skip link and reduced-motion preference work', async ({page}) => 
   await expect(page.getByRole('link',{name:'Skip to workbench'})).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('#main-content')).toBeFocused();
   expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior)).toBe('auto');
+});
+
+test('mobile tool navigation expands by keyboard and closes after choosing another tool', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/tools/qr-generator');
+  const navigation=page.getByRole('navigation',{name:'Media tools',includeHidden:true});
+  await expect(navigation).toBeHidden();
+  const toggle=page.getByRole('button',{name:'Choose another tool',exact:true});
+  await toggle.focus();await page.keyboard.press('Enter');
+  await expect(navigation).toBeVisible();await expect(page.getByRole('button',{name:'Close tool list'})).toHaveAttribute('aria-expanded','true');
+  await navigation.getByRole('link',{name:/Image resizer/}).click();
+  await expect(page).toHaveURL(/\/tools\/resize$/);await expect(navigation).toBeHidden();
+  await expect(page.getByRole('button',{name:'Choose another tool',exact:true})).toBeVisible();
 });
 
 test('QR export keeps its generated format after settings change and survives blocked storage', async ({page}) => {
@@ -78,6 +91,25 @@ test('image modifier and detailer complete preview to export, invalid dimensions
   await page.getByLabel('Width (px)').fill('120');const png=await bytes(await downloadAfter(page,()=>page.getByRole('button',{name:'Resize Image'}).click()));expect(png.readUInt32BE(16)).toBe(120);
   await page.goto('/tools/image-enhancer');await page.locator('input[type=file]').setInputFiles(fixture('png'));await page.getByRole('button',{name:'Create Detail Upscale',exact:true}).click();
   expect((await bytes(await downloadAfter(page,()=>page.getByRole('button',{name:/Download/}).first().click()))).subarray(1,4).toString()).toBe('PNG');
+});
+
+test('a slow old image cannot overwrite the next image dimensions or an edited export size',async({page})=>{
+  await page.addInitScript(()=>{
+    const decode=window.createImageBitmap.bind(window);let first=true;
+    Object.defineProperty(window,'createImageBitmap',{value:async(source:ImageBitmapSource)=>{
+      const bitmap=await decode(source);
+      if(first){first=false;await new Promise<void>(resolve=>{Object.defineProperty(window,'__finishOldImage',{value:resolve});});}
+      return bitmap;
+    }});
+  });
+  await page.goto('/tools/resize');await page.locator('input[type=file]').setInputFiles(fixture('png'));
+  await expect(page.getByLabel('Width (px)')).toBeDisabled();
+  await page.getByRole('button',{name:'Remove file',exact:true}).click();
+  await page.locator('input[type=file]').setInputFiles(fixture('png'));
+  await expect(page.getByLabel('Width (px)')).toBeEnabled();await page.getByLabel('Width (px)').fill('96');
+  await page.evaluate(()=>(window as unknown as {__finishOldImage:()=>void}).__finishOldImage());
+  const output=await bytes(await downloadAfter(page,()=>page.getByRole('button',{name:'Resize Image',exact:true}).click()));
+  expect(output.readUInt32BE(16)).toBe(96);
 });
 
 test('universal converter preserves CSV data and supports its displayed SVG output',async({page})=>{

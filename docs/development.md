@@ -62,3 +62,9 @@ Fixtures in `tests/fixtures/` are synthetic PNG/SVG, short tone/video, structure
 - **PDF/Office fidelity:** Office-to-PDF rebuilds readable text, not original layout; standard PDF font exports have limited Unicode support. Image-based PDF exports preserve appearance. A visible signature is not a cryptographic signature. Secure redaction, encryption and PDF/A are intentionally unavailable.
 - **Feedback cannot send:** the message is retained; use the GitHub issue draft. No webhook is embedded into desktop installers.
 - **Desktop fails on its saved port:** close the conflicting process and retry. Do not casually edit `server-port.json`; back up the profile first.
+
+## Android and current feature additions
+
+[Android build, installation and limitations](ANDROID.md) describes the independent bundled APK. The current web/Android code adds batch conversion/resizing/compression and a visible-edge watermark cropper. Existing published desktop 0.2.0 installers are immutable and retain their original feature set. Build from current source to exercise these additions on desktop; use a new desktop version before publishing updated installers.
+
+Batch tests inspect actual ZIP contents, duplicate-name handling, partial failures, cancellation and queue limits. A slow-image regression holds an old decode open, selects another image, edits its dimensions, then verifies the exported PNG size. Watermark-crop tests validate the PNG dimensions and explicit SynthID limitations.

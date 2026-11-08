@@ -1,0 +1,138 @@
+name: Android APK
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths: ['android/**', 'src/**', 'scripts/*android*', 'package*.json', '.github/workflows/android.yml', '.github/android-release-requests/**']
+  pull_request:
+    paths: ['android/**', 'src/**', 'scripts/*android*', 'package*.json', '.github/workflows/android.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test && npm run audit:dependencies
+      - name: Verify the existing web application
+        run: |
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - run: npm run android:web
+      - name: Build the APK and instrumentation package
+        working-directory: android
+        run: ./gradlew :app:assemblePreview :app:assemblePreviewAndroidTest :app:lintPreview --no-daemon
+      - name: Verify every packaged web asset, APK signature and permissions
+        run: python3 scripts/verify-android-apk.py
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test the installed app offline with Android's real file dialogs
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: bash scripts/test-android.sh
+      - name: Collect verified APK and its checksum
+        run: |
+          mkdir -p android-release
+          cp android/app/build/outputs/apk/preview/app-preview.apk android-release/MediaForge-0.2.0-android.apk
+          cd android-release && sha256sum MediaForge-0.2.0-android.apk > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MediaForge-Android-0.2.0
+          path: android-release/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Android-verification
+          path: |
+            android-captures/
+            android/app/build/reports/
+            android/app/build/outputs/androidTest-results/
+            test-results/
+          if-no-files-found: ignore
+  publish:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          name: MediaForge-Android-0.2.0
+          path: android-release
+      - name: Validate the explicit version request and preserve existing releases
+        id: release
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const request = JSON.parse(fs.readFileSync('.github/android-release-requests/android-v0.2.0.json'));
+          const gradle = fs.readFileSync('android/app/build.gradle', 'utf8');
+          if (request.tag !== 'android-v0.2.0' || request.publish !== true || request.sourceBranch !== 'main' || !/versionName '0.2.0'/.test(gradle)) throw Error('Android version/request mismatch');
+          if (require('./package.json').license !== 'AGPL-3.0-only') throw Error('Approved license missing');
+          JS
+          if gh release view android-v0.2.0 --json isDraft --jq .isDraft 2>/dev/null | grep -qx false; then
+            echo 'Android 0.2.0 already published; preserving its assets. Bump Android version for another release.'
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+          fi
+      - run: npm ci --ignore-scripts
+        if: steps.release.outputs.skip != 'true'
+      - name: Package matching application and AGPL library source
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          git archive --format=zip --prefix=MediaForge-Android-0.2.0/ --output=android-release/MediaForge-0.2.0-android-source.zip "$GITHUB_SHA"
+          python3 <<'PY'
+          import pathlib, zipfile
+          root = pathlib.Path('node_modules/@imgly/background-removal')
+          with zipfile.ZipFile('android-release/MediaForge-0.2.0-android-source.zip', 'a', compression=zipfile.ZIP_DEFLATED) as archive:
+              for file in sorted(root.rglob('*')):
+                  if file.is_file(): archive.write(file, f'MediaForge-Android-0.2.0/vendor/background-removal-1.7.0/{file.relative_to(root)}')
+          PY
+          cd android-release && sha256sum MediaForge-0.2.0-android-source.zip >> SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt
+      - name: Create draft, verify downloaded artifacts, then publish Android separately
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          if gh release view android-v0.2.0 >/dev/null 2>&1; then
+            test "$(gh release view android-v0.2.0 --json targetCommitish --jq .targetCommitish)" = "$GITHUB_SHA"
+          else
+            gh release create android-v0.2.0 --draft --target "$GITHUB_SHA" --title 'MediaForge for Android 0.2.0' --notes-file docs/releases/android-0.2.0.md --latest=false
+          fi
+          gh release upload android-v0.2.0 android-release/* LICENSE THIRD_PARTY_NOTICES.md --clobber
+          mkdir -p verify-android
+          for attempt in 1 2 3; do
+            if gh release download android-v0.2.0 --dir verify-android --clobber; then break; fi
+            test "$attempt" -lt 3
+            sleep 5
+          done
+          (cd verify-android && sha256sum -c SHA256SUMS.txt)
+          gh release edit android-v0.2.0 --draft=false --latest=false

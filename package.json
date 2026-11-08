@@ -16,7 +16,9 @@
     "desktop:dist": "npm run build && npm run desktop:prepare && electron-builder --publish never",
     "test:desktop": "node --test tests/desktop.test.cjs",
     "release:checksums": "node scripts/checksums.cjs",
-    "audit:dependencies": "node scripts/audit-dependencies.cjs"
+    "audit:dependencies": "node scripts/audit-dependencies.cjs",
+    "android:web": "node scripts/build-android-web.cjs",
+    "android:apk": "npm run android:web && cd android && ./gradlew :app:assemblePreview --no-daemon"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",

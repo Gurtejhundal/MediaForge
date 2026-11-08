@@ -1,5 +1,7 @@
 # MediaForge reliability and release audit
 
+**Latest addendum:** [8 November Android, batch processing and interface audit](android-audit.md).
+
 **Audit date:** 7 November 2026 (Asia/Kolkata). **Candidate:** 0.2.0. **Baseline:** `92058b974edeede0fff970ea009bfa891fc0417d`.
 
 Work is on `codex/reliability-release`, an isolated Git worktree at `/home/gurtejbirsinghh/Documents/Codex/2026-11-07/act-as-a-senior-engineer-product/work/mediaforge`. The original MediaForge checkout and its seven pre-existing modified files were left untouched. Those changes were confirmed to be line-ending-only with `git diff --ignore-space-at-eol`. No source media, user profile, environment secrets or production data was copied into tracked release files. Desktop tests use disposable profiles, including when launching the packaged executable.

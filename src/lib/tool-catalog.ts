@@ -51,9 +51,17 @@ export const toolGroups = [
     number: "01",
     label: "Image bench",
     description: "Modify, convert, resize, clean, and package still images.",
-    meta: "07 operations",
+    meta: "08 operations",
     icon: ImageIcon,
     tools: [
+      {
+        title: "Watermark cropper",
+        description: "Crop visible edge marks with a PNG preview. SynthID removal is unverified.",
+        meta: "Visible edges · PNG",
+        href: "/tools/image-cleanup",
+        icon: Scissors,
+        processingMode: "local",
+      },
       {
         title: "Image modifier",
         description: "Resize, crop, rotate, watermark, caption, compress, and convert.",
@@ -245,5 +253,5 @@ export const toolByHref: ReadonlyMap<string, ToolDefinition> = new Map(
 );
 
 export function getToolByHref(href: string) {
-  return toolByHref.get(href);
+  return toolByHref.get(href.replace(/\/+$/, "") || "/");
 }

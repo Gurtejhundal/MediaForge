@@ -58,3 +58,13 @@ next-env.d.ts
 /*-player-script.js
 !/.env.example
 /work/
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/app/src/main/assets/public/
+/android/local.properties
+*.keystore
+*.jks
+
+/android-captures/
+/android-release/

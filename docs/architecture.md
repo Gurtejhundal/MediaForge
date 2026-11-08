@@ -6,7 +6,7 @@ MediaForge 0.2.0 is a Next.js 16 / React 19 / TypeScript application. Its audien
 
 | Entry | Engine | Output / boundary |
 | --- | --- | --- |
-| `/` | `tool-catalog.ts`, browser resource estimates, activity stats | 17 tools in image, video, audio, document and network groups |
+| `/` | `tool-catalog.ts`, browser resource estimates, activity stats | 18 tools in image, video, audio, document and network groups |
 | Image modifier, format converter, resize, compress | `image-processing.ts` | Canvas PNG/JPEG/WebP/AVIF when encodable; SVG embeds a PNG rather than vectorizing |
 | Image detailer | Canvas scale and detail kernel | PNG; interpolated detail, not generative restoration |
 | Background remover | Lazy-loaded IMG.LY model, ONNX/WASM, alpha cleanup | Transparent PNG; initial external model/runtime download |
@@ -41,3 +41,9 @@ Electron hosts a sandboxed window with context isolation, no Node integration an
 Only GitHub and the existing author website can open externally, using HTTPS. Unknown protocols, new embedded windows and cross-origin app navigation are denied. Device permissions are denied because selected local files need no microphone/camera access. The local server exits when the application quits. Desktop children receive a small OS environment allowlist, not developer secrets or web deployment webhook credentials. Network feedback is therefore unavailable in a default desktop build; the GitHub draft fallback remains available.
 
 `output: standalone` bundles server dependencies. Build scripts copy static assets and public files, strip environment files, and stage a separate desktop manifest with no renderer Node dependencies. Packagers run natively for Linux x64, Windows x64, macOS arm64 and macOS x64. Configured targets are not a claim of verification.
+
+## Android and batch processing
+
+The Android shell bundles a separate static export of these pages and uses a main-frame, exact-origin message bridge for chunked exports through the system document picker. Server routes stay in the web/Electron builds. [Android architecture and build details](ANDROID.md).
+
+Image conversion, resizing and compression have single and multiple-file views. A reusable queue processes one image at a time, retains individual failures, keeps duplicate filenames distinct in ZIPs, and preserves completed outputs when switching views. Limits are 20 inputs, 25 MB per file, 100 MB of inputs and 128 MB of finished image data; ZIP export is bounded to 256 MB. Selected files, results and queue state are memory-only. The visible watermark cropper changes image edges and previews a new PNG. It does not detect SynthID or verify invisible watermark removal.
