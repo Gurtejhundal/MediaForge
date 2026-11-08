@@ -1,0 +1,33 @@
+name: Local GPU adapter safety
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths: ['services/invisible-watermarks/**', '.github/workflows/local-gpu-adapter.yml']
+  pull_request:
+    paths: ['services/invisible-watermarks/**', '.github/workflows/local-gpu-adapter.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: local-gpu-adapter-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  file-safety:
+    name: File safety (${{ matrix.os }}, no GPU)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install only the image validation test dependency
+        run: python -m pip install --disable-pip-version-check Pillow==12.1.1
+      - name: File, batch, preflight and driver-query regressions (simulated engine)
+        run: python -m unittest discover -s services/invisible-watermarks -p 'test_*.py' -v
+      - name: Read-only inventory without site packages or model downloads
+        run: python -S services/invisible-watermarks/diagnose.py

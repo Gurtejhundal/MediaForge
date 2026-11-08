@@ -1,0 +1,3 @@
+# Separate GPU environment only. Nothing is added to the web/Android installation.
+# Choose the CUDA-compatible PyTorch distribution for the target GPU before installing.
+remove-ai-watermarks[qwen-zimage]==0.54.1

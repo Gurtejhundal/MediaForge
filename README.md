@@ -13,6 +13,8 @@ Resize an image. Organize a PDF. Cut a sound. Make a QR code.<br>
 
 [**Open MediaForge ↗**](https://mediaforge-tau.vercel.app/) &nbsp; · &nbsp; [**↓ Get the app**](#get-the-app) &nbsp; · &nbsp; [See it in action](#see-it-in-action) &nbsp; · &nbsp; [Run from source](#run-from-source) &nbsp; · &nbsp; [Coffee ☕](#keep-the-forge-caffeinated)
 
+[Every tool](#every-tool-explained) &nbsp; · &nbsp; [GPU requirements](#experimental-invisible-watermark-processing) &nbsp; · &nbsp; [Inside the workbench](#inside-the-workbench)
+
 `Android · Web · Windows · macOS · Linux` &nbsp; `No account` &nbsp; `Core processing stays on your device`
 
 </div>
@@ -157,6 +159,120 @@ Downloads are public GitHub release assets and do not require GitHub sign-in. Mo
 
 **Selected files stay on your device for core processing.** Green local paths use browser file APIs, Canvas, Web Audio and local libraries. Model/OCR tools may download assets. URL downloads and optional text feedback use clearly marked network routes.
 
+## Every tool explained
+
+The current web app and Android preview have **18 tools**. Open a linked tool, choose your input, adjust its settings, process, then save the output. Existing desktop 0.2.0 installers predate the batch image controls and visible image cropper; use current source for those desktop additions.
+
+### Images
+
+| Tool | What it does and what you get |
+| --- | --- |
+| [Image modifier](https://mediaforge-tau.vercel.app/tools/image-modifier/) | Resize, crop, rotate, add a text watermark or top/bottom captions, adjust export quality, and convert an image. PNG/JPEG/WebP/AVIF depend on the browser encoder; SVG wraps a raster image rather than tracing vectors. |
+| [Format converter](https://mediaforge-tau.vercel.app/tools/format-converter/) | Convert browser-decodable images into a selected image format. Single-file preview or a multiple-file queue; save individual results or one ZIP. Unsupported encoders report an error instead of disguising PNG bytes as another format. |
+| [Image resizer](https://mediaforge-tau.vercel.app/tools/resize/) | Set explicit width and height and export PNG. Supports a single image or multiple images with the same target dimensions. Check the preview when changing aspect ratio. |
+| [Image compressor](https://mediaforge-tau.vercel.app/tools/compress/) | Choose WebP quality and compare input/output sizes. Supports single or multiple images. A smaller result is content-dependent; compression is not guaranteed to reduce every file. |
+| [Image detailer](https://mediaforge-tau.vercel.app/tools/image-enhancer/) | Interpolate to 2× or a 4K long edge and apply a selectable detail pass, then save PNG. This is local scaling/filtering, not a generative model recovering lost information. |
+| [Background remover](https://mediaforge-tau.vercel.app/tools/bg-remover/) | Run on-device segmentation and refine the alpha edge, then export a transparent PNG. The runtime/model may download on first use; the selected image stays local. No NVIDIA GPU requirement. |
+| [Favicon builder](https://mediaforge-tau.vercel.app/tools/png-to-favicon/) | Turn an image into a ZIP containing favicon PNG sizes, ICO, Apple touch icon and a web manifest. Extract and integrate the assets into your website; review the generated generic application metadata. |
+| [Watermark cropper](https://mediaforge-tau.vercel.app/tools/image-cleanup/) | Trim selected edge margins, compare the retained area, and save a PNG. It removes the cropped pixels and changes dimensions. It does not fill an interior logo, detect SynthID, or verify an invisible watermark's absence. |
+
+**Multiple images:** conversion, resizing and compression accept up to 20 files, 25 MB each and 100 MB combined input. Processing is sequential, with per-file status/errors and a 128 MB combined output bound. Stop takes effect after the current image. Finished results remain available; the ZIP includes an outcome report and distinct names for duplicate inputs. Results are held in this tab, not autosaved.
+
+### Video
+
+| Tool | What it does and what you get |
+| --- | --- |
+| [Frame extractor](https://mediaforge-tau.vercel.app/tools/video-to-image/) | Sample a browser-playable video at the selected rate and package PNG/JPEG/WebP frames into a ZIP. The 1,800-frame cap bounds large selections; this is sampled extraction, not an unrestricted full-frame dump. |
+| [Video converter](https://mediaforge-tau.vercel.app/tools/video-converter/) | Render a playable video at original, 1080p, 720p or 480p size to a **muted WebM**. The input extension alone does not establish codec support. Keep the tab visible during real-time rendering. |
+| [Video upscaler](https://mediaforge-tau.vercel.app/tools/video-upscaler/) | Scale the browser-rendered video to 1080p, 1440p or 4K and export muted WebM. It enlarges/interpolates frames; it is not AI reconstruction. Higher resolutions take more time and memory. |
+| [Video watermark remover](https://mediaforge-tau.vercel.app/tools/watermark-remover/) | Select a visible rectangular region and soften it frame by frame, then save muted WebM. Despite the route's name, it is region blur, not restoration of hidden content or invisible SynthID removal. |
+
+### Audio
+
+| Tool | What it does and what you get |
+| --- | --- |
+| [Audio Studio](https://mediaforge-tau.vercel.app/tools/audio-studio/) | Eight modes: convert to WAV, extract a video soundtrack, trim/ringtone, merge selected clips in order, normalize, adjust volume, reverse, or change speed. Uses browser decoding and exports WAV; merge accepts multiple files. Speed changes can change pitch. |
+| [Video to Audio](https://mediaforge-tau.vercel.app/tools/video-to-audio/) | A focused shortcut for extracting a browser-decodable video soundtrack as WAV. An input without a decodable audio track cannot produce a soundtrack. |
+
+### Documents, data and QR
+
+| Tool | What it does and what you get |
+| --- | --- |
+| [Document Studio](https://mediaforge-tau.vercel.app/tools/pdf-organizer/) | Organize, edit and convert PDFs and supported Office files. Choose an operation first; merge, image-to-PDF and comparison modes accept the multiple inputs they need. See the operation guide below. |
+| [Universal converter](https://mediaforge-tau.vercel.app/tools/file-converter/) | Convert supported images, JSON/CSV/XML/YAML, Markdown/HTML and plain text to the formats offered for that input, including text-based PDF exports. Structured values must fit the destination format; invalid or unsupported conversions fail visibly. This is not an arbitrary binary-file converter. |
+| [QR generator](https://mediaforge-tau.vercel.app/tools/qr-generator/) | Enter text or a URL, choose size, colors, margin and error correction, preview, then export PNG, JPEG or SVG. Generation stays local and does not validate or open the encoded destination. Keep sufficient light/dark contrast for scanning. |
+
+<details>
+<summary>Document Studio: each operation and its limits</summary>
+
+| Operation group | Available behavior |
+| --- | --- |
+| Organize | Merge PDFs in selected order; split ranges or every page; remove/extract pages; reorder pages; combine photos into a PDF. |
+| Optimize | Compress by rewriting object streams; repair a PDF the library can already load; add a searchable English OCR text layer. Compression may not shrink a file, repair cannot recover every corrupt PDF, and OCR needs an initial language-model download. |
+| Convert to PDF | PNG/JPG images, modern DOCX text, PPTX slide text, XLSX worksheets and readable HTML. Office conversion rebuilds readable content and can simplify layout; legacy DOC/XLS/PPT formats are not supported. |
+| Convert from PDF | Render pages into a JPG ZIP; recover text into DOCX; place page images on PPTX slides; recover page rows into XLSX. Text/table recovery is best-effort; scanned pages need OCR for text recovery. |
+| Edit | Rotate pages, add page numbers or text watermarks, set crop margins, add text, and flatten existing form fields. Added text does not replace the PDF's underlying text. |
+| Sign and compare | Add a visible signature line, or compare two PDFs' page text in a TXT report. A visible signature is not certificate-backed signing; comparison is textual rather than pixel-perfect visual diffing. |
+| Intentionally unavailable | PDF/A conformance, password protection/unlocking and secure redaction require engines that are not implemented here. Cropping, covering text or flattening forms must not be used as secure redaction. |
+
+</details>
+
+### Network tools and feedback
+
+| Component | What it does and what leaves the device |
+| --- | --- |
+| [Video downloader](https://mediaforge-tau.vercel.app/tools/video-downloader/) | Submit a permitted public media URL for bounded server fetching. Direct supported audio/video downloads are capped at 50 MB; private addresses and unsafe redirects are rejected. YouTube/platform URLs need an owner-configured compatible provider and otherwise report unavailable. The submitted URL goes to the server and, when configured, that provider. This network tool is unavailable in the bundled Android preview. |
+| [Report a problem](https://mediaforge-tau.vercel.app/report/) | Choose a report type/tool, enter a message and optional contact email. Sending uses an optional owner-configured webhook. Failure retains the draft in the open form; the GitHub issue fallback opens a draft for you to review and submit. Android uses that external issue fallback. Closing or refreshing does not preserve report drafts. |
+
+## Experimental invisible-watermark processing
+
+**Optional developer workflow, not enabled in the live app or published installers.** It regenerates image pixels through a separately installed local diffusion engine. Every result remains **SynthID unverified** until checked with the official detector. Faces, text and fine detail can change. The visible image cropper and video blur tool above are separate working tools.
+
+| Requirement | Current guidance |
+| --- | --- |
+| GPU | **An NVIDIA GPU with CUDA is required for this experimental image engine.** AMD, Intel, Apple GPU, CPU-only and Android execution are not supported by the chosen profile. Ordinary MediaForge tools do **not** require NVIDIA hardware. |
+| VRAM | **Plan for at least 12 GiB of dedicated VRAM for initial trials** (typically a card sold as 12 GB or larger). This is a trial target based on the upstream SDXL global-stack residency threshold, **not a benchmarked minimum or a guarantee that the full pipeline fits**. The verified minimum remains unknown. |
+| Smaller cards | CPU offload/streaming can reduce VRAM pressure but shifts work to system RAM and disk and can be very slow. **The owner's Windows RTX 3050 with 4 GB is unverified and is not advertised as supported.** A successful driver check is not a successful model run. |
+| Runtime | Separate Python 3.11–3.14 environment, a compatible CUDA-enabled PyTorch build, the pinned optional engine, reviewed model licenses and enough measured system RAM/disk for its weights/offloading. Windows and Linux are trial environments, not certified configurations. |
+| Privacy and cost | Local file-to-file processing; no image upload endpoint or hosted GPU subscription. Initial package/model downloads need internet. No automatic cloud fallback or paid provisioning. |
+| Browser integration | Vercel serves the normal app. A website cannot directly invoke a local Python CUDA engine; the browser/desktop companion bridge is not implemented. Browser WebGPU availability alone does not make this engine compatible. |
+
+The memory figure and CUDA boundary come from the [pinned upstream installation guide](https://github.com/wiltodelta/remove-ai-watermarks/blob/3168d878461eed072bf86c237b219611261cf85f/docs/installation.md) and [memory limitations](https://github.com/wiltodelta/remove-ai-watermarks/blob/3168d878461eed072bf86c237b219611261cf85f/docs/known-limitations.md#resolution-and-memory). MediaForge has **not** performed a real CUDA/model/SynthID-detector trial.
+
+Start with the [Windows GPU check](services/invisible-watermarks/Check-GPU.cmd) or [dependency-free Python inventory](services/invisible-watermarks/diagnose.py); neither downloads models or uploads files. Then follow the [local setup, single-file and batch guide](docs/invisible-watermarks-local.md). The batch adapter accepts 1–20 images, preserves originals and existing outputs, records a local report, and stops after the first failure. [Adapter source and tests](services/invisible-watermarks/README.md) · [Hosted alternatives, not provisioned](docs/invisible-watermarks-hosting.md).
+
+## Inside the workbench
+
+| Component | How to use it |
+| --- | --- |
+| Workbench home | Browse five tool groups and open one of the 18 tools. Activity meters summarize local export initiation and byte counts; resource meters show browser estimates, not a full system or GPU profiler. Hidden/unavailable values mean the browser does not expose that measurement. |
+| Header, patch bay and footer | The illustrated app icon returns home; category links jump to a bench. The patch bay highlights the active tool and shows local/model/network labels. On smaller screens, expand its tool list with the keyboard or touch controls. Footer links expose the directory, source and license. |
+| Boundary monitor | Green local paths process selected files on the device; model paths can fetch runtime/weights; amber network paths contact a server. These labels describe data flow, not a file backup or security certification. |
+| Input bay | Choose a local file using the picker or supported dropzone. Multiple-file controls appear only where an operation supports them. Removing an input clears that working selection; it does not delete the source file. |
+| Settings and progress | Dimension fields, format selectors, sliders and operation tabs configure the next run. Processing state disables conflicting actions; errors and progress appear in the workspace or notifications. Local GPU batch cancellation is separate from the browser batch's stop-after-current-file action. |
+| Preview and output | Inspect an image/output preview or available comparison controls before saving. Save individual files or a tool's ZIP. On Android, use the native Save dialog; cancelling keeps the current result available for retry. Android exports are limited to 256 MB. |
+| Local activity and storage | Counters live in this origin's localStorage. Browser counters track export initiation, including a save that may later be cancelled; they are not proof a file reached disk. Inputs, previews, outputs and form drafts are memory-only. Save files before refreshing, navigating away or quitting. |
+
+<details>
+<summary>For contributors: source components and responsibilities</summary>
+
+| Source | Responsibility |
+| --- | --- |
+| `src/app/` and `src/lib/tool-catalog.ts` | Pages, route metadata, tool groups, descriptions and processing boundaries. `src/app/api/` holds health, bounded download and optional report routes; retired upload/proxy routes return 410. |
+| `navbar.tsx`, `footer.tsx`, `tool-dock.tsx`, `tool-layout.tsx` | Shared branding, navigation, active-tool selection, workspace frame and boundary monitor. |
+| `workspace-components.tsx`, `upload/`, `preview/`, `ui/` | Reusable cards/status/output surfaces, file selection, image/comparison previews, and accessible button/input/label/slider/tab/progress primitives. |
+| `image-batch-mode.tsx`, `image-cleanup.tsx` | Bounded sequential image queues/ZIP reports and visible-edge cropping. Neither is an invisible-watermark engine. |
+| `src/lib/local-processing/` and `src/hooks/` | Image/audio/video/PDF/Office/data engines, Blob downloads, activity counters and object-URL lifecycle cleanup. |
+| `src/lib/network.ts` | Public-address validation, DNS/socket pinning, redirect checks and bounded server media fetching. |
+| `desktop/`, `scripts/`, `electron-builder.yml` | Isolated Electron window, loopback server, build preparation, native packaging, checksums and release verification. No renderer Node access or automatic updater. |
+| `android/`, `src/lib/android-export.ts` | Bundled WebView app, native file selection and acknowledged chunked export to the system Save dialog. Core tools run from bundled assets; model downloads still need a connection. |
+| `services/invisible-watermarks/` | Optional local GPU inventory, strict CUDA preflight, bounded file adapter, sequential batch runner and safety tests. Separate installation; not imported by the web/Android app. |
+| `tests/`, `.github/workflows/`, `docs/` | Regression fixtures/checks, separate web/desktop/Android delivery pipelines, audit evidence, screenshots and operating guides. |
+
+[Architecture, configuration and backups](docs/architecture.md) · [Development and troubleshooting](docs/development.md).
+
+</details>
+
 <details>
 <summary>A few practical limits</summary>
 
@@ -185,6 +301,7 @@ Open **http://127.0.0.1:3000**. Build a production preview with `npm run build` 
 | --- | --- |
 | Configuration, development, tests and troubleshooting | [Development guide](docs/development.md) |
 | Architecture, privacy, storage and backups | [How the workbench works](docs/architecture.md) |
+| Experimental local NVIDIA processing (not enabled in the app) | [GPU check and trial guide](docs/invisible-watermarks-local.md) |
 | Versions, packaging, source and checksums | [Release guide](docs/releasing.md) |
 | Findings and observed checks | [Audit](docs/audit.md) · [Android & interface audit](docs/android-audit.md) · [Hosted verification](docs/hosted-verification.md) |
 | Licensing and dependencies | [AGPL-3.0](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md) · [Dependency review](docs/dependencies.md) |
