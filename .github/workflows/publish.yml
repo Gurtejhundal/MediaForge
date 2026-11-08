@@ -115,7 +115,11 @@ jobs:
           fi
       - name: Download the draft assets again and verify the uploaded bytes
         run: |
-          gh release download "$RELEASE_TAG" --dir roundtrip --pattern 'MediaForge-*' --pattern 'SHA256SUMS*.txt'
+          for attempt in 1 2 3; do
+            if gh release download "$RELEASE_TAG" --dir roundtrip --pattern 'MediaForge-*' --pattern 'SHA256SUMS*.txt' --clobber; then break; fi
+            if [ "$attempt" = 3 ]; then exit 1; fi
+            sleep 5
+          done
           cd roundtrip
           for checksum in SHA256SUMS*.txt; do sha256sum --check "$checksum"; done
       - name: Publish only when explicitly requested

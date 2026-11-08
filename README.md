@@ -19,9 +19,7 @@ Resize an image. Organize a PDF. Cut a sound. Make a QR code.<br>
 
 ## Get the app
 
-**The first 0.2.0 release is being built and verified.** Desktop links below open the release list until publication completes.
-
-**[MediaForge 0.2.0](https://github.com/Gurtejhundal/MediaForge/releases)** · Choose your workbench. Keep your files.
+**[MediaForge 0.2.0](https://github.com/Gurtejhundal/MediaForge/releases/tag/v0.2.0)** · Choose your workbench. Keep your files.
 
 <table>
   <tr>
@@ -34,7 +32,7 @@ Resize an image. Organize a PDF. Cut a sound. Make a QR code.<br>
     <td width="50%" valign="top">
       <h3><img src="docs/readme/os/windows.svg" width="24" height="24" alt=""> &nbsp; Windows</h3>
       <p>Your media workbench, ready from the desktop.</p>
-      <p><a href="https://github.com/Gurtejhundal/MediaForge/releases"><b>↓ Intel / AMD</b></a></p>
+      <p><a href="https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/MediaForge-0.2.0-win-x64.exe"><b>↓ Intel / AMD</b></a></p>
       <sub>64-bit · Per-user installer · Unsigned</sub>
     </td>
   </tr>
@@ -42,32 +40,32 @@ Resize an image. Organize a PDF. Cut a sound. Make a QR code.<br>
     <td width="50%" valign="top">
       <h3><img src="docs/readme/os/apple.svg" width="24" height="24" alt=""> &nbsp; macOS</h3>
       <p>A little room on your Mac for the next file job.</p>
-      <p><a href="https://github.com/Gurtejhundal/MediaForge/releases"><b>↓ Apple Silicon</b></a> &nbsp; · &nbsp; <a href="https://github.com/Gurtejhundal/MediaForge/releases"><b>↓ Intel</b></a></p>
+      <p><a href="https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/MediaForge-0.2.0-mac-arm64.dmg"><b>↓ Apple Silicon</b></a> &nbsp; · &nbsp; <a href="https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/MediaForge-0.2.0-mac-x64.dmg"><b>↓ Intel</b></a></p>
       <sub>DMG installers · Unsigned, not notarized</sub>
     </td>
     <td width="50%" valign="top">
       <h3><img src="docs/readme/os/linux.svg" width="24" height="24" alt=""> &nbsp; Linux</h3>
       <p>Local tools. Ordinary files. Your desktop.</p>
-      <p><a href="https://github.com/Gurtejhundal/MediaForge/releases"><b>↓ AppImage</b></a> &nbsp; · &nbsp; <a href="https://github.com/Gurtejhundal/MediaForge/releases"><b>↓ DEB</b></a></p>
+      <p><a href="https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/MediaForge-0.2.0-linux-x64.AppImage"><b>↓ AppImage</b></a> &nbsp; · &nbsp; <a href="https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/MediaForge-0.2.0-linux-x64.deb"><b>↓ DEB</b></a></p>
       <sub>64-bit Intel / AMD · Ubuntu 24.04 native CI</sub>
     </td>
   </tr>
 </table>
 
-[All releases](https://github.com/Gurtejhundal/MediaForge/releases) &nbsp; · &nbsp; [Checksums](https://github.com/Gurtejhundal/MediaForge/releases) &nbsp; · &nbsp; [Matching source](https://github.com/Gurtejhundal/MediaForge/releases)
+[All releases](https://github.com/Gurtejhundal/MediaForge/releases) &nbsp; · &nbsp; [Checksums](https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/SHA256SUMS.txt) &nbsp; · &nbsp; [Matching source](https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/MediaForge-0.2.0-source.zip)
 
 <details>
 <summary>Installation help &amp; release details</summary>
 
 - **Windows:** open the setup file and choose an installation folder. This release provides x64, not a native ARM64 build.
-- **macOS:** choose the DMG for your processor, open it, and drag MediaForge into Applications. Prefer a ZIP? [Apple Silicon](https://github.com/Gurtejhundal/MediaForge/releases) · [Intel](https://github.com/Gurtejhundal/MediaForge/releases).
+- **macOS:** choose the DMG for your processor, open it, and drag MediaForge into Applications. Prefer a ZIP? [Apple Silicon](https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/MediaForge-0.2.0-mac-arm64.zip) · [Intel](https://github.com/Gurtejhundal/MediaForge/releases/download/v0.2.0/MediaForge-0.2.0-mac-x64.zip).
 - **Linux:** install the DEB with your package manager, or allow execution of the AppImage and open it. AppImage requires FUSE 2 and a compatible sandbox/user-namespace setup. If those are unavailable, prefer the DEB; keep the Chromium sandbox enabled. Linux ARM builds are not provided.
 
 Windows and Mac downloads are **unsigned**; macOS builds are **not notarized**. Your OS may ask you to approve the app. Review the source and checksum before approving an unsigned download. No automatic updater is included.
 
 All four targets run source, browser and packaged-app launch/export/restart checks in native CI. These checks do not certify every OS version or exercise privileged installer execution and AppImage FUSE mounting. [Verification and installation limits](docs/hosted-verification.md) · [Release notes](docs/releases/0.2.0.md).
 
-Published downloads will be public GitHub release assets and will not require GitHub sign-in. Model/OCR assets may need a network on first use. Save inputs and exports separately; conversion drafts are memory-only.
+Downloads are public GitHub release assets and do not require GitHub sign-in. Model/OCR assets may need a network on first use. Save inputs and exports separately; conversion drafts are memory-only.
 
 </details>
 

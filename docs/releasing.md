@@ -45,4 +45,4 @@ Set `MEDIAFORGE_TEST_EXECUTABLE` to the actual packaged executable's absolute pa
 
 The owner selected AGPL-3.0-only. The application LICENSE, generated production-package/font notices and original Electron/Chromium notices ship with desktop candidates. The source release includes scripts and lockfile needed to reproduce the app. [Distribution notices](../THIRD_PARTY_NOTICES.md) explain the bundled IMG.LY library. The upstream Zod advisory remains under its exact-version exception until 7 December 2026; [dependency review](dependencies.md) is not a clean-audit claim.
 
-The former repository homepage at converter-ashen-five.vercel.app is a deleted deployment. Use mediaforge-tau.vercel.app, the verified public production domain. Team/deployment-specific Vercel URLs may require Vercel Authentication; protection settings were not weakened.
+The former repository homepage at converter-ashen-five.vercel.app was a deleted deployment. It now returns a permanent HTTP 308 redirect to mediaforge-tau.vercel.app, the verified public production domain. Team/deployment-specific Vercel URLs may require Vercel Authentication; protection settings were not weakened.
