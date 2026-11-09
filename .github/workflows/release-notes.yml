@@ -1,0 +1,40 @@
+name: Published release notes
+on:
+  push:
+    branches: [main]
+    paths: ['docs/releases/*.md']
+permissions:
+  contents: read
+jobs:
+  notes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BEFORE_SHA: ${{ github.event.before }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Update only notes for already-public releases; preserve tags and artifacts
+        run: |
+          gh api repos/$GH_REPO/releases --paginate --jq '.[] | select(.draft == false) | .tag_name' > public-tags.txt
+          node <<'JS'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const before = process.env.BEFORE_SHA;
+          if (!/^[a-f0-9]{40}$/.test(before) || /^0+$/.test(before)) throw Error('A previous commit is required');
+          const published = new Set(fs.readFileSync('public-tags.txt','utf8').trim().split('\n'));
+          const files = execFileSync('git',['diff','--name-only',before,process.env.GITHUB_SHA,'--','docs/releases/'],{encoding:'utf8'}).trim().split('\n');
+          for (const file of files) {
+            const match = /^docs\/releases\/(android-)?(\d+\.\d+\.\d+)\.md$/.exec(file);
+            if (!match || !fs.existsSync(file)) continue;
+            const tag = `${match[1] ? 'android-v' : 'v'}${match[2]}`;
+            if (!published.has(tag)) continue; // Preparing notes never publishes a release.
+            execFileSync('gh',['release','edit',tag,'--notes-file',file],{stdio:'inherit'});
+            console.log(`Updated notes for ${tag}; binaries and tags preserved.`);
+          }
+          JS

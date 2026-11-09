@@ -1,6 +1,6 @@
 # MediaForge for Android 0.3.0
 
-The bundled workbench includes tool search, working-file warnings, remembered processing preferences, image-batch resume/retry, recoverable crop errors and the updated audio-preserving video engine. [Full application changes](0.3.0.md).
+The bundled workbench includes tool search, working-file warnings, remembered processing preferences, image-batch resume/retry, recoverable crop errors and the updated audio-preserving video engine. [Full application changes](https://github.com/Gurtejhundal/MediaForge/blob/android-v0.3.0/docs/releases/0.3.0.md).
 
 Download `MediaForge-0.3.0-android.apk` and check its SHA-256 against `SHA256SUMS.txt`. Android 8+ and a current WebView are required; native verification runs on an Android 15 emulator, not every physical phone or codec. Native file selection/Save dialogs, cancellation, exports, reopen and Back are exercised before publication. Export limit: 256 MB. Inputs/drafts remain memory-only.
 
@@ -9,3 +9,5 @@ Download `MediaForge-0.3.0-android.apk` and check its SHA-256 against `SHA256SUM
 Ordinary tools do not require an NVIDIA GPU. The experimental CUDA companion requires a separate NVIDIA computer/process and is not supported on Android. Invisible SynthID removal remains unverified. Network download/feedback flows keep their documented external-browser behavior. First-use model/OCR downloads still require connectivity.
 
 This release includes matching AGPL source and notices, checksums and an installed-app verification gate. Older Android 0.2.0 remains available unchanged.
+
+[Published checks, source and artifact hashes](https://github.com/Gurtejhundal/MediaForge/blob/main/docs/release-0.3.0-verification.md).

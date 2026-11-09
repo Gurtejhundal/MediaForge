@@ -74,7 +74,7 @@ Resize an image. Organize a PDF. Cut a sound. Make a QR code.<br>
 
 Windows and Mac downloads are **unsigned**; macOS builds are **not notarized**. Your OS may ask you to approve the app. Review the source and checksum before approving an unsigned download. No automatic updater is included.
 
-All four targets run source, browser and packaged-app launch/export/restart checks in native CI. These checks do not certify every OS version or exercise privileged installer execution and AppImage FUSE mounting. [Verification and installation limits](docs/hosted-verification.md) · [Release notes](docs/releases/0.3.0.md).
+All four targets run source, browser and packaged-app launch/export/restart checks in native CI. These checks do not certify every OS version or exercise privileged installer execution and AppImage FUSE mounting. [0.3.0 verification and installation limits](docs/release-0.3.0-verification.md) · [Release notes](docs/releases/0.3.0.md).
 
 Downloads are public GitHub release assets and do not require GitHub sign-in. Model/OCR assets may need a network on first use. Save inputs and exports separately; conversion drafts are memory-only.
 
@@ -306,7 +306,7 @@ Open **http://127.0.0.1:3000**. Build a production preview with `npm run build` 
 | Architecture, privacy, storage and backups | [How the workbench works](docs/architecture.md) |
 | Experimental local NVIDIA companion | [GPU check and trial guide](docs/invisible-watermarks-local.md) |
 | Versions, packaging, source and checksums | [Release guide](docs/releasing.md) |
-| Findings and observed checks | [0.3.0 audit](docs/audit-0.3.0.md) · [Original audit](docs/audit.md) · [Android & interface audit](docs/android-audit.md) · [Hosted verification](docs/hosted-verification.md) |
+| Findings and observed checks | [0.3.0 verification](docs/release-0.3.0-verification.md) · [0.3.0 audit](docs/audit-0.3.0.md) · [Original audit](docs/audit.md) · [Android & interface audit](docs/android-audit.md) · [Hosted verification](docs/hosted-verification.md) |
 | Licensing and dependencies | [AGPL-3.0](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md) · [Dependency review](docs/dependencies.md) |
 
 [Contribute](CONTRIBUTING.md) · [Report a problem](https://github.com/Gurtejhundal/MediaForge/issues) · [Security](SECURITY.md)
