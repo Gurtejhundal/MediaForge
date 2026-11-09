@@ -2,5 +2,7 @@
   "tag": "v0.3.0",
   "publish": true,
   "sourceBranch": "main",
-  "authorization": "Owner requested implementing the unfinished workflows and publishing a newer version on 2026-11-08. Publish only after native packaged-app verification. Preserve all existing public releases."
+  "authorization": "Owner requested implementing the unfinished workflows and publishing a newer version on 2026-11-08. Publish only after native packaged-app verification. Preserve all existing public releases.",
+  "verificationRevision": 2,
+  "verificationNote": "Rerun all native gates after fixing early preference hydration and removing loopback reverse-DNS startup dependency."
 }

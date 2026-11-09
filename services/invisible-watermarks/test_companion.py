@@ -35,6 +35,15 @@ class CompanionTests(unittest.TestCase):
                 return response.code, response.headers, response.read()
         with response: return response.status, response.headers, response.read()
 
+    def test_loopback_startup_does_not_require_reverse_dns(self):
+        with patch('socket.getfqdn', side_effect=RuntimeError('DNS unavailable')):
+            server = companion.create_server(0, 'x' * 43, {ORIGIN})
+            try:
+                self.assertEqual(server.server_name, '127.0.0.1')
+                self.assertGreater(server.server_port, 0)
+            finally:
+                server.server_close()
+
     def test_exact_origin_host_and_session_token_are_required(self):
         with patch.object(companion, 'preflight') as check:
             for headers in [{'Origin': 'https://evil.example'}, {'Authorization': ''}, {'Authorization': 'Bearer wrong'}, {'Host': 'evil.example'}]:

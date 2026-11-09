@@ -241,7 +241,7 @@ The memory figure and CUDA boundary come from the [pinned upstream installation 
 
 Start with the [Windows GPU check](services/invisible-watermarks/Check-GPU.cmd) or [dependency-free Python inventory](services/invisible-watermarks/diagnose.py); neither downloads models or uploads files. Then follow the [local setup, single-file and batch guide](docs/invisible-watermarks-local.md). The batch adapter accepts 1–20 images, preserves originals and existing outputs, records a local report, and stops after the first failure. [Adapter source and tests](services/invisible-watermarks/README.md) · [Hosted alternatives, not provisioned](docs/invisible-watermarks-hosting.md).
 
-The adapter and authenticated HTTP boundary have 28 lightweight regression tests using simulated hardware/engine outputs. The browser suite also connects to the actual companion and verifies unavailable CUDA never starts processing. GPU memory fit and real SynthID removal remain unverified; [verification record](docs/audit-0.3.0.md).
+The adapter and authenticated HTTP boundary have 29 lightweight regression tests using simulated hardware/engine outputs. The browser suite also connects to the actual companion and verifies unavailable CUDA never starts processing. GPU memory fit and real SynthID removal remain unverified; [verification record](docs/audit-0.3.0.md).
 
 ## Inside the workbench
 

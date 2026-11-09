@@ -79,6 +79,8 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - name: Refuse publication from superseded source
+        run: test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
       - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v4
         with:

@@ -1,31 +1,40 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 
 // Preferences only: never pass files, content, contact details or access tokens.
 export function useSavedSetting<T>(key: string, initial: T, validate: (value: unknown) => value is T) {
   const [value, setValue] = useState<T>(initial);
-  const ready = useRef(false);
+  const [hydratedKey, setHydratedKey] = useState<string | null>(null);
+  const edited = useRef(false);
   const validator = useRef(validate);
+  const setPreference = useCallback((next: SetStateAction<T>) => {
+    edited.current = true;
+    setValue(next);
+  }, []);
   useEffect(() => {
-    ready.current = false;
+    edited.current = false;
     const timer = setTimeout(() => {
-      try {
-        const raw = localStorage.getItem(`mediaforge.setting.${key}`);
-        if (raw && raw.length < 4096) {
-          const stored: unknown = JSON.parse(raw);
-          if (validator.current(stored)) setValue(stored);
-        }
-      } catch { /* Blocked/corrupt storage cannot prevent processing. */ }
-      ready.current = true;
+      // An early user edit wins over delayed hydration. Marking hydration in
+      // state also guarantees that edit is persisted even if no read changed it.
+      if (!edited.current) {
+        try {
+          const raw = localStorage.getItem(`mediaforge.setting.${key}`);
+          if (raw && raw.length < 4096) {
+            const stored: unknown = JSON.parse(raw);
+            if (validator.current(stored)) setValue(stored);
+          }
+        } catch { /* Blocked/corrupt storage cannot prevent processing. */ }
+      }
+      setHydratedKey(key);
     }, 0);
     return () => clearTimeout(timer);
   }, [key]);
   useEffect(() => {
-    if (!ready.current) return;
+    if (hydratedKey !== key) return;
     try { localStorage.setItem(`mediaforge.setting.${key}`, JSON.stringify(value)); } catch { /* Optional. */ }
-  }, [key, value]);
-  return [value, setValue] as const;
+  }, [hydratedKey, key, value]);
+  return [value, setPreference] as const;
 }
 
 export const isQuality = (value: unknown): value is string => typeof value === "string" && /^\d{1,3}$/.test(value) && Number(value) >= 1 && Number(value) <= 100;

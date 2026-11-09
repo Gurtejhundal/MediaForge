@@ -133,6 +133,7 @@ jobs:
       - name: Require the retained release certificate before publication
         if: steps.release.outputs.skip != 'true'
         run: |
+          test "$(gh api repos/$GH_REPO/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
           test "$(cat android-release/durable-signing.txt)" = 1
           rm android-release/durable-signing.txt
       - run: npm ci --ignore-scripts

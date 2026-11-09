@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import secrets
 import socket
+from socketserver import TCPServer
 import tempfile
 import threading
 from urllib.parse import urlsplit
@@ -20,6 +21,15 @@ def allowed_origin(value: str) -> str:
     if value != 'https://mediaforge-tau.vercel.app' and not (parsed.scheme == 'http' and parsed.hostname in {'127.0.0.1', 'localhost'} and parsed.port):
         raise ValueError('Only the canonical MediaForge HTTPS origin or an explicit local app port is allowed.')
     return value
+
+
+class LoopbackServer(ThreadingHTTPServer):
+    def server_bind(self):
+        # HTTPServer normally reverse-resolves this address. A fixed loopback
+        # listener needs no DNS and must start even when reverse DNS stalls.
+        TCPServer.server_bind(self)
+        self.server_name = '127.0.0.1'
+        self.server_port = self.server_address[1]
 
 
 def create_server(port: int, token: str, origins: set[str]):
@@ -116,7 +126,7 @@ def create_server(port: int, token: str, origins: set[str]):
             try: self.send(status, response, content_type)
             except (OSError, socket.timeout): pass
 
-    server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+    server = LoopbackServer(('127.0.0.1', port), Handler)
     # Graceful shutdown waits for the bounded current job rather than orphaning it.
     server.daemon_threads = False
     server.gpu_gate = gate

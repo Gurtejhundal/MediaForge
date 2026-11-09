@@ -28,6 +28,10 @@ test('leaving a working image asks before discarding and Cancel keeps the draft'
 });
 
 test('batch preferences survive reopening without persisting files or image content', async ({page}) => {
+  await page.addInitScript(() => {
+    const original = window.setTimeout.bind(window);
+    window.setTimeout = ((...args: Parameters<typeof window.setTimeout>) => original(args[0], args[1] === 0 ? 300 : args[1], ...args.slice(2))) as typeof window.setTimeout;
+  });
   await page.goto('/tools/resize'); await page.getByRole('button',{name:'Multiple files',exact:true}).click();
   await page.getByLabel('Batch width (px)').fill('91'); await page.getByLabel('Batch height (px)').fill('47');
   await expect.poll(()=>page.evaluate(()=>localStorage.getItem('mediaforge.setting.batch.resize.width'))).toBe('"91"');
@@ -72,10 +76,12 @@ test('a transient encoder failure can recover without stale error or rerunning s
 });
 
 test('browser connects to the actual authenticated local companion and handles unavailable CUDA', async ({page,baseURL}) => {
-  const child=spawn(process.platform==='win32'?'python':'python3',['services/invisible-watermarks/companion.py','--port','0','--origin',baseURL!],{stdio:['ignore','pipe','pipe']});
+  const child=spawn(process.env.pythonLocation ? path.join(process.env.pythonLocation, process.platform==='win32'?'python.exe':'bin/python3') : process.platform==='win32'?'python':'python3',['services/invisible-watermarks/companion.py','--port','0','--origin',baseURL!],{stdio:['ignore','pipe','pipe']});
   try {
     const connection=await new Promise<{port:string;token:string}>((resolve,reject)=>{
-      let output='';const timeout=setTimeout(()=>reject(new Error('Local companion did not start')),10000);
+      let output='';let stderr='';const timeout=setTimeout(()=>reject(new Error('Local companion startup timed out: '+stderr)),30000);
+      child.stderr.on('data',data=>{stderr=(stderr+data.toString()).slice(-2000)});
+      child.once('exit',code=>{clearTimeout(timeout);reject(new Error(`Local companion exited (${code}): ${stderr}`))});
       child.once('error',error=>{clearTimeout(timeout);reject(error)});
       child.stdout.on('data',data=>{output+=data.toString();const port=/Local companion: http:\/\/127\.0\.0\.1:(\d+)/.exec(output)?.[1];const token=/Session token \(paste into MediaForge; never share\): ([A-Za-z0-9_-]+)/.exec(output)?.[1];if(port&&token){clearTimeout(timeout);resolve({port,token})}});
     });
