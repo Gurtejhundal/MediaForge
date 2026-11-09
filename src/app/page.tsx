@@ -246,6 +246,9 @@ function Hero() {
 }
 
 function ToolIndex() {
+  const [query, setQuery] = useState("");
+  const matches = (tool: (typeof tools)[number]) => `${tool.title} ${tool.description} ${tool.meta}`.toLowerCase().includes(query.trim().toLowerCase());
+  const count = tools.filter(matches).length;
   return (
     <section id="tool-index" className="scroll-mt-32">
       <div className="mb-4 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
@@ -256,11 +259,17 @@ function ToolIndex() {
         <p className="max-w-md text-sm leading-6 text-[#a6a89d]">Operations are grouped by the work you need to finish. Existing routes and processing behavior stay fixed.</p>
       </div>
 
+      <div className="mf-faceplate mb-4 p-5">
+        <label htmlFor="tool-search" className="mb-2 block text-sm font-semibold">Find a tool</label>
+        <input id="tool-search" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Try resize, merge, audio, PDF…" className="h-12 w-full rounded-sm border border-input bg-card px-3 text-foreground" />
+        <p role="status" className="mt-2 text-xs text-muted-foreground">{count} of {tools.length} tools{count === 0 ? ". No matching tools. Try a different word." : " available"}</p>
+        {query && <button type="button" className="mt-3 min-h-11 text-sm font-semibold text-primary underline" onClick={() => setQuery("")}>Clear search</button>}
+      </div>
       <div className="space-y-4">
         {toolGroups.map((group) => {
           const GroupIcon = group.icon;
           return (
-            <article key={group.key} id={group.id} className="mf-faceplate scroll-mt-32 overflow-hidden">
+            <article key={group.key} id={group.id} hidden={!group.tools.some(matches)} className="mf-faceplate scroll-mt-32 overflow-hidden">
               <header className="grid gap-4 border-b border-[#787469] p-5 sm:grid-cols-[52px_minmax(0,1fr)_auto] sm:items-center md:px-7">
                 <div className="mf-key flex size-11 items-center justify-center text-primary">
                   <GroupIcon className="size-5" />
@@ -274,7 +283,7 @@ function ToolIndex() {
               </header>
 
               <ul className="divide-y divide-[#8d897c]">
-                {group.tools.map((tool, index) => {
+                {group.tools.filter(matches).map((tool, index) => {
                   const Icon = tool.icon;
                   return (
                     <li key={tool.href}>

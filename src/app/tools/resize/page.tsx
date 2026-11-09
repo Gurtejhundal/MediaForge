@@ -78,7 +78,7 @@ export default function ResizePage() {
   };
 
   return (
-    <ToolLayout 
+    <ToolLayout dirty={Boolean(file)}
       title="Image Resizer" 
       description="Resize images locally with Canvas. No upload required."
     >

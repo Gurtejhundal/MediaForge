@@ -150,7 +150,7 @@ export function AudioStudio({ initialMode = "convertWav" }: { initialMode?: Audi
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={files.length > 0}
       title="Audio Studio"
       description="Convert, extract, trim, merge, normalize, reverse, adjust volume, and change speed locally with browser audio decoding and WAV export."
     >

@@ -1,3 +1,4 @@
+import { abortable } from "./cancellation";
 import JSZip from "jszip";
 import { safeBaseName } from "./blob-utils";
 
@@ -74,6 +75,7 @@ export async function captureFrameFromVideo(video: HTMLVideoElement, timestamp: 
 export interface FrameZipOptions {
   fps: number;
   format: FrameExportFormat;
+  signal?: AbortSignal;
   onProgress?: (progress: number, frame: number, total: number) => void;
 }
 
@@ -125,6 +127,7 @@ function yieldToBrowser() {
 }
 
 export async function extractVideoFramesToZip(file: File, options: FrameZipOptions): Promise<FrameZipResult> {
+  options.signal?.throwIfAborted();
   const fps = Math.max(1, Math.min(60, Math.round(options.fps)));
   const { video, url } = await loadVideoFile(file);
 
@@ -152,8 +155,9 @@ export async function extractVideoFramesToZip(file: File, options: FrameZipOptio
     const extension = frameExtension(options.format);
 
     for (let index = 0; index < totalFrames; index += 1) {
+      options.signal?.throwIfAborted();
       const timestamp = Math.min(index / fps, Math.max(0, duration - 0.001));
-      await seekVideo(video, timestamp);
+      await abortable(seekVideo(video, timestamp), options.signal);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -167,9 +171,11 @@ export async function extractVideoFramesToZip(file: File, options: FrameZipOptio
     }
 
     const blob = await zip.generateAsync({ type: "blob" }, (metadata) => {
+      options.signal?.throwIfAborted();
       options.onProgress?.(95 + Math.round(metadata.percent * 0.05), totalFrames, totalFrames);
     });
 
+    options.signal?.throwIfAborted();
     options.onProgress?.(100, totalFrames, totalFrames);
 
     return {

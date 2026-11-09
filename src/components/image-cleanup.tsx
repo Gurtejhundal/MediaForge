@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { LocalGpuPanel } from "@/components/local-gpu-panel";
+import { isAndroidApp } from "@/lib/android-export";
+import { useUnsavedWork } from "@/hooks/use-unsaved-work";
 import { Dropzone } from "@/components/upload/dropzone";
 import { ImagePreview } from "@/components/preview/image-preview";
 import { Button } from "@/components/ui/button";
@@ -18,15 +21,18 @@ export function ImageCleanup() {
   const [edges, setEdges] = useState({ left: "0", top: "0", right: "0", bottom: "0" });
   const [output, setOutput] = useState<{ blob: Blob; url: string; width: number; height: number; filename: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [readError, setReadError] = useState<string | null>(null);
+  useUnsavedWork(Boolean(file));
   const generation = useRef(0);
   useObjectUrlCleanup(source); useObjectUrlCleanup(output?.url ?? null);
   useEffect(() => () => { ++generation.current; }, []);
-  function clear() { ++generation.current; setFile(null); setSource(null); setDimensions(null); setOutput(null); setBusy(false); }
+  function clear() { setReadError(null); ++generation.current; setFile(null); setSource(null); setDimensions(null); setOutput(null); setBusy(false); }
   async function choose(next: File) {
+    setReadError(null);
     const id = ++generation.current;
     setFile(next); setSource(URL.createObjectURL(next)); setDimensions(null); setOutput(null); setBusy(false);
     try { const size = await getImageDimensions(next); if (generation.current === id) setDimensions(size); }
-    catch (error) { if (generation.current === id) toast.error(error instanceof Error ? error.message : "Could not open this image."); }
+    catch (error) { if (generation.current === id) { const message = error instanceof Error ? error.message : "Could not open this image."; setReadError(message); toast.error(message); } }
   }
   async function crop() {
     if (!file || !dimensions) return;
@@ -51,7 +57,8 @@ export function ImageCleanup() {
       <p className="mt-2">This tool does not detect SynthID or verify its removal. Google embeds SynthID in the image pixels; cropping and re-encoding do not guarantee its removal. <a href="https://deepmind.google/models/synthid/" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary underline underline-offset-4">About SynthID ↗</a></p>
     </aside>
     {!file ? <Dropzone onFileAccepted={next => void choose(next)} accept={{ "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"], "image/webp": [".webp"], "image/svg+xml": [".svg"] }} /> : <ImagePreview file={file} previewUrl={source!} onRemove={clear} />}
-    {file && <fieldset disabled={!dimensions || busy} className="border border-border bg-card p-4">
+    {readError && <div role="alert" className="border border-danger p-4 text-sm"><p>{readError}</p><Button variant="outline" className="mt-3" onClick={clear}>Choose another image</Button></div>}
+    {file && !readError && <fieldset disabled={!dimensions || busy} className="border border-border bg-card p-4">
       <legend className="px-2 font-semibold">Trim edges in original pixels</legend>
       <p role="status" className="mb-4 text-sm">{dimensions ? `Original: ${dimensions.width} × ${dimensions.height} px` : "Reading image dimensions…"}</p>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">{(["left", "top", "right", "bottom"] as const).map(edge => <div key={edge}><Label htmlFor={`trim-${edge}`} className="capitalize">{edge} trim (px)</Label><Input id={`trim-${edge}`} type="number" min="0" value={edges[edge]} onChange={event => setEdges(current => ({ ...current, [edge]: event.target.value }))} className="mt-2" /></div>)}</div>
@@ -63,5 +70,6 @@ export function ImageCleanup() {
       <p className="text-xs text-muted-foreground">Inspect this preview before saving. Changed edge settings apply to the next preview. Invisible watermark status is unverified.</p>
       <Button onClick={() => downloadBlob(output.blob, output.filename, { kind: "modification" })}>Save cropped PNG</Button>
     </section>}
+    {!isAndroidApp() && <LocalGpuPanel />}
   </div>;
 }

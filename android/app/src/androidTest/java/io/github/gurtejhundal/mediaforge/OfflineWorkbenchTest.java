@@ -32,13 +32,14 @@ public class OfflineWorkbenchTest {
             if ("true".equals(js(expression))) { android.util.Log.i("MediaForgeTest", "Passed: " + expression); return; }
             Thread.sleep(200);
         }
-        fail("Condition timed out: " + expression + "\n" + js("document.body.textContent.slice(-1500)"));
+        fail("Condition timed out: " + expression + "\n" + js("document.body.innerText.slice(-4000)"));
     }
     private void navigate(String path, String heading) throws Exception {
-        js("location.href=" + org.json.JSONObject.quote(MainActivity.ORIGIN + path));
+        js("window.__mediaforgeAllowDiscard=true;location.href=" + org.json.JSONObject.quote(MainActivity.ORIGIN + path));
         until("location.pathname===" + org.json.JSONObject.quote(path) + " && document.readyState==='complete' && document.querySelector('h1')?.textContent.includes(" + org.json.JSONObject.quote(heading) + ")");
         until("!!document.querySelector('main') && !!window.MediaForgeFiles");
-        Thread.sleep(1000); // Let hydration attach event handlers on slower emulators.
+        until("document.fonts.status==='loaded' && typeof window.__mediaforgeHasWorkingFiles==='boolean'");
+        Thread.sleep(1000); // Let page hydration and font layout settle before native taps.
         assertEquals("true", js("document.documentElement.scrollWidth <= innerWidth"));
     }
     private void click(String text) throws Exception {
@@ -131,6 +132,12 @@ public class OfflineWorkbenchTest {
             js("document.querySelector('img[alt*=\"QR\"]').scrollIntoView({block:'center',behavior:'instant'})");
             Thread.sleep(400); // Let the real renderer paint before capturing evidence.
             screenshot("android-qr.png");
+            until("window.__mediaforgeHasWorkingFiles===true");
+            device.pressBack();
+            UiObject2 keepWorking = device.wait(Until.findObject(By.text(java.util.regex.Pattern.compile("(?i)keep working"))), 5000);
+            assertNotNull("Back must protect the working QR", keepWorking);
+            keepWorking.click();
+            until("!!document.querySelector('img[alt*=\"QR\"]')");
             click("Download QR code");
             assertNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 15_000));
             device.pressBack(); device.waitForIdle();

@@ -68,3 +68,8 @@ next-env.d.ts
 
 /android-captures/
 /android-release/
+
+/android-signing-backup/
+*.p12
+
+!/.github/android-backup-recovery-public.pem

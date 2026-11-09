@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+// These journeys explicitly discard intermediate work; dedicated guard tests cover staying.
+test.beforeEach(async ({page}) => { page.on('dialog', dialog => dialog.accept()); });
 import AxeBuilder from '@axe-core/playwright';
 import path from 'node:path';
 const routes=['/','/report','/tools/qr-generator','/tools/resize','/tools/pdf-organizer','/tools/audio-studio','/tools/video-downloader','/tools/image-cleanup'];

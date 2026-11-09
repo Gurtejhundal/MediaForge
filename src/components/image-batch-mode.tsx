@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import JSZip from "jszip";
+import { useSavedSetting, isDimension, isQuality } from "@/hooks/use-saved-setting";
+import { useUnsavedWork } from "@/hooks/use-unsaved-work";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,14 +30,17 @@ export function ImageBatchMode({ mode, children }: { mode: Mode; children: React
 
 function BatchImages({ mode, onBusy }: { mode: Mode; onBusy(busy: boolean): void }) {
   const [items, setItems] = useState<Item[]>([]);
-  const [format, setFormat] = useState<BrowserImageFormat>(mode === "compress" ? "webp" : "png");
-  const [width, setWidth] = useState("");
-  const [height, setHeight] = useState("");
-  const [quality, setQuality] = useState("80");
+  const [format, setFormat] = useSavedSetting<BrowserImageFormat>(`batch.${mode}.format`, mode === "compress" ? "webp" : "png", (v): v is BrowserImageFormat => typeof v === "string" && ["png", "jpeg", "webp", "avif", "svg"].includes(v));
+  const [width, setWidth] = useSavedSetting(`batch.${mode}.width`, "", isDimension);
+  const [height, setHeight] = useSavedSetting(`batch.${mode}.height`, "", isDimension);
+  const [quality, setQuality] = useSavedSetting(`batch.${mode}.quality`, "80", isQuality);
   const [busy, setBusy] = useState(false);
   const [packing, setPacking] = useState(false);
   const cancelled = useRef(false);
   const mounted = useRef(true);
+  const [hasRun, setHasRun] = useState(false);
+  const originalSettings = useRef<Parameters<typeof processImageLocally>[1] | null>(null);
+  useUnsavedWork(items.length > 0);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; cancelled.current = true; }; }, []);
 
   function addFiles(files: FileList | null) {
@@ -50,24 +55,31 @@ function BatchImages({ mode, onBusy }: { mode: Mode; onBusy(busy: boolean): void
     if (rejected) toast.error(`${rejected} file(s) exceeded the batch limits. Accepted files are listed below.`);
   }
   function resetResults() { setItems(current => current.map(item => ({ id: item.id, file: item.file, state: "queued" }))); }
-  async function run() {
+  async function run(selection: "all" | "resume" | "retry" = "all") {
     const dimensions = [width, height].filter(Boolean).map(Number);
-    if (mode === "resize" && (!dimensions.length || dimensions.some(n => !Number.isInteger(n) || n < 1 || n > 16384))) {
+    if (selection === "all" && mode === "resize" && (!dimensions.length || dimensions.some(n => !Number.isInteger(n) || n < 1 || n > 16384))) {
       toast.error("Enter at least one dimension, using whole pixels between 1 and 16,384."); return;
     }
     const q = Number(quality);
-    if (!Number.isInteger(q) || q < 1 || q > 100) { toast.error("Quality must be a whole number between 1 and 100."); return; }
-    cancelled.current = false; setBusy(true); onBusy(true); resetResults();
-    let outputBytes = 0;
+    if (selection === "all" && (!Number.isInteger(q) || q < 1 || q > 100)) { toast.error("Quality must be a whole number between 1 and 100."); return; }
+    if (selection === "all" && items.some(item => item.result) && !window.confirm("Reprocess all images with the current settings? Save any finished results first; they will be replaced.")) return;
+    if (selection === "all") {
+      setHasRun(true);
+      originalSettings.current = { format: mode === "compress" ? "webp" : format, quality: q,
+        ...(mode === "resize" ? { width: width ? Number(width) : undefined, height: height ? Number(height) : undefined, fit: "contain" as const } : {}) };
+      resetResults();
+    }
+    const settings = originalSettings.current;
+    if (!settings) return;
+    const selected = items.filter(item => selection === "all" || item.state === (selection === "retry" ? "error" : "queued"));
+    cancelled.current = false; setBusy(true); onBusy(true);
+    let outputBytes = selection === "all" ? 0 : items.reduce((total, item) => total + (item.result?.size || 0), 0);
     try {
-      for (const item of items) {
+      for (const item of selected) {
         if (cancelled.current) break;
-        setItems(current => current.map(entry => entry.id === item.id ? { ...entry, state: "working" } : entry));
+        setItems(current => current.map(entry => entry.id === item.id ? { ...entry, state: "working", error: undefined } : entry));
         try {
-          const output = await processImageLocally(item.file, {
-            format: mode === "compress" ? "webp" : format, quality: q,
-            ...(mode === "resize" ? { width: width ? Number(width) : undefined, height: height ? Number(height) : undefined, fit: "contain" as const } : {}),
-          });
+          const output = await processImageLocally(item.file, settings);
           if (!mounted.current) return;
           if (outputBytes + output.blob.size > 128 * 1024 * 1024) throw new Error("Finished images exceed the 128 MB batch limit. Use a smaller batch.");
           outputBytes += output.blob.size;
@@ -122,10 +134,12 @@ function BatchImages({ mode, onBusy }: { mode: Mode; onBusy(busy: boolean): void
     </li>)}</ul>}
     <div className="flex flex-wrap gap-2">
       <Button disabled={!items.length || busy || packing} onClick={() => void run()}>Process {items.length || "selected"} images</Button>
+      {hasRun && items.some(item => item.state === "queued") && !busy && <Button variant="outline" disabled={packing} onClick={() => void run("resume")}>Resume remaining files</Button>}
+      {items.some(item => item.state === "error") && <Button variant="outline" disabled={busy || packing} onClick={() => void run("retry")}>Retry failed files</Button>}
       {busy && <Button variant="outline" onClick={() => { cancelled.current = true; toast.info("Stopping after the current image. Finished results will remain available."); }}>Stop after this file</Button>}
       <Button variant="outline" disabled={!ready || busy || packing} onClick={() => void saveZip()}>{packing ? "Building ZIP…" : "Save finished images as ZIP"}</Button>
-      <Button variant="ghost" disabled={!items.length || busy || packing} onClick={() => setItems([])}>Clear batch</Button>
+      <Button variant="ghost" disabled={!items.length || busy || packing} onClick={() => { setItems([]); setHasRun(false); originalSettings.current = null; }}>Clear batch</Button>
     </div>
-    <p className="text-xs text-muted-foreground">Settings apply when you press Process; completed files retain their displayed dimensions and format. Results remain in this tab until you leave the page or clear the batch. The ZIP includes a report of successes and failures. Browser image formats and device memory still apply.</p>
+    <p className="text-xs text-muted-foreground">Format, dimensions and quality are remembered on this device. Resume/retry uses the original batch settings; Process applies the current settings; completed files retain their displayed dimensions and format. Results remain in this tab until you leave the page or clear the batch. The ZIP includes a report of successes and failures. Browser image formats and device memory still apply.</p>
   </section>;
 }

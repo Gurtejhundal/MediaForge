@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, MessageSquareText, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, Download, MessageSquareText, ShieldCheck } from "lucide-react";
 import { toolGroups } from "@/lib/tool-catalog";
 
 export function Navbar() {
@@ -33,6 +33,7 @@ export function Navbar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 xl:ml-0">
+          <Link href="https://github.com/Gurtejhundal/MediaForge/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Check for app updates" className="mf-key inline-flex min-h-11 min-w-11 items-center justify-center px-3 text-xs font-semibold text-[#32342d]"><Download className="size-4" aria-hidden="true" /><span className="ml-2 hidden sm:inline">Updates</span></Link>
           <span className="hidden h-9 items-center rounded-sm border border-[#090a08] bg-[#292b25] px-3 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[#d4d8ca] shadow-[inset_0_2px_4px_rgba(0,0,0,.5),0_1px_0_rgba(255,255,255,.1)] md:inline-flex">
             <span className="mf-lamp mr-2" data-tone="green" aria-hidden="true" />
             <ShieldCheck className="mr-1.5 size-3.5" /> Local core

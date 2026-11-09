@@ -63,7 +63,7 @@ export default function QrGeneratorPage() {
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={Boolean(outputBlob)}
       title="QR generator"
       description="Generate QR codes in the browser and export PNG, JPEG, or SVG without uploading content."
     >

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSavedSetting } from "@/hooks/use-saved-setting";
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState } from "react";
@@ -20,7 +21,7 @@ export default function CompressPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useObjectUrlCleanup(previewUrl);
-  const [quality, setQuality] = useState<number[]>([70]);
+  const [quality, setQuality] = useSavedSetting<number[]>("compress.quality", [70], (v): v is number[] => Array.isArray(v) && v.length === 1 && Number.isInteger(v[0]) && v[0] >= 1 && v[0] <= 100);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastOutputSize, setLastOutputSize] = useState<number | null>(null);
 
@@ -56,7 +57,7 @@ export default function CompressPage() {
   };
 
   return (
-    <ToolLayout 
+    <ToolLayout dirty={Boolean(file)}
       title="Image Compressor" 
       description="Compress images locally with browser-native WebP export."
     >

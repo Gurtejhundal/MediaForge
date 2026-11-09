@@ -74,6 +74,10 @@ function createWindow() {
   window = new BrowserWindow({ width: 1440, height: 1000, minWidth: 360, minHeight: 600, backgroundColor: '#12130f', title: 'MediaForge', icon: path.join(__dirname, 'icon.png'), show: false, autoHideMenuBar: true, webPreferences: { session: profile, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, spellcheck: false } });
   window.webContents.setWindowOpenHandler(({ url }) => { if (canOpenExternal(url)) void shell.openExternal(url); return { action: 'deny' }; });
   window.webContents.on('will-navigate', (event, url) => { if (!isAppUrl(url, origin)) { event.preventDefault(); if (canOpenExternal(url)) void shell.openExternal(url); } });
+  window.webContents.on('will-prevent-unload', (event) => {
+    const choice = dialog.showMessageBoxSync(window, { type: 'warning', buttons: ['Keep working', 'Leave and discard'], defaultId: 0, cancelId: 0, title: 'Working files are still open', message: 'Save your results before leaving MediaForge.', detail: 'Working files and previews are held in memory and will be cleared.' });
+    if (choice === 1) event.preventDefault();
+  });
   window.webContents.on('will-attach-webview', (event) => event.preventDefault());
   window.once('ready-to-show', () => window.show());
   window.on('closed', () => { window = undefined; });

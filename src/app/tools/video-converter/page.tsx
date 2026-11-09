@@ -1,5 +1,7 @@
 "use client";
 
+import { useCancellableTask, wasCancelled } from "@/hooks/use-cancellable-task";
+import { useSavedSetting } from "@/hooks/use-saved-setting";
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState } from "react";
@@ -16,11 +18,12 @@ import { renderVideoToWebMLocally, type VideoResolutionMode } from "@/lib/local-
 type ResolutionMode = Extract<VideoResolutionMode, "original" | "1080p" | "720p" | "480p">;
 
 export default function VideoConverterPage() {
+  const task = useCancellableTask();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useObjectUrlCleanup(previewUrl);
   const [resolution, setResolution] = useState<ResolutionMode>("original");
-  const [muteAudio, setMuteAudio] = useState(false);
+  const [muteAudio, setMuteAudio] = useSavedSetting("video.muted", false, (v): v is boolean => typeof v === "boolean");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -31,6 +34,7 @@ export default function VideoConverterPage() {
   };
 
   const clearFile = () => {
+    task.cancel();
     revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
@@ -40,11 +44,14 @@ export default function VideoConverterPage() {
   const handleConvert = async () => {
     if (!file) return;
 
+    const signal = task.start();
     setIsProcessing(true);
     setProgress(0);
 
     try {
       const result = await renderVideoToWebMLocally(file, {
+        signal,
+        includeAudio: !muteAudio,
         resolution,
         fps: 24,
         onProgress: setProgress,
@@ -52,17 +59,20 @@ export default function VideoConverterPage() {
       downloadBlob(result.blob, result.filename, { kind: "video" });
       toast.success("Video exported locally as WebM.");
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to convert video");
+      if (wasCancelled(error)) toast.info("Processing cancelled. No partial video was saved.");
+      else toast.error(error instanceof Error ? error.message : "Failed to convert video");
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <ToolLayout 
+    <ToolLayout dirty={Boolean(file)}
       title="Video Converter" 
       description="Convert playable videos locally in your browser and export a WebM file without uploading."
     >
+      {isProcessing && <Button variant="outline" className="mb-4" onClick={task.cancel}>Cancel processing</Button>}
+
       <div className="space-y-8 w-full">
         {!file ? (
           <Dropzone 
@@ -144,13 +154,14 @@ export default function VideoConverterPage() {
               <div>
                 <Label className="mb-3 block text-sm text-foreground">Audio Track</Label>
                 <div className="flex items-center space-x-3">
-                  <Button type="button" variant="outline" disabled className="h-10">
+                  <Button type="button" variant={!muteAudio ? "default" : "outline"} disabled={isProcessing} onClick={() => setMuteAudio(false)} className="h-10">
                     <Volume2 className="mr-2 h-4 w-4" />
                     Keep Audio
                   </Button>
                   <Button
                     type="button"
                     variant={muteAudio ? "default" : "outline"}
+                    disabled={isProcessing}
                     onClick={() => setMuteAudio(true)}
                     className="h-10"
                   >
@@ -159,7 +170,7 @@ export default function VideoConverterPage() {
                   </Button>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Browser canvas export strips audio in this local mode. Audio muxing needs local FFmpeg WASM.
+                  Audio is preserved through a local Web Audio track by default. Muting is optional. Export is real-time WebM; keep this tab visible.
                 </p>
               </div>
 

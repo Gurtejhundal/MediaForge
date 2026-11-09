@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+// These journeys explicitly discard intermediate work; dedicated guard tests cover staying.
+test.beforeEach(async ({page}) => { page.on('dialog', dialog => dialog.accept()); });
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import JSZip from 'jszip';
@@ -36,6 +38,12 @@ test('batch Stop preserves the current result and leaves later files queued',asy
   await batch.getByRole('button',{name:'Stop after this file'}).click();await expect.poll(()=>page.evaluate(()=>typeof (window as unknown as {__finishBatchImage?:()=>void}).__finishBatchImage)).toBe('function');
   await page.evaluate(()=>(window as unknown as {__finishBatchImage:()=>void}).__finishBatchImage());
   await expect(batch.getByRole('status')).toContainText('1 of 2 ready');await expect(batch.getByRole('listitem').last()).toContainText('queued');await expect(batch.getByRole('button',{name:'Save finished images as ZIP'})).toBeEnabled();
+  await batch.getByLabel('Output format').selectOption('jpeg');
+  await batch.getByRole('button',{name:'Resume remaining files',exact:true}).click();
+  await expect(batch.getByRole('status')).toContainText('2 of 2 ready');
+  const resumed=page.waitForEvent('download');await batch.getByRole('button',{name:'Save finished images as ZIP'}).click();
+  const zip=await JSZip.loadAsync(await readFile((await (await resumed).path())!));
+  expect(Object.keys(zip.files).filter(name=>name.endsWith('.png'))).toHaveLength(2);
 });
 
 test('batch selection bounds the queue and rejects invalid dimensions without discarding inputs',async({page})=>{

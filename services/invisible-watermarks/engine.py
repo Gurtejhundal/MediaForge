@@ -51,20 +51,23 @@ def _read_image(path: Path):
     from PIL import Image, ImageOps
     if not path.is_file() or path.stat().st_size > MAX_INPUT:
         raise ValueError('Choose a PNG, JPEG or WebP file up to 25 MB.')
-    with warnings.catch_warnings():
-        warnings.simplefilter('error', Image.DecompressionBombWarning)
-        with Image.open(path) as image:
-            if image.format not in {'PNG', 'JPEG', 'WEBP'} or getattr(image, 'n_frames', 1) != 1:
-                raise ValueError('Only still PNG, JPEG and WebP images are supported.')
-            if image.mode in {'I', 'F', 'I;16', 'I;16B', 'I;16L'}:
-                raise ValueError('High-bit-depth inputs are not supported; keep the original and use an 8-bit copy.')
-            if image.width * image.height > MAX_PIXELS:
-                raise ValueError('Use an image of at most 16 megapixels.')
-            image.load()
-            if 'A' in image.getbands() or 'transparency' in image.info:
-                if image.convert('RGBA').getchannel('A').getextrema()[0] != 255:
-                    raise ValueError('Transparent artwork is not supported by this regeneration engine.')
-            return ImageOps.exif_transpose(image).convert('RGB')
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', Image.DecompressionBombWarning)
+            with Image.open(path) as image:
+                if image.format not in {'PNG', 'JPEG', 'WEBP'} or getattr(image, 'n_frames', 1) != 1:
+                    raise ValueError('Only still PNG, JPEG and WebP images are supported.')
+                if image.mode in {'I', 'F', 'I;16', 'I;16B', 'I;16L'}:
+                    raise ValueError('High-bit-depth inputs are not supported; keep the original and use an 8-bit copy.')
+                if image.width * image.height > MAX_PIXELS:
+                    raise ValueError('Use an image of at most 16 megapixels.')
+                image.load()
+                if 'A' in image.getbands() or 'transparency' in image.info:
+                    if image.convert('RGBA').getchannel('A').getextrema()[0] != 255:
+                        raise ValueError('Transparent artwork is not supported by this regeneration engine.')
+                return ImageOps.exif_transpose(image).convert('RGB')
+    except (Image.DecompressionBombWarning, Image.DecompressionBombError) as error:
+        raise ValueError("Image dimensions exceed the safe decoding limit.") from error
 
 
 def regenerate(source: Path, destination: Path, *, timeout: int = 900) -> dict:

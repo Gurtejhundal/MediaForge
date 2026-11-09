@@ -9,6 +9,7 @@ const JSZip=require('jszip');
   const browser=await chromium.launch(process.env.PLAYWRIGHT_CHROME_CHANNEL?{channel:'chrome'}:{});
   const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
   const page=await context.newPage();
+  page.on('dialog', dialog=>dialog.accept());
   const base=process.env.MEDIAFORGE_CAPTURE_URL||'http://127.0.0.1:4317';
   await mkdir('docs/readme',{recursive:true});await mkdir('work/readme-frames',{recursive:true});
   await page.goto(base);await page.evaluate(()=>document.fonts.ready);

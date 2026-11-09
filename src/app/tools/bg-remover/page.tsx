@@ -1,5 +1,7 @@
 "use client";
 
+import { useCancellableTask, wasCancelled } from "@/hooks/use-cancellable-task";
+import { removeBackgroundCancellable } from "@/lib/local-processing/background-processing";
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState } from "react";
@@ -25,6 +27,7 @@ const cleanupModes: Array<{
 ];
 
 export default function BgRemoverPage() {
+  const task = useCancellableTask();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useObjectUrlCleanup(previewUrl);
@@ -50,6 +53,7 @@ export default function BgRemoverPage() {
   };
 
   const clearFile = () => {
+    task.cancel();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (resultUrl) URL.revokeObjectURL(resultUrl);
     setFile(null);
@@ -63,26 +67,21 @@ export default function BgRemoverPage() {
   const handleRemoveBg = async () => {
     if (!file) return;
 
+    const signal = task.start();
     setIsProcessing(true);
     setProgress("Loading local model...");
     setModelProgress(8);
 
     try {
-      const { removeBackground } = await import("@imgly/background-removal");
-      const blob = await removeBackground(file, {
-        model: "isnet_quint8",
-        device: "cpu",
-        output: { format: "image/png", quality: 0.92 },
-        progress: (key: string, current: number, total: number) => {
-          const percent = total > 0 ? Math.round((current / total) * 100) : 0;
-          setModelProgress(Math.min(90, Math.round(percent * 0.9)));
-          setProgress(`Preparing local model: ${percent}% ${key}`);
-        },
+      const blob = await removeBackgroundCancellable(file, signal, (key, percent) => {
+        setModelProgress(Math.min(90, Math.round(percent * 0.9)));
+        setProgress(`Preparing local model: ${percent}% ${key}`);
       });
-
+      signal.throwIfAborted();
       setProgress("Cleaning transparent matte...");
       setModelProgress(96);
       const cleanedBlob = await cleanupTransparentMatte(blob, cleanupStrength);
+      signal.throwIfAborted();
       const url = URL.createObjectURL(cleanedBlob);
       setResultBlob(cleanedBlob);
       setResultUrl(url);
@@ -91,7 +90,8 @@ export default function BgRemoverPage() {
 
       toast.success("Background removed locally.");
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to remove background");
+      if (wasCancelled(error)) { setProgress("Cancelled. Your original is unchanged."); toast.info("Processing cancelled."); }
+      else toast.error(error instanceof Error ? error.message : "Failed to remove background");
     } finally {
       setIsProcessing(false);
       setProgress("");
@@ -105,11 +105,13 @@ export default function BgRemoverPage() {
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={Boolean(file)}
       title="Background Remover"
       description="Remove backgrounds locally in the browser with an on-device segmentation model."
       mode="model-local"
     >
+      {isProcessing && <Button variant="outline" className="mb-4" onClick={task.cancel}>Cancel processing</Button>}
+
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
           <StatusPill>Local model</StatusPill>

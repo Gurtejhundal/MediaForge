@@ -45,6 +45,13 @@ test('desktop boots, isolates privileges, exports, denies unauthenticated HTTP, 
     if (process.env.MEDIAFORGE_CAPTURE_PATH) await page.screenshot({ path: process.env.MEDIAFORGE_CAPTURE_PATH });
     const counters=await page.evaluate(()=>JSON.parse(localStorage.getItem('mediaforge.localActivity.v1')));
     assert.equal(counters.totalExports,1);
+    await desktop.evaluate(({ dialog }) => { globalThis.mediaforgeTestLeavePrompts = 0; dialog.showMessageBoxSync = () => { globalThis.mediaforgeTestLeavePrompts++; return 0; }; });
+    await page.evaluate(origin => { location.assign(origin); }, url.origin);
+    for (let attempt=0;attempt<30;attempt++) { if (await desktop.evaluate(() => globalThis.mediaforgeTestLeavePrompts)) break; await new Promise(resolve=>setTimeout(resolve,100)); }
+    assert.equal(await desktop.evaluate(() => globalThis.mediaforgeTestLeavePrompts),1, 'Native leave warning must appear for working files.');
+    assert.equal(new URL(page.url()).pathname,'/tools/qr-generator');
+    assert.equal(await page.locator('img[alt="Generated QR code"]').count(),1, 'Keep working must preserve the generated output.');
+    await desktop.evaluate(({ dialog }) => { dialog.showMessageBoxSync = () => 1; });
     await desktop.close();
     desktop=await launch();
     const reopened=await desktop.firstWindow(); await reopened.waitForSelector('h1');

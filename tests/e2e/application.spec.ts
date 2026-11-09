@@ -1,4 +1,6 @@
 import { test, expect, type Page, type Download } from '@playwright/test';
+// These journeys explicitly discard intermediate work; dedicated guard tests cover staying.
+test.beforeEach(async ({page}) => { page.on('dialog', dialog => dialog.accept()); });
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';

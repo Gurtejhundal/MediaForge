@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
+import { useCancellableTask, wasCancelled } from "@/hooks/use-cancellable-task";
 import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -127,6 +128,7 @@ function requiresPageSelection(mode: DocumentMode) {
 }
 
 export default function PdfOrganizerPage() {
+  const task = useCancellableTask();
   const [mode, setMode] = useState<DocumentMode>("merge");
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -172,10 +174,11 @@ export default function PdfOrganizerPage() {
       return;
     }
 
+    const signal = task.start();
     setIsProcessing(true);
     try {
       const result = isDocumentConversionMode(mode)
-        ? await processDocumentConversion(files, mode)
+        ? await processDocumentConversion(files, mode, signal)
         : await processPdfLocally(files, {
             mode,
             pages: pages.trim(),
@@ -189,17 +192,19 @@ export default function PdfOrganizerPage() {
             signatureText,
             editText,
           });
+      signal.throwIfAborted();
       downloadBlob(result.blob, result.filename, { kind: "document" });
       toast.success(`${selectedMode.label} output generated locally`);
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
+      if (wasCancelled(error)) toast.info("Processing cancelled. No partial document was saved.");
+      else toast.error(getErrorMessage(error));
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={files.length > 0}
       title="Document Studio"
       description="Organize, optimize, edit, OCR, and convert PDF, Word, PowerPoint, Excel, HTML, and image documents locally where the browser can do so safely."
     >
@@ -363,6 +368,7 @@ export default function PdfOrganizerPage() {
           ) : null}
         </div>
 
+        {isProcessing && mode === "ocrPdf" && <Button variant="outline" onClick={task.cancel}>Cancel OCR</Button>}
         <Button size="lg" onClick={handleRun} disabled={isProcessing || files.length === 0} className="w-full">
           {isProcessing ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Workflow className="mr-2 size-4" />}
           {isProcessing ? `Running ${selectedMode.label}…` : `Run ${selectedMode.label}`}

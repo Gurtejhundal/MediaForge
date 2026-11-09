@@ -1,8 +1,8 @@
 # Releases and installation
 
-[Public app](https://mediaforge-tau.vercel.app/) · [All releases](https://github.com/Gurtejhundal/MediaForge/releases) · [0.2.0 notes](releases/0.2.0.md)
+[Public app](https://mediaforge-tau.vercel.app/) · [All releases](https://github.com/Gurtejhundal/MediaForge/releases) · [0.3.0 notes](releases/0.3.0.md)
 
-MediaForge 0.2.0 targets Linux x64 AppImage/deb, Windows x64 NSIS, macOS Apple Silicon and Intel DMG/ZIP. Native CI checks the actual packaged executable before producing installers. Builds are unsigned; macOS builds are not notarized. There is no automatic updater. Native smoke tests are not a certification of every OS version or a substitute for actual installer execution. See [observed evidence and limits](hosted-verification.md).
+MediaForge 0.3.0 targets Linux x64 AppImage/deb, Windows x64 NSIS, macOS Apple Silicon and Intel DMG/ZIP. Native CI checks the actual packaged executable before producing installers. Builds are unsigned; macOS builds are not notarized. There is no automatic updater. Native smoke tests are not a certification of every OS version or a substitute for actual installer execution. See [observed evidence and limits](hosted-verification.md).
 
 ## Install and verify
 
@@ -15,9 +15,9 @@ A checksum detects corruption; it is not a signing certificate. Keep source medi
 
 ## Maintainer workflow
 
-- `ci.yml`: read-only clean install, lint, TypeScript, unit tests, production dependency policy, build and 53 browser journeys.
+- `ci.yml`: read-only clean install, lint, TypeScript, unit tests, production dependency policy, build and 73 browser journeys.
 - `desktop.yml`: native Linux x64, Windows x64 and both Mac architectures. Each performs the source/browser checks, prepares the standalone runtime, launches the actual unpacked executable in a disposable profile, then builds candidates and checksums. Installer artifacts are uploaded only after success. Jobs have a 35-minute timeout; temporary artifact retention is 14 days.
-- `publish.yml`: manual dispatch defaults to a draft. An explicitly committed version-specific `.github/release-requests/v<version>.json` can authorize publication on a push to main. The 0.2.0 request records the owner's approval on 8 November 2026. Changing unrelated code or documentation does not trigger publication.
+- `publish.yml`: manual dispatch defaults to a draft. An explicitly committed version-specific `.github/release-requests/v<version>.json` can authorize publication on a push to main. The versioned 0.3.0 request records the owner's authorization to fix the gaps and publish a newer release. Changing unrelated code or documentation does not trigger publication.
 
 Publication verifies the exact version, approved license and versioned release notes, rejects tags pointing to different source, and reruns the complete native matrix. Only the final release job receives `contents: write`. It verifies all seven native artifact names and checksums, creates a matching source archive with the bundled AGPL library's original source maps, uploads a draft, downloads its assets again and checks every checksum. Only an explicit publication request promotes that verified draft to a public latest release. A public release is never overwritten on rerun; draft resume is restricted to the exact same commit.
 
@@ -46,3 +46,11 @@ Set `MEDIAFORGE_TEST_EXECUTABLE` to the actual packaged executable's absolute pa
 The owner selected AGPL-3.0-only. The application LICENSE, generated production-package/font notices and original Electron/Chromium notices ship with desktop candidates. The source release includes scripts and lockfile needed to reproduce the app. [Distribution notices](../THIRD_PARTY_NOTICES.md) explain the bundled IMG.LY library. The upstream Zod advisory remains under its exact-version exception until 7 December 2026; [dependency review](dependencies.md) is not a clean-audit claim.
 
 The former repository homepage at converter-ashen-five.vercel.app was a deleted deployment. It now returns a permanent HTTP 308 redirect to mediaforge-tau.vercel.app, the verified public production domain. Team/deployment-specific Vercel URLs may require Vercel Authentication; protection settings were not weakened.
+
+## Android signing and upgrades
+
+[Android 0.3.0](releases/android-0.3.0.md) is a separate release and does not replace the desktop latest tag. The old 0.2.0 preview key cannot be reused, so that upgrade requires one uninstall/reinstall. Version code 2 starts a retained certificate lineage.
+
+For this first durable release only, the main-branch signing step creates a private PKCS12 keystore after web checks, masks its random password, and encrypts the backup to the owner's checked-in **public** recovery certificate. Only encrypted bytes and a public certificate fingerprint enter the backup artifact; the private recovery key and decrypted keystore/password stay outside Git. The owner must retain both backups. Artifact retention is 90 days, not permanent key storage. Never commit private keys, passwords or raw backup archives.
+
+For future releases configure `MEDIAFORGE_ANDROID_KEYSTORE_BASE64`, `MEDIAFORGE_ANDROID_STORE_PASSWORD` and `MEDIAFORGE_ANDROID_KEY_ALIAS` as protected Actions secrets using the retained key. Absent secrets, future versions cannot publish with a replacement debug certificate. Branch/PR checks use an independent preview key and receive no signing secrets. Keep a private offline copy of the retained keystore, password and recovery key; losing them prevents compatible updates. The app offers a manual Updates link rather than automatic installation.

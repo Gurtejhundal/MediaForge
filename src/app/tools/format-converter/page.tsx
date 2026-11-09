@@ -1,5 +1,6 @@
 "use client";
 
+import { useSavedSetting } from "@/hooks/use-saved-setting";
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState } from "react";
@@ -19,7 +20,7 @@ export default function FormatConverterPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useObjectUrlCleanup(previewUrl);
-  const [targetFormat, setTargetFormat] = useState<BrowserImageFormat>("webp");
+  const [targetFormat, setTargetFormat] = useSavedSetting<BrowserImageFormat>("convert.format", "webp", (v): v is BrowserImageFormat => typeof v === "string" && ["png", "jpeg", "webp", "avif", "svg"].includes(v));
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFileAccepted = (acceptedFile: File) => {
@@ -51,7 +52,7 @@ export default function FormatConverterPage() {
   };
 
   return (
-    <ToolLayout 
+    <ToolLayout dirty={Boolean(file)}
       title="Format Converter" 
       description="Convert images in the browser. No upload required."
     >

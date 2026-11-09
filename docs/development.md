@@ -49,14 +49,14 @@ npm run test:desktop
 
 On a Linux CI machine, wrap desktop tests in `xvfb-run --auto-servernum`. Keep Chromium's sandbox enabled. For a system Chrome already installed locally, set `PLAYWRIGHT_CHROME_CHANNEL=1` for browser tests. `MEDIAFORGE_TEST_EXECUTABLE` selects a packaged executable for the desktop smoke test; every test creates a temporary profile and must not touch the user's normal profile.
 
-Fixtures in `tests/fixtures/` are synthetic PNG/SVG, short tone/video, structured files, Office documents and a three-page PDF. Browser tests inspect downloaded bytes/ZIP entries/PDF pages, exercise all routes at 320/390/1440 px, and check important keyboard/reduced-motion and WCAG A/AA rules. See [audit](audit.md) for the exact observed coverage and exclusions.
+Fixtures in `tests/fixtures/` are synthetic PNG/SVG, short tone/video, structured files, Office documents and a three-page PDF. The browser suite uses one worker so real-time recording keeps a visible foreground tab. Browser tests inspect downloaded bytes/ZIP entries/PDF pages, exercise all routes at 320/390/1440 px, and check important keyboard/reduced-motion and WCAG A/AA rules. See [audit](audit.md) for the exact observed coverage and exclusions.
 
 ## Troubleshooting
 
 - **Install fails:** use the documented Node version and `npm ci`. Do not delete user profiles or source media. If a newer npm flags lockfile drift, fix the lockfile deliberately and rerun clean install.
 - **Blank or unstyled production UI:** stop the preview before rebuilding. Serving an old in-memory Next process against newly replaced `.next` files can return failing asset requests. Restart `npm start` after the build.
 - **Format unavailable:** browser Canvas must encode the requested type; unsupported AVIF is an explicit error, not a PNG mislabeled as AVIF. HEIC/HEIF and legacy Office files depend on browser support or require resaving to a supported format.
-- **Video slow/missing audio:** Canvas export is real-time WebM with no audio; use Audio Studio separately for WAV. Keep the tab visible. Long/high-resolution work can exceed device memory.
+- **Video slow/missing audio:** Canvas export is real-time WebM and retains audio by default. Check mute settings and input codec support; Audio Studio can export a separate WAV. Keep the tab visible. Long/high-resolution work can exceed device memory.
 - **Frame ZIP too large:** reduce sample rate or trim the source; exports stop above 1,800 frames.
 - **Model/OCR fails:** first use needs reachable runtime/model assets and browser WASM/worker support. Files still stay local. Try a smaller supported image or PDF and report the exact error. Fully offline first use is not supported.
 - **PDF/Office fidelity:** Office-to-PDF rebuilds readable text, not original layout; standard PDF font exports have limited Unicode support. Image-based PDF exports preserve appearance. A visible signature is not a cryptographic signature. Secure redaction, encryption and PDF/A are intentionally unavailable.
@@ -65,6 +65,6 @@ Fixtures in `tests/fixtures/` are synthetic PNG/SVG, short tone/video, structure
 
 ## Android and current feature additions
 
-[Android build, installation and limitations](ANDROID.md) describes the independent bundled APK. The current web/Android code adds batch conversion/resizing/compression and a visible-edge watermark cropper. Existing published desktop 0.2.0 installers are immutable and retain their original feature set. Build from current source to exercise these additions on desktop; use a new desktop version before publishing updated installers.
+[Android build, installation and limitations](ANDROID.md) describes the independent bundled APK. The 0.3.0 web, desktop and Android source includes batches with resume/retry, visible-edge cropping, tool search, working-file warnings and audio-preserving video exports. Older published releases remain immutable. The experimental NVIDIA companion is a separate web/desktop installation; see the [local guide](invisible-watermarks-local.md).
 
 Batch tests inspect actual ZIP contents, duplicate-name handling, partial failures, cancellation and queue limits. A slow-image regression holds an old decode open, selects another image, edits its dimensions, then verifies the exported PNG size. Watermark-crop tests validate the PNG dimensions and explicit SynthID limitations.

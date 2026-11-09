@@ -6,13 +6,23 @@ android {
         applicationId 'io.github.gurtejhundal.mediaforge'
         minSdk 26
         targetSdk 36
-        versionCode 1
-        versionName '0.2.0'
+        versionCode 2
+        versionName '0.3.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     buildFeatures { buildConfig true }
-    buildTypes { preview { initWith release; signingConfig signingConfigs.debug; debuggable false } }
+    signingConfigs {
+        if (System.getenv('MEDIAFORGE_ANDROID_KEYSTORE')) {
+            durable {
+                storeFile file(System.getenv('MEDIAFORGE_ANDROID_KEYSTORE'))
+                storePassword System.getenv('MEDIAFORGE_ANDROID_STORE_PASSWORD')
+                keyAlias System.getenv('MEDIAFORGE_ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('MEDIAFORGE_ANDROID_STORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes { preview { initWith release; signingConfig System.getenv('MEDIAFORGE_ANDROID_KEYSTORE') ? signingConfigs.durable : signingConfigs.debug; debuggable false } }
     testBuildType "preview"
     sourceSets.androidTest.assets.srcDirs += '../../tests/fixtures'
     // Android's default asset filter drops underscore directories, including Next's runtime.

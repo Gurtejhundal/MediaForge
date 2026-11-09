@@ -1,5 +1,7 @@
 "use client";
 
+import { useCancellableTask, wasCancelled } from "@/hooks/use-cancellable-task";
+import { useSavedSetting } from "@/hooks/use-saved-setting";
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -64,6 +66,8 @@ function mapSelectionToVideo(selection: Region, containerRect: DOMRect, videoSiz
 }
 
 export default function WatermarkRemoverPage() {
+  const task = useCancellableTask();
+  const [muteAudio, setMuteAudio] = useSavedSetting("video.muted", false, (v): v is boolean => typeof v === "boolean");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useObjectUrlCleanup(previewUrl);
@@ -147,6 +151,7 @@ export default function WatermarkRemoverPage() {
   const handleRemoveWatermark = async () => {
     if (!file || !containerRef.current || !videoRef.current) return;
 
+    const signal = task.start();
     setIsProcessing(true);
     setProgress("Processing: 0%");
 
@@ -161,6 +166,8 @@ export default function WatermarkRemoverPage() {
 
     try {
       const result = await renderVideoToWebMLocally(file, {
+        signal,
+        includeAudio: !muteAudio,
         resolution: "original",
         fps: 30,
         transform: makeBlurRegionTransform(mappedSelection, 32),
@@ -169,7 +176,8 @@ export default function WatermarkRemoverPage() {
       downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-cleaned.webm`, { kind: "modification" });
       toast.success("Selected area cleaned locally.");
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to remove watermark");
+      if (wasCancelled(error)) toast.info("Processing cancelled. No partial video was saved.");
+      else toast.error(error instanceof Error ? error.message : "Failed to remove watermark");
     } finally {
       setIsProcessing(false);
       setProgress("");
@@ -177,10 +185,13 @@ export default function WatermarkRemoverPage() {
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={Boolean(file)}
       title="Watermark Remover"
       description="Clean a selected video area locally with a browser canvas blur pass. Output is WebM and no upload is used."
     >
+      <label className="mb-4 flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={muteAudio} disabled={isProcessing} onChange={event => setMuteAudio(event.target.checked)} /> Export without audio</label>
+      {isProcessing && <Button variant="outline" className="mb-4" onClick={task.cancel}>Cancel processing</Button>}
+
       <div className="space-y-8">
         {!file ? (
           <Dropzone

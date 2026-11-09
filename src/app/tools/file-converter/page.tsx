@@ -105,7 +105,7 @@ export default function FileConverterPage() {
   };
 
   return (
-    <ToolLayout 
+    <ToolLayout dirty={Boolean(file)}
       title="Universal File Converter" 
       description="Convert images, structured data, and document text locally in this browser."
     >

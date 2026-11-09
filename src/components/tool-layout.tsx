@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Cpu, Download, RadioTower, ShieldCheck } from "lucide-react";
+import { useUnsavedWork } from "@/hooks/use-unsaved-work";
 import { ToolDock } from "@/components/tool-dock";
 import { getToolByHref, tools, type ToolProcessingMode } from "@/lib/tool-catalog";
 
@@ -11,6 +12,7 @@ interface ToolLayoutProps {
   description: string;
   children: ReactNode;
   mode?: ToolProcessingMode;
+  dirty?: boolean;
 }
 
 const scopeCopy: Record<ToolProcessingMode, {
@@ -47,7 +49,8 @@ const scopeCopy: Record<ToolProcessingMode, {
   },
 };
 
-export function ToolLayout({ title, description, children, mode = "local" }: ToolLayoutProps) {
+export function ToolLayout({ title, description, children, mode = "local", dirty = false }: ToolLayoutProps) {
+  useUnsavedWork(dirty);
   const pathname = usePathname();
   const tool = getToolByHref(pathname);
   const documentTitle = tool?.title ?? title;

@@ -1,12 +1,12 @@
 # Invisible SynthID: use the computer's own GPU
 
-8 November 2026. **Experimental local adapter, not an enabled app feature or a verified remover.** The owner has a Windows RTX 3050 computer with **4 GB dedicated VRAM**. That computer is not connected to this development workspace. No model trial has run on it. No hosted GPU is being provisioned.
+9 November 2026. **Experimental opt-in local companion, not a verified SynthID remover.** The owner has a Windows RTX 3050 computer with **4 GB dedicated VRAM**. That computer is not connected to this development workspace. No model trial has run on it. No hosted GPU is being provisioned.
 
 ## What works locally
 
-The [optional adapter](../services/invisible-watermarks/README.md) can invoke a separately installed CUDA engine on the same computer. Selected image files and regenerated PNGs are handled locally; no upload endpoint, cloud key or listening port is included. Initial package/model downloads require internet access. Review the upstream environment before claiming complete network isolation.
+The [optional adapter](../services/invisible-watermarks/README.md) can invoke a separately installed CUDA engine on the same computer. Selected image files and regenerated PNGs are handled locally. The optional companion listens only on 127.0.0.1; no cloud key or remote GPU is provisioned. Initial package/model downloads require internet access. Review the upstream environment before claiming complete network isolation.
 
-Vercel continues serving [MediaForge](https://mediaforge-tau.vercel.app/). Visiting the website does not give it access to a Python CUDA installation. A future desktop integration or explicitly installed companion must bridge those environments. **That bridge is not implemented**, and invisible processing is not available in the web app or existing Android/desktop 0.2.0 installers.
+Vercel continues serving [MediaForge](https://mediaforge-tau.vercel.app/). Visiting the website does not give it access to a Python CUDA installation. The separately installed companion now bridges those environments for the 0.3.0 web/desktop image cleanup tool. The connection is explicit and experimental. It is not included on Android, and existing 0.2.0 installers are unchanged.
 
 Browser GPU computation is possible through [WebGPU](https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html), but this Python diffusion pipeline has not been ported or verified in that runtime. An available browser GPU is not evidence that this engine will work. The chosen image profiles are [CUDA-only](https://github.com/wiltodelta/remove-ai-watermarks/blob/3168d878461eed072bf86c237b219611261cf85f/docs/installation.md); AMD, Intel, Apple and Android support is not claimed for invisible image regeneration.
 
@@ -41,6 +41,32 @@ Use an installed supported Python version if 3.11 is unavailable. Choose the CUD
 
 Before a real run: review the exact model licenses, cache sizes and upstream download behavior; check available disk/RAM and close unnecessary GPU-heavy programs. Do not assume a 4 GB card can handle the current 1536-pixel cap. Start with one small, non-sensitive image at its native dimensions. The adapter has no automatic fallback to cloud, larger hardware or a different unreviewed algorithm. An out-of-memory result stops the trial; it does not silently switch to CPU.
 
+## Connect the web or desktop app
+
+After the hardware, package and model review above, start the companion from the repository root with the same isolated Python:
+
+```powershell
+& $gpuPython services/invisible-watermarks/companion.py
+```
+
+The default permitted app origin is `https://mediaforge-tau.vercel.app`. The process prints its port (default 8765) and a new session token. Treat the token like a password. It is not saved by the app; never post it in an issue or screenshot. The process binds only `127.0.0.1`. It does not expose your GPU to the internet.
+
+1. Open **Image cleanup → Experimental invisible-watermark processing** on web/desktop.
+2. Enter the port and token, then **Check local GPU connection**. Unavailable CUDA/engine is an error and cannot start an image job. A ready preflight still does not prove model fit.
+3. Choose 1–20 still PNG/JPEG/WebP images, confirm the local-processing notice and start. Selected image bytes go to this local process. Model packages/weights may contact their upstream sources on first use.
+4. Inspect every regenerated PNG before saving. Stop after current image prevents later jobs; an active image can continue until its 900-second timeout. Successful prior results remain saveable. Any failure stops the queue without automatic retry.
+5. Close the companion when finished. A restart creates a new token. No token or selected image is persisted as an app preference.
+
+For development or the packaged Electron app, explicitly allow its actual loopback origin (read the port from the app's profile `server-port.json`; do not change it):
+
+```powershell
+& $gpuPython services/invisible-watermarks/companion.py --origin http://127.0.0.1:4317
+```
+
+Use the actual app port instead of 4317. Only exact canonical HTTPS or loopback origins are accepted; arbitrary remote origins are rejected. Chromium may ask for local-network access when the HTTPS site connects to loopback. Allow it only for the trusted app, or use the local desktop/development origin. Do not disable browser security. Browser permission policies vary; the successful local HTTP test is not certification of every HTTPS/browser permission combination.
+
+The HTTP boundary requires exact Host/Origin, constant-time bearer-token matching, bounded input and a single active job. It accepts no input/output paths or remote URLs. Images are at most 25 MB and 16 MP; transparent/high-bit-depth inputs are rejected. The browser bounds a selection to 100 MB input and 128 MB output. Temporary files are removed before responding after success/failure/timeout. Abrupt process/OS termination can still leave private temporary files; inspect those before sharing a machine or backup. No hosted processing or paid fallback is started.
+
 ## Single and multiple files
 
 After model/environment review, one trial uses a **new** PNG destination:
@@ -57,7 +83,7 @@ The batch runner accepts explicit selections of 1–20 still PNG/JPEG/WebP image
 
 Jobs run sequentially with a 900-second limit per image, adjustable from 1–1800 seconds using `--timeout`. Indexed filenames avoid duplicate-name collisions. Originals and existing output directories are preserved. The runner validates the complete selection before starting, records progress in local `report.json`, stops at the first engine failure, and marks remaining items skipped. Ctrl+C records cancellation; successful outputs remain available. Abrupt process/machine termination cannot guarantee a final report or temporary-file cleanup. Check private `.mediaforge-regeneration-*` folders after a crash before sharing an output directory.
 
-The result is **regenerated / SynthID unverified**, never “removed.” Review text, faces, colors and detail. Use known-positive originals and clean controls and check originals/results with [Google's SynthID detector](https://deepmind.google/models/synthid/). Record exact file hashes, engine/runtime versions, seed, dimensions, peak GPU/RAM use and elapsed time. A changed image, stripped metadata or low AI-classifier score does not verify SynthID removal. Do not ship an app integration until that actual trial establishes useful output and acceptable performance on the target card.
+The result is **regenerated / SynthID unverified**, never “removed.” Review text, faces, colors and detail. Use known-positive originals and clean controls and check originals/results with [Google's SynthID detector](https://deepmind.google/models/synthid/). Record exact file hashes, engine/runtime versions, seed, dimensions, peak GPU/RAM use and elapsed time. A changed image, stripped metadata or low AI-classifier score does not verify SynthID removal. Do not describe the integration as verified removal or the GPU as supported until an actual trial establishes useful output, detector results and acceptable performance.
 
 Use an NTFS output folder on Windows. Atomic publication uses a hard link; a filesystem that does not support hard links (for example, exFAT) returns an error rather than falling back to an overwrite-prone copy. Do not reuse an earlier batch folder; select a new one for each run.
 
@@ -69,7 +95,7 @@ Run the lightweight tests in an environment with Pillow; no PyTorch/model downlo
 python3 -m unittest discover -s services/invisible-watermarks -p 'test_*.py' -v
 ```
 
-20 tests pass on each of Windows and Linux in [native CI](https://github.com/Gurtejhundal/MediaForge/actions/runs/42476485220), using simulated hardware and engine outputs. They verify actual file handling on each OS, bounded sequential batches, interruption/error reports, duplicate names, no overwrite (including a dangling output symlink), driver-query failure handling and CUDA-vs-ROCm checks. They do not verify actual Windows CUDA-engine execution, RTX 3050 memory fit, real regeneration or watermark removal. Windows fixture paths are normalized before comparison, and the inventory reads the platform from Python rather than running an extra OS command.
+The earlier 20 tests passed on both Windows and Linux in [native CI](https://github.com/Gurtejhundal/MediaForge/actions/runs/42476485220). The 0.3.0 suite adds authenticated HTTP tests for 28 total, using simulated hardware and engine outputs; see the [current audit](audit-0.3.0.md). They verify actual file handling on each OS, bounded sequential batches, interruption/error reports, duplicate names, no overwrite (including a dangling output symlink), driver-query failure handling and CUDA-vs-ROCm checks. They do not verify actual Windows CUDA-engine execution, RTX 3050 memory fit, real regeneration or watermark removal. Windows fixture paths are normalized before comparison, and the inventory reads the platform from Python rather than running an extra OS command.
 
 | Feature or component | Expected behavior | Finding | Severity | Fix | Verification |
 | --- | --- | --- | --- | --- | --- |

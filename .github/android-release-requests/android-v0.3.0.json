@@ -1,0 +1,6 @@
+{
+  "tag": "android-v0.3.0",
+  "publish": true,
+  "sourceBranch": "main",
+  "authorization": "Owner requested the newer version and confirmed no existing permanent Android keystore on 2026-11-08. Bootstrap the first durable signing key, encrypt its backup to the owner recovery certificate, and publish only after installed-app verification. Preserve Android 0.2.0."
+}

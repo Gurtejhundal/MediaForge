@@ -150,9 +150,21 @@ public class MainActivity extends ComponentActivity {
         });
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {
-                if (web != null && web.canGoBack()) web.goBack();
-                else if (web != null && web.getUrl() != null && !"/".equals(Uri.parse(web.getUrl()).getPath())) web.loadUrl(ORIGIN + "/");
-                else { setEnabled(false); getOnBackPressedDispatcher().onBackPressed(); setEnabled(true); }
+                if (web == null) { finish(); return; }
+                Runnable leave = () -> {
+                    if (web.canGoBack()) web.goBack();
+                    else if (web.getUrl() != null && !"/".equals(Uri.parse(web.getUrl()).getPath())) web.loadUrl(ORIGIN + "/");
+                    else finish();
+                };
+                web.evaluateJavascript("Boolean(window.__mediaforgeHasWorkingFiles)", dirty -> {
+                    if ("true".equals(dirty)) new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Working files are still open")
+                        .setMessage("Save your results before leaving. Working files and previews will be cleared.")
+                        .setNegativeButton("Keep working", null)
+                        .setPositiveButton("Leave and discard", (dialog, which) -> web.evaluateJavascript("window.__mediaforgeAllowDiscard=true", ignored -> leave.run()))
+                        .show();
+                    else leave.run();
+                });
             }
         });
         web.loadUrl(ORIGIN + "/");

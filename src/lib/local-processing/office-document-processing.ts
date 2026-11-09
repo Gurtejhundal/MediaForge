@@ -1,3 +1,4 @@
+import { abortable } from "./cancellation";
 import JSZip from "jszip";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { safeBaseName } from "./blob-utils";
@@ -331,15 +332,20 @@ async function pdfToExcel(file: File): Promise<DocumentProcessResult> {
   return { blob: bufferBlob(new Uint8Array(bytes), OFFICE_MIME.xlsx), filename: `${safeBaseName(file.name)}.xlsx` };
 }
 
-async function ocrPdf(file: File): Promise<DocumentProcessResult> {
+async function ocrPdf(file: File, signal?: AbortSignal): Promise<DocumentProcessResult> {
+  signal?.throwIfAborted();
   const pdf = await openPdf(file);
   const { createWorker } = await import("tesseract.js");
   const worker = await createWorker("eng");
+  const abort = () => { void worker.terminate().catch(() => {}); };
+  signal?.addEventListener("abort", abort, { once: true });
   const output = await PDFDocument.create();
   const font = await output.embedFont(StandardFonts.Helvetica);
 
   try {
+    signal?.throwIfAborted();
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      signal?.throwIfAborted();
       const page = await pdf.getPage(pageNumber);
       const viewport = page.getViewport({ scale: 1.5 });
       const canvas = document.createElement("canvas");
@@ -351,12 +357,14 @@ async function ocrPdf(file: File): Promise<DocumentProcessResult> {
       const image = await output.embedPng(imageBytes);
       const outputPage = output.addPage([viewport.width, viewport.height]);
       outputPage.drawImage(image, { x: 0, y: 0, width: viewport.width, height: viewport.height });
-      const recognition = await worker.recognize(canvas);
+      const recognition = await abortable(worker.recognize(canvas), signal);
+      signal?.throwIfAborted();
       const text = recognition.data.text.replace(/\s+/g, " ").trim();
       if (text) outputPage.drawText(text.slice(0, 12000), { x: 2, y: 2, size: 1, font, color: rgb(1, 1, 1), opacity: 0.01, maxWidth: viewport.width - 4 });
     }
   } finally {
-    await worker.terminate();
+    signal?.removeEventListener("abort", abort);
+    await worker.terminate().catch(() => {});
   }
 
   return { blob: new Blob([new Uint8Array(await output.save()).buffer], { type: "application/pdf" }), filename: `${safeBaseName(file.name)}-ocr.pdf` };
@@ -384,14 +392,15 @@ async function comparePdfs(files: File[]): Promise<DocumentProcessResult> {
   return { blob: textBlob(lines.join("\n")), filename: `${safeBaseName(files[0].name)}-comparison.txt` };
 }
 
-export async function processDocumentConversion(files: File[], mode: DocumentConversionMode): Promise<DocumentProcessResult> {
+export async function processDocumentConversion(files: File[], mode: DocumentConversionMode, signal?: AbortSignal): Promise<DocumentProcessResult> {
+  signal?.throwIfAborted();
   if (files.length === 0) throw new Error("Choose a file first");
   if (["wordToPdf", "powerpointToPdf", "excelToPdf", "htmlToPdf"].includes(mode)) return officeToPdf(files[0], mode);
   if (mode === "pdfToJpg") return pdfToJpg(files[0]);
   if (mode === "pdfToWord") return pdfToWord(files[0]);
   if (mode === "pdfToPowerPoint") return pdfToPowerPoint(files[0]);
   if (mode === "pdfToExcel") return pdfToExcel(files[0]);
-  if (mode === "ocrPdf") return ocrPdf(files[0]);
+  if (mode === "ocrPdf") return ocrPdf(files[0], signal);
   if (mode === "comparePdf") return comparePdfs(files);
   throw new Error("Unsupported document conversion");
 }

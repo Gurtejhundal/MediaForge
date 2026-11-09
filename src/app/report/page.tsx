@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnsavedWork } from "@/hooks/use-unsaved-work";
 import { isAndroidApp } from "@/lib/android-export";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -52,6 +53,7 @@ export default function ReportPage() {
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
+  useUnsavedWork(Boolean(message.trim() || email.trim()));
   const [submitState, setSubmitState] = useState<SubmitState>({ status: "idle" });
 
   useEffect(() => {

@@ -2,7 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
-  workers: 2,
+  // Serialize real-time media checks to avoid concurrent encoding load.
+  workers: 1,
   timeout: 45_000,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCancellableTask, wasCancelled } from "@/hooks/use-cancellable-task";
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState } from "react";
@@ -17,6 +18,7 @@ const FPS_OPTIONS = [12, 24, 30, 60] as const;
 const FORMAT_OPTIONS: FrameExportFormat[] = ["png", "jpeg", "webp"];
 
 export default function VideoToImagePage() {
+  const task = useCancellableTask();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useObjectUrlCleanup(previewUrl);
@@ -41,6 +43,7 @@ export default function VideoToImagePage() {
   };
 
   const clearFile = () => {
+    task.cancel();
     revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
@@ -54,6 +57,7 @@ export default function VideoToImagePage() {
   const handleExtractAll = async () => {
     if (!file) return;
 
+    const signal = task.start();
     setIsProcessing(true);
     setZipBlob(null);
     setFrameCount(null);
@@ -62,6 +66,7 @@ export default function VideoToImagePage() {
 
     try {
       const result = await extractVideoFramesToZip(file, {
+        signal,
         fps,
         format,
         onProgress: (percent, frame, total) => {
@@ -70,6 +75,7 @@ export default function VideoToImagePage() {
         },
       });
 
+      signal.throwIfAborted();
       setZipBlob(result.blob);
       setZipName(result.filename);
       setFrameCount(result.frameCount);
@@ -77,7 +83,8 @@ export default function VideoToImagePage() {
       setProgressLabel(`${result.frameCount} frames ready`);
       toast.success(`Extracted ${result.frameCount} frames locally.`);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to extract video frames");
+      if (wasCancelled(error)) toast.info("Frame extraction cancelled. No partial ZIP was saved.");
+      else toast.error(error instanceof Error ? error.message : "Failed to extract video frames");
       setProgressLabel("");
     } finally {
       setIsProcessing(false);
@@ -90,10 +97,12 @@ export default function VideoToImagePage() {
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={Boolean(file)}
       title="Video Frame Extractor"
       description="Extract the whole video frame by frame into a ZIP file using browser video decode, Canvas, and local ZIP packaging."
     >
+      {isProcessing && <Button variant="outline" className="mb-4" onClick={task.cancel}>Cancel processing</Button>}
+
       <div className="mb-6 flex flex-wrap gap-2">
         <StatusPill>Local processing</StatusPill>
         <StatusPill>No upload</StatusPill>

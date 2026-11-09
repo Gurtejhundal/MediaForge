@@ -94,7 +94,7 @@ export default function ImageEnhancerPage() {
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={Boolean(file)}
       title="Image Detailer & 4K Upscaler"
       description="Upscale generated or blurry images locally while preserving the original color, lighting, contrast, and saturation."
     >

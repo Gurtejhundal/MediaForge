@@ -130,7 +130,7 @@ export default function ImageModifierPage() {
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={Boolean(file)}
       title="Image Modifier"
       description="Resize, crop, rotate, watermark, add meme text, compress, and convert images locally in your browser."
     >

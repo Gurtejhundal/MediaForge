@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { WorkspaceGuard } from "@/components/workspace-guard";
 import { Toaster } from "@/components/ui/sonner";
 
 const instrumentSans = Instrument_Sans({
@@ -55,6 +56,7 @@ export default function RootLayout({
         >
           <a href="#main-content" className="mf-skip-link">Skip to workbench</a>
           <Navbar />
+          <WorkspaceGuard />
           {process.env.NEXT_PUBLIC_MEDIAFORGE_ANDROID === "1" && (
             <aside className="border-b border-border bg-card px-4 py-3 text-center text-xs leading-5 text-muted-foreground" aria-label="Android preview information">
               Android preview · Save opens your phone’s file picker · Exports up to 256 MB · Keep your originals

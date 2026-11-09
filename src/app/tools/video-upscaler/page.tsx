@@ -1,5 +1,7 @@
 "use client";
 
+import { useCancellableTask, wasCancelled } from "@/hooks/use-cancellable-task";
+import { useSavedSetting } from "@/hooks/use-saved-setting";
 import { useObjectUrlCleanup } from "@/hooks/use-object-url-cleanup";
 
 import { useState } from "react";
@@ -14,7 +16,7 @@ import { downloadBlob, revokeObjectUrl } from "@/lib/local-processing/blob-utils
 import { renderVideoToWebMLocally, type VideoResolutionMode } from "@/lib/local-processing/video-processing";
 
 type Resolution = Extract<VideoResolutionMode, "1080p" | "1440p" | "2160p">;
-type Preset = "fast" | "balanced" | "max-quality";
+type Preset = "fast" | "balanced";
 
 const RESOLUTION_OPTIONS: { value: Resolution; label: string; detail: string; icon: React.ReactNode }[] = [
   { value: "1080p", label: "1080p", detail: "Fits within 1920 x 1080", icon: <Zap className="h-4 w-4" /> },
@@ -23,9 +25,8 @@ const RESOLUTION_OPTIONS: { value: Resolution; label: string; detail: string; ic
 ];
 
 const PRESET_OPTIONS: { value: Preset; label: string; description: string }[] = [
-  { value: "fast", label: "Fast", description: "Faster encode, lighter file" },
-  { value: "balanced", label: "Balanced", description: "High quality, practical speed" },
-  { value: "max-quality", label: "Archive", description: "Best retention, slower encode" },
+  { value: "fast", label: "24 FPS", description: "Fewer sampled frames" },
+  { value: "balanced", label: "30 FPS", description: "More sampled frames" },
 ];
 
 function getErrorMessage(error: unknown) {
@@ -33,10 +34,12 @@ function getErrorMessage(error: unknown) {
 }
 
 export default function VideoUpscalerPage() {
+  const task = useCancellableTask();
+  const [muteAudio, setMuteAudio] = useSavedSetting("video.muted", false, (v): v is boolean => typeof v === "boolean");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useObjectUrlCleanup(previewUrl);
-  const [resolution, setResolution] = useState<Resolution>("2160p");
+  const [resolution, setResolution] = useState<Resolution>("1080p");
   const [preset, setPreset] = useState<Preset>("balanced");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState("");
@@ -48,6 +51,7 @@ export default function VideoUpscalerPage() {
   };
 
   const clearFile = () => {
+    task.cancel();
     revokeObjectUrl(previewUrl);
     setFile(null);
     setPreviewUrl(null);
@@ -56,11 +60,14 @@ export default function VideoUpscalerPage() {
   const handleUpscale = async () => {
     if (!file) return;
 
+    const signal = task.start();
     setIsProcessing(true);
     setProgress("Processing: 0%");
 
     try {
       const result = await renderVideoToWebMLocally(file, {
+        signal,
+        includeAudio: !muteAudio,
         resolution,
         fps: preset === "fast" ? 24 : 30,
         onProgress: (percent) => setProgress(`Processing: ${percent}%`),
@@ -68,7 +75,8 @@ export default function VideoUpscalerPage() {
       downloadBlob(result.blob, `${file.name.replace(/\.[^.]+$/, "")}-${resolution}.webm`, { kind: "video" });
       toast.success("Video upscaled locally as WebM.");
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
+      if (wasCancelled(error)) toast.info("Processing cancelled. No partial video was saved.");
+      else toast.error(getErrorMessage(error));
     } finally {
       setIsProcessing(false);
       setProgress("");
@@ -76,10 +84,13 @@ export default function VideoUpscalerPage() {
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={Boolean(file)}
       title="Video Detail Upscaler"
       description="Upscale video locally with browser canvas sampling. Output is WebM and files are not uploaded."
     >
+      <label className="mb-4 flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={muteAudio} disabled={isProcessing} onChange={event => setMuteAudio(event.target.checked)} /> Export without audio</label>
+      {isProcessing && <Button variant="outline" className="mb-4" onClick={task.cancel}>Cancel processing</Button>}
+
       <div className="space-y-8">
         {!file ? (
           <Dropzone
@@ -155,7 +166,7 @@ export default function VideoUpscalerPage() {
                       <span className="text-xs text-muted-foreground">{option.detail}</span>
                       {option.value === "2160p" && (
                         <span className="absolute -right-2 -top-2 border border-primary bg-primary px-2 py-0.5 font-mono text-[9px] font-bold text-primary-foreground">
-                          BEST
+                          LARGE
                         </span>
                       )}
                     </button>
@@ -165,8 +176,8 @@ export default function VideoUpscalerPage() {
 
               {/* Preset Selector */}
               <div>
-                <Label className="mb-3 block text-sm text-foreground">Encode Quality</Label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Label className="mb-3 block text-sm text-foreground">Frame sampling</Label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {PRESET_OPTIONS.map((option) => (
                     <Button
                       key={option.value}

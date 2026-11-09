@@ -1,28 +1,15 @@
 import { safeBaseName } from "./blob-utils";
 
 export type VideoResolutionMode = "original" | "1080p" | "720p" | "480p" | "1440p" | "2160p";
-
 export interface LocalVideoOptions {
   resolution: VideoResolutionMode;
   fps?: number;
+  includeAudio?: boolean;
+  signal?: AbortSignal;
   transform?: (ctx: CanvasRenderingContext2D, scale: { x: number; y: number }) => void;
   onProgress?: (progress: number) => void;
 }
-
-export interface LocalVideoResult {
-  blob: Blob;
-  filename: string;
-}
-
-function bestMimeType() {
-  const candidates = [
-    "video/webm;codecs=vp9",
-    "video/webm;codecs=vp8",
-    "video/webm",
-  ];
-
-  return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate)) || "";
-}
+export interface LocalVideoResult { blob: Blob; filename: string; }
 
 function targetBounds(resolution: VideoResolutionMode) {
   if (resolution === "2160p") return { width: 3840, height: 2160 };
@@ -32,159 +19,106 @@ function targetBounds(resolution: VideoResolutionMode) {
   if (resolution === "480p") return { width: 854, height: 480 };
   return null;
 }
-
 function fitWithin(width: number, height: number, resolution: VideoResolutionMode) {
   const bounds = targetBounds(resolution);
   if (!bounds) return { width, height };
-
   const ratio = Math.min(bounds.width / width, bounds.height / height);
-  return {
-    width: Math.max(2, Math.round((width * ratio) / 2) * 2),
-    height: Math.max(2, Math.round((height * ratio) / 2) * 2),
-  };
+  return { width: Math.max(2, Math.round(width * ratio / 2) * 2), height: Math.max(2, Math.round(height * ratio / 2) * 2) };
 }
-
-function loadVideo(file: File) {
-  const url = URL.createObjectURL(file);
-  const video = document.createElement("video");
-  video.src = url;
-  video.muted = true;
-  video.playsInline = true;
-  video.preload = "metadata";
-
-  return new Promise<{ video: HTMLVideoElement; url: string }>((resolve, reject) => {
-    video.onloadedmetadata = () => resolve({ video, url });
-    video.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("This browser could not decode the selected video."));
-    };
-  });
-}
-
-function seekVideo(video: HTMLVideoElement, time: number) {
+function loadVideo(video: HTMLVideoElement, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
-    const targetTime = Math.min(Math.max(time, 0), video.duration || time);
-    if (Math.abs(video.currentTime - targetTime) < 0.004 && video.readyState >= 2) {
-      resolve();
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error("Video seek timed out in this browser."));
-    }, 15000);
-
-    const cleanup = () => {
-      window.clearTimeout(timeout);
-      video.removeEventListener("seeked", handleSeeked);
-      video.removeEventListener("error", handleError);
-    };
-
-    const handleSeeked = () => {
-      cleanup();
-      resolve();
-    };
-
-    const handleError = () => {
-      cleanup();
-      reject(new Error("Could not seek this video in the browser."));
-    };
-
-    video.addEventListener("seeked", handleSeeked);
-    video.addEventListener("error", handleError);
-    video.currentTime = targetTime;
+    const cleanup = () => { clearTimeout(timer); video.removeEventListener("loadeddata", loaded); video.removeEventListener("error", failed); signal?.removeEventListener("abort", aborted); };
+    const loaded = () => { cleanup(); resolve(); };
+    const failed = () => { cleanup(); reject(new Error("This browser could not decode the selected video.")); };
+    const aborted = () => { cleanup(); reject(new DOMException("Processing cancelled", "AbortError")); };
+    const timer = setTimeout(() => { cleanup(); reject(new Error("Video loading timed out.")); }, 15000);
+    video.addEventListener("loadeddata", loaded); video.addEventListener("error", failed);
+    signal?.addEventListener("abort", aborted, { once: true });
+    if (signal?.aborted) aborted();
+    else if (video.readyState >= 2) loaded();
   });
-}
-
-function wait(ms: number) {
-  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
-}
-
-function getCanvasTrack(stream: MediaStream) {
-  return stream.getVideoTracks()[0] as (MediaStreamTrack & { requestFrame?: () => void }) | undefined;
 }
 
 export async function renderVideoToWebMLocally(file: File, options: LocalVideoOptions): Promise<LocalVideoResult> {
-  if (!("MediaRecorder" in window)) {
-    throw new Error("MediaRecorder is not available in this browser.");
-  }
-
-  const mimeType = bestMimeType();
-  if (!mimeType) {
-    throw new Error("This browser cannot export WEBM video locally.");
-  }
-
-  const { video, url } = await loadVideo(file);
-  if (!Number.isFinite(video.duration) || video.duration <= 0 || !video.videoWidth || !video.videoHeight) {
-    URL.revokeObjectURL(url);
-    throw new Error("This video has no finite duration or decodable dimensions.");
-  }
-  const output = fitWithin(video.videoWidth, video.videoHeight, options.resolution);
-  const canvas = document.createElement("canvas");
-  canvas.width = output.width;
-  canvas.height = output.height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    URL.revokeObjectURL(url);
-    throw new Error("Canvas is not available in this browser.");
-  }
-
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-
-  const fps = options.fps || 24;
-  const stream = canvas.captureStream(fps);
-  const canvasTrack = getCanvasTrack(stream);
-  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 });
-  const chunks: Blob[] = [];
-
-  recorder.ondataavailable = (event) => {
-    if (event.data.size > 0) chunks.push(event.data);
-  };
-
-  const finished = new Promise<Blob>((resolve, reject) => {
-    recorder.onerror = () => reject(new Error("Local video encoding failed."));
-    recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
-  });
-
-  const drawFrame = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    options.transform?.(ctx, { x: canvas.width / video.videoWidth, y: canvas.height / video.videoHeight });
-    canvasTrack?.requestFrame?.();
-  };
-
+  options.signal?.throwIfAborted();
+  if (!("MediaRecorder" in window)) throw new Error("MediaRecorder is not available in this browser.");
+  const includeAudio = options.includeAudio !== false;
+  const candidates = includeAudio ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"] : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+  const mimeType = candidates.find(type => MediaRecorder.isTypeSupported(type));
+  if (!mimeType) throw new Error("This browser cannot export WebM video locally.");
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.playsInline = true; video.preload = "auto"; video.muted = !includeAudio;
+  let audio: AudioContext | undefined;
+  let source: MediaElementAudioSourceNode | undefined;
+  let stream: MediaStream | undefined;
+  let recorder: MediaRecorder | undefined;
+  let interval: ReturnType<typeof setInterval> | undefined;
   try {
-    video.pause();
-    await seekVideo(video, 0);
-    recorder.start(1000);
-
-    const duration = video.duration || 0;
-    const frameDurationMs = 1000 / fps;
-    const frameCount = Math.max(1, Math.ceil(duration * fps));
-
-    for (let frame = 0; frame < frameCount; frame += 1) {
-      const timestamp = Math.min(frame / fps, Math.max(0, duration - 0.001));
-      await seekVideo(video, timestamp);
-      drawFrame();
-      options.onProgress?.(Math.min(99, Math.round(((frame + 1) / frameCount) * 100)));
-      await wait(frameDurationMs);
+    // Resume during the click gesture, before asynchronous video loading.
+    if (includeAudio) { audio = new AudioContext(); await audio.resume(); }
+    options.signal?.throwIfAborted();
+    video.src = url;
+    await loadVideo(video, options.signal);
+    if (!Number.isFinite(video.duration) || video.duration <= 0 || !video.videoWidth || !video.videoHeight) throw new Error("This video has no finite duration or decodable dimensions.");
+    const output = fitWithin(video.videoWidth, video.videoHeight, options.resolution);
+    const canvas = document.createElement("canvas"); canvas.width = output.width; canvas.height = output.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas is not available in this browser.");
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    const fps = options.fps || 24;
+    stream = canvas.captureStream(fps);
+    if (audio) {
+      source = audio.createMediaElementSource(video);
+      const destination = audio.createMediaStreamDestination();
+      source.connect(destination); // Record locally; never route to speakers/microphone.
+      destination.stream.getAudioTracks().forEach(track => stream!.addTrack(track));
     }
-
+    const draw = () => {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      options.transform?.(ctx, { x: canvas.width / video.videoWidth, y: canvas.height / video.videoHeight });
+      options.onProgress?.(Math.min(99, Math.round(video.currentTime / video.duration * 100)));
+    };
+    draw();
+    recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000, audioBitsPerSecond: 128_000 });
+    const chunks: Blob[] = [];
+    let encodedBytes = 0;
+    const finished = new Promise<Blob>((resolve, reject) => {
+      recorder!.ondataavailable = event => {
+        if (event.data.size) { chunks.push(event.data); encodedBytes += event.data.size; }
+        if (encodedBytes > 256 * 1024 * 1024) { reject(new Error("Video export exceeded 256 MB. Use a shorter or lower-resolution clip.")); video.dispatchEvent(new Event("error")); }
+      };
+      recorder!.onerror = () => { reject(new Error("Local video encoding failed.")); video.dispatchEvent(new Event("error")); };
+      recorder!.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+    });
+    void finished.catch(() => {}); // Playback failure can occur before awaiting encoder completion.
+    recorder.start(250);
+    interval = setInterval(draw, 1000 / fps);
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => { clearTimeout(timer); video.removeEventListener("ended", ended); video.removeEventListener("error", failed); options.signal?.removeEventListener("abort", aborted); };
+      const ended = () => { cleanup(); resolve(); };
+      const failed = () => { cleanup(); reject(new Error("Video playback or encoding failed. No partial export was saved.")); };
+      const aborted = () => { cleanup(); reject(new DOMException("Processing cancelled", "AbortError")); };
+      const timer = setTimeout(() => { cleanup(); reject(new Error("Video rendering timed out. Keep the tab visible and try a shorter clip.")); }, video.duration * 3000 + 15000);
+      video.addEventListener("ended", ended); video.addEventListener("error", failed);
+      options.signal?.addEventListener("abort", aborted, { once: true });
+      if (options.signal?.aborted) aborted();
+      else void video.play().catch(error => { cleanup(); reject(error); });
+    });
+    clearInterval(interval); draw(); options.signal?.throwIfAborted();
     recorder.stop();
     const blob = await finished;
+    options.signal?.throwIfAborted();
+    if (!blob.size) throw new Error("The encoder returned an empty video.");
     options.onProgress?.(100);
-    return {
-      blob,
-      filename: `${safeBaseName(file.name)}-${options.resolution === "original" ? "local" : options.resolution}.webm`,
-    };
+    return { blob, filename: `${safeBaseName(file.name)}-${options.resolution === "original" ? "local" : options.resolution}.webm` };
   } finally {
-    if (recorder.state !== "inactive") recorder.stop();
-    video.pause();
-    video.removeAttribute("src");
-    video.load();
-    stream.getTracks().forEach((track) => track.stop());
-    URL.revokeObjectURL(url);
+    clearInterval(interval);
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+    video.pause(); source?.disconnect();
+    stream?.getTracks().forEach(track => track.stop());
+    if (audio && audio.state !== "closed") await audio.close();
+    video.removeAttribute("src"); video.load(); URL.revokeObjectURL(url);
   }
 }
 

@@ -60,7 +60,7 @@ export default function PngToFaviconPage() {
   };
 
   return (
-    <ToolLayout
+    <ToolLayout dirty={Boolean(file)}
       title="Favicon builder"
       description="Generate favicon PNG sizes, ICO, Apple touch icon, manifest, and ZIP locally in your browser."
     >

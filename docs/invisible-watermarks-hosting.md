@@ -1,5 +1,7 @@
 # Invisible SynthID: hosted processing preparation
 
+> Historical hosted alternatives. The selected 0.3.0 path is the [local NVIDIA companion](invisible-watermarks-local.md), with an opt-in web/desktop connection. No hosted GPU resources or paid accounts were provisioned.
+
 8 November 2026. **Status: preparation only; no cloud resources, accounts, paid plans or GPU jobs created.** The live Vercel app and published Android 0.2.0 remain unchanged. Invisible removal is not enabled in the app.
 
 **Direction updated:** the owner chose local computer GPUs and identified a Windows RTX 3050 with 4 GB VRAM. Use the [local GPU check and trial guide](invisible-watermarks-local.md) first. The hosted choices below remain an alternative only; provisioning and spend are not authorized by this plan.

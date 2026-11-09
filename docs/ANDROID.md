@@ -4,11 +4,11 @@ MediaForge's Android app bundles a static build of the existing workbench. It ru
 
 ## Install and use
 
-Download the APK and checksums from the [Android 0.2.0 release](https://github.com/Gurtejhundal/MediaForge/releases/tag/android-v0.2.0). Open the APK in your browser or file manager and approve installation from that app if Android asks. This is a sideload preview using a development certificate, not a Play Store package or a promise of seamless future updates.
+Download the APK and checksums from the [Android 0.3.0 release](https://github.com/Gurtejhundal/MediaForge/releases/tag/android-v0.3.0). Open the APK in your browser or file manager and approve installation from that app if Android asks. This is a directly distributed APK with a retained signing certificate, not a Play Store listing. Upgrading from the old 0.2.0 preview requires one uninstall/reinstall; save exports first because uninstall clears private counters/preferences.
 
 Choose a file in a tool. Android's file picker grants access only to that selection. After processing, Save opens Android's destination picker. Choose Downloads or another writable location. Cancelling retains the result in the open tool and does not count as an export. Exports are limited to 256 MB. Saved files are ordinary files, independent of MediaForge's app storage.
 
-Back returns through workbench navigation and exits at the root. Rotation and keyboard/system-bar insets are handled by the shell. Inputs, previews and conversion drafts are memory-only: navigating away, process termination, restart or an out-of-memory recovery can discard them. Keep originals and saved results separately. Only optional activity counters persist in private WebView storage. Uninstalling clears that storage. Automatic Android backup is disabled.
+Back returns through workbench navigation and exits at the root. Rotation and keyboard/system-bar insets are handled by the shell. Inputs, previews and conversion drafts are memory-only: navigating away, process termination, restart or an out-of-memory recovery can discard them. Keep originals and saved results separately. Activity counters and selected processing preferences persist in private WebView storage. Working-file warnings cover internal navigation and Android Back but cannot survive OS termination. Uninstalling clears that storage. Automatic Android backup is disabled.
 
 Core image/QR/data/PDF processing can work offline. Background-removal models and OCR runtimes may fetch HTTPS assets on first use. Audio/video decoding and recording depend on your WebView/device codecs and available memory; large files work better on desktop. URL downloading needs the web server, so Android links to the web tool in your browser. Feedback is prepared as a GitHub issue for you to review and submit externally; no reports are sent automatically.
 
@@ -24,7 +24,7 @@ npm run android:apk
 
 `android:web` copies source into ignored `work/android-web/`, excludes server API routes and the desktop proxy, then builds Next's static export. It never renames or removes source routes in your checkout, and never copies environment files. The normal web and Electron builds remain independent. The generated bundle and dependency notices are copied into Android assets.
 
-Open `android/` in Android Studio for device development. `assembleDebug` allows renderer debugging locally; the distributed `preview` variant disables it and uses Gradle's local development signing key. Do not commit keys. Before a durable production release, the owner must retain a private signing key and configure protected CI signing secrets; replacing a certificate generally requires uninstalling the old app, clearing its private activity data. The preview does not include an updater.
+Open `android/` in Android Studio for device development. `assembleDebug` allows renderer debugging locally; the distributed `preview` variant disables it and uses a temporary local development key for independent verification unless release credentials are supplied. Published 0.3.0 uses a retained release certificate with an owner-encrypted backup. Upgrading from the old 0.2.0 certificate requires one uninstall/reinstall; save exports first. Future releases must reuse the retained key through protected CI secrets. Do not commit keys. [Signing and backup procedure](releasing.md#android-signing-and-upgrades). Updates open the release page; installation is manual.
 
 ## Verification
 
@@ -40,7 +40,7 @@ cd ..
 bash scripts/test-android.sh
 ```
 
-The workflow also reruns the browser suite before Android verification. Release publication downloads its draft APK and corresponding source archive again and checks their SHA-256 hashes before making the independent Android tag public. Desktop 0.2.0 assets and its latest-release status are preserved.
+The workflow also reruns the browser suite before Android verification. Release publication downloads its draft APK and corresponding source archive again and checks their SHA-256 hashes before making the independent Android tag public. Older release assets remain immutable; the separate Android tag does not replace the desktop latest release.
 
 ## Security and troubleshooting
 
@@ -56,6 +56,8 @@ AGPL application source is linked in the footer at the matching Android tag. Ful
 
 ## Watermarks and batches
 
-Conversion, resizing and compression include a Multiple files view. The local queue processes sequentially, retains per-file failures, supports stopping after the current file and saves finished outputs as a ZIP with a JSON report. Duplicate input names receive distinct indexed ZIP filenames. Native Android exports still use the system Save dialog, including ZIPs. Existing PDF merge and audio merge already accept multiple files. Video tools remain single-file to avoid unbounded simultaneous recording and decoding on phones.
+Conversion, resizing and compression include a Multiple files view. The local queue processes sequentially, retains per-file failures, supports stopping after the current file, resuming queued files and retrying failures with the original settings, and saves finished outputs as a ZIP with a JSON report. Duplicate input names receive distinct indexed ZIP filenames. Native Android exports still use the system Save dialog, including ZIPs. Existing PDF merge and audio merge already accept multiple files. Video tools remain single-file to avoid unbounded simultaneous recording and decoding on phones.
 
 The visible watermark cropper can trim an edge containing a logo, including the Gemini sparkle. It previews a cropped PNG and preserves the original. This changes composition and does not restore covered pixels. It is not a verified invisible SynthID remover: no detection/removal claim is made. Google describes SynthID as a pixel-embedded watermark designed to survive many edits; [official explanation](https://deepmind.google/models/synthid/).
+
+The optional NVIDIA companion is intentionally hidden on Android: this CUDA pipeline does not run in Android WebView. Ordinary tools need no NVIDIA hardware. Video exports retain audio by default with optional mute, subject to the actual device codecs; desktop Chromium tests do not certify all phone codecs.
