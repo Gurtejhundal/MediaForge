@@ -25,7 +25,7 @@ The HTTPS app also connected to the real loopback companion with standard local-
 
 A real CPU background-model run returned a 512 × 512 PNG with alpha extrema 0–255. A real English OCR run returned a three-page searchable PDF with the expected fixture text on all three pages. These checks do not certify every image or OCR layout. README captures use synthetic inputs and real tool operations; the four GIFs have static reduced-motion alternatives.
 
-All seven desktop binaries, the APK and both source archives were independently downloaded and compared with GitHub's SHA-256 digests and each release's global checksum manifest. Matching source archives include the release commit's 272 tracked files and the bundled IMG.LY original-source maps. The Windows Gradle wrapper receives its declared CRLF conversion from `.gitattributes`; all other tracked bytes match directly. Private signing keys/passwords are absent from source archives.
+All 20 public assets were independently downloaded and compared with GitHub's SHA-256 digests. The seven desktop binaries, APK and both source archives also match each release's global checksum manifest. Matching source archives include the release commit's 272 tracked files and the bundled IMG.LY original-source maps. The Windows Gradle wrapper receives its declared CRLF conversion from `.gitattributes`; all other tracked bytes match directly. Private signing keys/passwords are absent from source archives.
 
 Android APK signing-certificate SHA-256:
 

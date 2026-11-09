@@ -35,7 +35,7 @@ Resize an image. Organize a PDF. Cut a sound. Make a QR code.<br>
       <h3><img src="docs/readme/os/android.svg" width="24" height="24" alt=""> &nbsp; Android</h3>
       <p>The little file jobs. Now in your pocket.</p>
       <p><a href="https://github.com/Gurtejhundal/MediaForge/releases/download/android-v0.3.0/MediaForge-0.3.0-android.apk"><b>↓ Download APK</b></a></p>
-      <sub>Android 8+ · Updated WebView · Direct APK · Current WebView</sub>
+      <sub>Android 8+ · Current WebView · Direct APK</sub>
     </td>
     <td width="50%" valign="top">
       <h3><img src="docs/readme/os/windows.svg" width="24" height="24" alt=""> &nbsp; Windows</h3>
