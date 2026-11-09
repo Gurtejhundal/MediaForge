@@ -10,6 +10,24 @@ concurrency:
   group: web-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  hold-superseded-android:
+    name: Hold the superseded unpublished Android candidate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Stop only the identified pre-fix Android run; preserve all releases
+        run: |
+          gh api repos/$GH_REPO/actions/runs/42552891671 > old-run.json
+          node -e 'const r=require("./old-run.json");if(r.head_sha!=="5944002399aae85a811709904495ff63b0abdc57" || r.head_branch!=="main")throw Error("Unexpected run identity")'
+          if node -e 'process.exit(require("./old-run.json").status==="completed"?1:0)'; then
+            gh api -X POST repos/$GH_REPO/actions/runs/42552891671/cancel
+          fi
   web:
     runs-on: ubuntu-24.04
     steps:
